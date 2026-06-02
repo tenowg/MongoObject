@@ -143,3 +143,7 @@ _ReSharper*/
 *.sln.docstates
 *.md.html
 node_modules/
+/Progress/Progress.csproj
+/Progress/AObject.cs
+/Progress/App.cs
+/Progress/Program.cs
