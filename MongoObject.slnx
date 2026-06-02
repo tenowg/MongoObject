@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="MongoObject.Core/MongoObject.Core.csproj" />
+  <Project Path="MongoObject.SourceGenerator/MongoObject.SourceGenerator.csproj" />
+  <Project Path="Progress/Progress.csproj" Id="4f88e210-ce1f-460a-bdc1-b8d265eb5345" />
+</Solution>

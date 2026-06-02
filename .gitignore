@@ -1,0 +1,145 @@
+# ===========================================
+# .gitignore for MongoObject (.NET 10 Project)
+# ===========================================
+
+# ---------------------------
+# .NET Build Outputs
+# ---------------------------
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Ll]og/
+[Ll]ogs/
+
+# ---------------------------
+# NuGet Packages
+# ---------------------------
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+
+# ---------------------------
+# Visual Studio IDE Files
+# ---------------------------
+.vs/
+*.user
+*.userosscache
+*.suo
+*.cache
+*.ilk
+*.log
+*.lib
+*.sbr
+*.dbmdl
+*.dbproj.schemaview
+*.jfm
+*.pfx
+*.publishsettings
+orleans.codegen.cs
+
+# Publish profiles
+*.pubxml
+*.publishproj
+
+# ---------------------------
+# JetBrains Rider
+# ---------------------------
+.idea/
+*.sln.iml
+
+# ---------------------------
+# VS Code
+# ---------------------------
+.vscode/
+*.code-workspace
+
+# ---------------------------
+# Build Results
+# ---------------------------
+[Dd]ebugPublic/
+[Rr]eleases/
+build/
+artifacts/
+TestResults/
+
+# ---------------------------
+# Source Generator Generated Files
+# ---------------------------
+# Note: Generated files are typically not committed
+# Uncomment if you want to track them
+# *.g.cs
+# *.generated.cs
+
+# ---------------------------
+# DocFX (Documentation)
+# ---------------------------
+Docs/_site/
+Docs/.log/
+Docs/api/*.yml
+!Docs/api/index.md
+
+# ---------------------------
+# OS Generated Files
+# ---------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ---------------------------
+# User-Specific Files
+# ---------------------------
+*.rsuser
+*.DotSettings.user
+launchSettings.json
+
+# ---------------------------
+# Temporary Files
+# ---------------------------
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# ---------------------------
+# Environment Files
+# ---------------------------
+.env
+.env.local
+.env.*.local
+appsettings.*.local.json
+
+# ---------------------------
+# MinVer / Versioning
+# ---------------------------
+# Keep version files if using MinVer
+# Uncomment to ignore custom version files
+# version.json
+
+# ---------------------------
+# Misc
+# ---------------------------
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.resharper
+*.DotSettings
+*.sln.docstates
+*.md.html
+node_modules/
