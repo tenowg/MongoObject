@@ -1,0 +1,70 @@
+# ===========================================
+# .gitattributes for MongoObject
+# ===========================================
+
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# ---------------------------
+# Source Code Files
+# ---------------------------
+*.cs text diff=csharp
+*.csx text diff=csharp
+*.vb text
+*.fs text
+*.fsx text
+
+# ---------------------------
+# Project/Solution Files
+# ---------------------------
+*.sln text eol=crlf
+*.slnx text eol=lf
+*.csproj text
+*.fsproj text
+*.vbproj text
+*.props text
+*.targets text
+
+# ---------------------------
+# Configuration Files
+# ---------------------------
+*.json text
+*.xml text
+*.config text
+*.yml text
+*.yaml text
+
+# ---------------------------
+# Documentation
+# ---------------------------
+*.md text diff=markdown
+*.txt text
+*.html text
+*.css text
+*.js text
+
+# ---------------------------
+# Shell Scripts
+# ---------------------------
+*.sh text eol=lf
+*.bash text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# ---------------------------
+# Binary Files
+# ---------------------------
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text
+*.pdf binary
+*.zip binary
+*.nupkg binary
+*.snupkg binary
+*.dll binary
+*.exe binary
+*.pdb binary
