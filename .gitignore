@@ -143,6 +143,5 @@ _ReSharper*/
 *.sln.docstates
 *.md.html
 node_modules/
-/Progress/*
 .clineignore
 /.clinerules/*
