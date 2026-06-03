@@ -84,5 +84,23 @@ namespace MongoObject.Core.Services
         {
             return await documentManager.MetadataSearch(metadata);
         }
+
+        async Task<IEnumerable<TDocument>> IDocumentMonitorInternal<TDocument>.CombinedSearch<TClassSearch, TMetaSearch>(
+            Action<TClassSearch>? query, Action<TMetaSearch>? meta, int limit, int skip)
+        {
+            return await documentManager.CombinedSearch<TClassSearch, TMetaSearch>(query, meta, limit, skip);
+        }
+
+        async Task<IEnumerable<TProjection>> IDocumentMonitorInternal<TDocument>.SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(
+            Action<TClassSearch>? query, Action<TMetaSearch>? meta, int limit, int skip)
+        {
+            return await documentManager.SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(query, meta, limit, skip);
+        }
+
+        async Task<long> IDocumentMonitorInternal<TDocument>.DeleteMany<TClassSearch, TMetaSearch>(
+            Action<TClassSearch>? query, Action<TMetaSearch>? meta)
+        {
+            return await documentManager.DeleteMany<TClassSearch, TMetaSearch>(query, meta);
+        }
     }
 }

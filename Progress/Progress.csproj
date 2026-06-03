@@ -10,4 +10,7 @@
 		<ProjectReference Include="..\MongoObject.Core\MongoObject.Core.csproj" />
 		<ProjectReference Include="..\MongoObject.SourceGenerator\MongoObject.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
+	<PropertyGroup>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
 </Project>

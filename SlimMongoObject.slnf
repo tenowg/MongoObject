@@ -1,0 +1,9 @@
+{
+  "solution": {
+    "path": "MongoObject.slnx",
+    "projects": [
+      "MongoObject.Core\\MongoObject.Core.csproj",
+      "MongoObject.SourceGenerator\\MongoObject.SourceGenerator.csproj"
+    ]
+  }
+}

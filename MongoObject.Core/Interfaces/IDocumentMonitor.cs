@@ -19,5 +19,20 @@ namespace MongoObject.Core.Interfaces
         Task<string> Add<TMetaSearch>(TDocument document, Action<TMetaSearch>? metadata) where TMetaSearch : class, IMetadataBase, new();
         Task<IEnumerable<TDocument>> DocumentSearch<TClassSearch>(Action<TClassSearch> metadata) where TClassSearch : class, IClassSearch<TDocument>, new();
         Task<IEnumerable<TDocument>> MetadataSearch<TMetaSearch>(Action<TMetaSearch> metadata) where TMetaSearch : class, IMetadataSearchBase, new();
+        
+        // Builder support methods
+        Task<IEnumerable<TDocument>> CombinedSearch<TClassSearch, TMetaSearch>(Action<TClassSearch>? query, Action<TMetaSearch>? meta, int limit = 0, int skip = 0) 
+            where TClassSearch : class, IClassSearch<TDocument>, new()
+            where TMetaSearch : class, IMetadataSearchBase, new();
+        
+        Task<IEnumerable<TProjection>> SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(
+            Action<TClassSearch>? query, Action<TMetaSearch>? meta, int limit = 0, int skip = 0) 
+            where TClassSearch : class, IClassSearch<TDocument>, new()
+            where TMetaSearch : class, IMetadataSearchBase, new()
+            where TProjection : class, IProjectionBase<TDocument, TProjection>, new();
+        
+        Task<long> DeleteMany<TClassSearch, TMetaSearch>(Action<TClassSearch>? query, Action<TMetaSearch>? meta)
+            where TClassSearch : class, IClassSearch<TDocument>, new()
+            where TMetaSearch : class, IMetadataSearchBase, new();
     }
 }

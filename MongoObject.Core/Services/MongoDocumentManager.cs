@@ -113,6 +113,122 @@ namespace MongoObject.Core.Services
             return results;
         }
 
+        public async Task<IEnumerable<T>> CombinedSearch<TClassSearch, TMetaSearch>(Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, int limit = 0, int skip = 0)
+            where TClassSearch : class, IClassSearch<T>, new()
+            where TMetaSearch : class, IMetadataSearchBase, new()
+        {
+            var builder = Builders<MongoDocument<T>>.Filter;
+            var filters = new List<FilterDefinition<MongoDocument<T>>>();
+
+            if (queryAction != null)
+            {
+                var queryFilter = new TClassSearch();
+                queryAction.Invoke(queryFilter);
+                filters.Add(queryFilter.ToMongoFilter());
+            }
+
+            if (metaAction != null)
+            {
+                var metaFilter = new TMetaSearch();
+                metaAction.Invoke(metaFilter);
+                filters.Add(metaFilter.ToMongoFilter<T>());
+            }
+
+            var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
+
+            var collection = connection.Collection;
+            var results = collection.Find(combinedFilter)
+                .Limit(limit)
+                .Skip(skip);
+            var items = await results.ToListAsync();
+
+            List<T> result = new List<T>();
+
+            foreach (var item in items)
+            {
+                if (item.Document == null) continue;
+                var key = keyManager.SetKey(item);
+                cache.Add(key, item, cacheOptions);
+                result.Add(item.Document);
+                if (item.Document is IDocumentFileInternal internalDocument)
+                {
+                    internalDocument.TrackChanges();
+                }
+            }
+
+            return result;
+        }
+
+        public async Task<IEnumerable<TProjection>> SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(
+            Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, int limit = 0, int skip = 0)
+            where TClassSearch : class, IClassSearch<T>, new()
+            where TMetaSearch : class, IMetadataSearchBase, new()
+            where TProjection : class, IProjectionBase<T, TProjection>, new()
+        {
+            var builder = Builders<MongoDocument<T>>.Filter;
+            var filters = new List<FilterDefinition<MongoDocument<T>>>();
+
+            if (queryAction != null)
+            {
+                var queryFilter = new TClassSearch();
+                queryAction.Invoke(queryFilter);
+                filters.Add(queryFilter.ToMongoFilter());
+            }
+
+            if (metaAction != null)
+            {
+                var metaFilter = new TMetaSearch();
+                metaAction.Invoke(metaFilter);
+                filters.Add(metaFilter.ToMongoFilter<T>());
+            }
+
+            var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
+
+            var collection = connection.Collection;
+            
+            // Create projection instance to get the projection definition
+            var projectionInstance = new TProjection();
+            var projectionDefinition = projectionInstance.ToMongoProjection();
+
+            var results = await collection.Find(combinedFilter)
+                .Project(projectionDefinition)
+                .Skip(skip)
+                .Limit(limit)
+                .ToListAsync();
+
+            // Cast results to TProjection - the projection expression creates TProjection instances
+            return results.Cast<TProjection>();
+        }
+
+        public async Task<long> DeleteMany<TClassSearch, TMetaSearch>(Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction)
+            where TClassSearch : class, IClassSearch<T>, new()
+            where TMetaSearch : class, IMetadataSearchBase, new()
+        {
+            var builder = Builders<MongoDocument<T>>.Filter;
+            var filters = new List<FilterDefinition<MongoDocument<T>>>();
+
+            if (queryAction != null)
+            {
+                var queryFilter = new TClassSearch();
+                queryAction.Invoke(queryFilter);
+                filters.Add(queryFilter.ToMongoFilter());
+            }
+
+            if (metaAction != null)
+            {
+                var metaFilter = new TMetaSearch();
+                metaAction.Invoke(metaFilter);
+                filters.Add(metaFilter.ToMongoFilter<T>());
+            }
+
+            var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
+
+            var collection = connection.Collection;
+            var result = await collection.DeleteManyAsync(combinedFilter);
+
+            return result.DeletedCount;
+        }
+
         public async Task<T?> GetDocument(string key)
         {
             // firat see if document is in cache

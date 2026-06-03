@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="MongoObject.Core/MongoObject.Core.csproj" />
   <Project Path="MongoObject.SourceGenerator/MongoObject.SourceGenerator.csproj" />
-  <Project Path="Progress/Progress.csproj" Id="4f88e210-ce1f-460a-bdc1-b8d265eb5345" />
+  <Project Path="MongoObject.Tests/MongoObject.Tests.csproj" Id="c4b940ba-6b8f-4aaa-9fbf-fefaf486ca5d" Build="Debug|Any CPU" />
+  <Project Path="Progress/Progress.csproj" Id="4f88e210-ce1f-460a-bdc1-b8d265eb5345" Build="Debug|Any CPU" />
 </Solution>

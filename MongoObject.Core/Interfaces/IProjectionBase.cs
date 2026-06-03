@@ -11,8 +11,8 @@ namespace MongoObject.Core.Interfaces
         
     }
 
-    public interface IProjectionBase<T> : IProjectionBase where T : class, IDocumentFile, new ()
+    public interface IProjectionBase<T, U> : IProjectionBase where T : class, IDocumentFile, new () where U : class, IProjectionBase<T, U>, new ()
     {
-        ProjectionDefinition<MongoDocument<T>> ToMongoProjection(string prefix = "");
+        ProjectionDefinition<MongoDocument<T>, U> ToMongoProjection(string prefix = "");
     }
 }

@@ -58,4 +58,7 @@
 	  <Folder Include="Docs\Articles\" />
 	  <Folder Include="Generator\" />
 	</ItemGroup>
+	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
+		<InternalsVisibleTo Include="MongoObject.Tests" />
+	</ItemGroup>
 </Project>

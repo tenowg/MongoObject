@@ -19,7 +19,10 @@ namespace MongoObject.SourceGenerator.Generators
             new MongoObjectModule(),
             new DocumentSearchModule(),
             new ExtensionModule(),
-            //new ProjectionModule()
+            new ProjectionModule(),
+            new SearchBuilderModule(),
+            new AddBuilderModule(),
+            new DeleteManyBuilderModule()
         ];
 
         private static readonly ICodeModuleMultiple[] _modulesMultiple =

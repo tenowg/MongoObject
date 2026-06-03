@@ -15,7 +15,7 @@ namespace MongoObject.SourceGenerator.Modules
         public void Execute(SourceProductionContext context, (CommonModel model, Compilation comp) provider)
         {
             var model = provider.model;
-            var sb = new StringBuilder(4096);
+            var sb = new StringBuilder(8192);
 
             sb.AppendLine("// auto-generated");
             sb.AppendLine($"namespace {model.Namespace}");
@@ -29,8 +29,13 @@ namespace MongoObject.SourceGenerator.Modules
             // DocumentSearch extension
             GenerateDocumentSearchExtension(sb, model);
 
-            // Add extension
+            // Add extension (original)
             GenerateAddExtension(sb, model);
+
+            // Builder entry point extensions
+            GenerateSearchExtension(sb, model);
+            GenerateAddBuilderExtension(sb, model);
+            GenerateDeleteManyExtension(sb, model);
 
             sb.AppendLine("    }");
             sb.AppendLine("}");
@@ -83,6 +88,46 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"                return await internalMonitor.Add<global::{model.Namespace}.{model.Metadata.Name}Record>(document, configure);");
             sb.AppendLine("            }");
             sb.AppendLine("            return \"Not Found\";");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+        }
+
+        private static void GenerateSearchExtension(StringBuilder sb, CommonModel model)
+        {
+            sb.AppendLine("        /// <summary>");
+            sb.AppendLine($"        /// Creates a fluent search builder for {model.Name} documents.");
+            sb.AppendLine("        /// </summary>");
+            sb.AppendLine($"        public static global::{model.Namespace}.{model.Name}SearchBuilder Search(");
+            sb.AppendLine($"            this global::MongoObject.Core.Interfaces.IDocumentMonitor<global::{model.Namespace}.{model.Name}> monitor)");
+            sb.AppendLine("        {");
+            sb.AppendLine($"            return new global::{model.Namespace}.{model.Name}SearchBuilder(monitor);");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+        }
+
+        private static void GenerateAddBuilderExtension(StringBuilder sb, CommonModel model)
+        {
+            sb.AppendLine("        /// <summary>");
+            sb.AppendLine($"        /// Creates a fluent add builder for {model.Name} documents.");
+            sb.AppendLine("        /// </summary>");
+            sb.AppendLine($"        public static global::{model.Namespace}.{model.Name}AddBuilder AddBuilder(");
+            sb.AppendLine($"            this global::MongoObject.Core.Interfaces.IDocumentMonitor<global::{model.Namespace}.{model.Name}> monitor,");
+            sb.AppendLine($"            global::{model.Namespace}.{model.Name} document)");
+            sb.AppendLine("        {");
+            sb.AppendLine($"            return new global::{model.Namespace}.{model.Name}AddBuilder(monitor, document);");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+        }
+
+        private static void GenerateDeleteManyExtension(StringBuilder sb, CommonModel model)
+        {
+            sb.AppendLine("        /// <summary>");
+            sb.AppendLine($"        /// Creates a fluent delete many builder for {model.Name} documents.");
+            sb.AppendLine("        /// </summary>");
+            sb.AppendLine($"        public static global::{model.Namespace}.{model.Name}DeleteManyBuilder DeleteMany(");
+            sb.AppendLine($"            this global::MongoObject.Core.Interfaces.IDocumentMonitor<global::{model.Namespace}.{model.Name}> monitor)");
+            sb.AppendLine("        {");
+            sb.AppendLine($"            return new global::{model.Namespace}.{model.Name}DeleteManyBuilder(monitor);");
             sb.AppendLine("        }");
         }
     }
