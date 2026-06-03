@@ -176,6 +176,7 @@ public class MongoDocument<T>
 
 ## Documentation
 
+[![Build and Deploy Documentation](https://github.com/tenowg/MongoObject/actions/workflows/docs.yml/badge.svg)](https://github.com/tenowg/MongoObject/actions/workflows/docs.yml)
 Full documentation is available at **[https://tenowg.github.io/MongoObjects](https://tenowg.github.io/MongoObjects)**
 
 ### Articles
