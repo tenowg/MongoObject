@@ -115,6 +115,8 @@ public class Address
 }
 ```
 
+NOTE: You can decorate the `Address` class as a `[MongoObject]` this will add the `TrackingObservableObject` but it will also allow you to save it seperately if you so choose. Currently this is the recommended path.
+
 ---
 
 ## Property Name Changes
@@ -130,6 +132,8 @@ public partial class User
 ```
 
 This allows MongoObject to read documents with the old property name while writing with the new name.
+
+NOTE: This is still in developement and isn't in a working state yet
 
 ---
 

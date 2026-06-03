@@ -29,7 +29,9 @@ services.AddMongoObject(options => { ... })
     .RegisterDocumentsFromAssembly();  // Register all [MongoObject] classes in the assembly
 ```
 
-Or register specific documents:
+NOTE: `FromAssembly` refers to the name of you Assembly. e.g. If your project is named Progress, then the full name is `.RegisterDocumentsProgress`
+
+Or register specific documents (Highly un-recommended, use the code gened Extension):
 
 ```csharp
 services.AddMongoObject(options => { ... })
@@ -83,9 +85,8 @@ services.AddMongoObject(options => { ... })
 
 This scans the assembly for all classes with `[MongoObject]` and registers:
 - `IDocumentMonitor<T>` for each document type
-- `IDocumentMonitorInternal<T>` for advanced operations
 
-### Register Specific Documents
+### Register Specific Documents(not recommended)
 
 ```csharp
 services.AddMongoObject(options => { ... })
@@ -147,27 +148,6 @@ public class UserService
     public async Task<User> GetUser(string id) => await _monitor.Get(id);
     public async Task<string> CreateUser(User user) => await _monitor.Add(user);
     public async Task UpdateUser(User user) => await _monitor.SaveChanges(user);
-}
-```
-
-### Inject IDocumentMonitorInternal<T>
-
-For advanced operations like search:
-
-```csharp
-public class UserSearchService
-{
-    private readonly IDocumentMonitorInternal<User> _monitor;
-
-    public UserSearchService(IDocumentMonitorInternal<User> monitor)
-    {
-        _monitor = monitor;
-    }
-
-    public async Task<IEnumerable<User>> SearchUsers(Action<UserSearch> search)
-    {
-        return await _monitor.DocumentSearch(search);
-    }
 }
 ```
 
@@ -242,9 +222,8 @@ MongoObject services are registered with these lifetimes:
 
 | Service | Lifetime | Description |
 |---------|----------|-------------|
-| `IDocumentMonitor<T>` | Scoped | One per request/scope |
-| `IDocumentMonitorInternal<T>` | Scoped | One per request/scope |
-| `IMongoConnection<T>` | Scoped | MongoDB connection wrapper |
+| `IDocumentMonitor<T>` | Singleton | One per request/scope |
+| `IMongoConnection<T>` | Singleton | MongoDB connection wrapper |
 | `InternalCacheService` | Singleton | Shared cache across requests |
 | `DistributedLockManager` | Singleton | Lock coordination |
 

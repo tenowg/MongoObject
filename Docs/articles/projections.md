@@ -176,10 +176,10 @@ public partial class User
     public partial string Avatar { get; set; }
     
     // Always exclude from public profile
-    [ProjectValue("PublicProfile", ProjectionType.Exclude)]
+    [ProjectValue("PrivateProfile", ProjectionType.Exclude)]
     public partial string Email { get; set; }
     
-    [ProjectValue("PublicProfile", ProjectionType.Exclude)]
+    [ProjectValue("PrivateProfile", ProjectionType.Exclude)]
     public partial string PasswordHash { get; set; }
 }
 ```
@@ -195,6 +195,20 @@ public partial class User
 // ✗ Avoid - generic names
 [ProjectValue("Projection1", ProjectionType.Include)]
 [ProjectValue("Small", ProjectionType.Include)]
+```
+
+### 4. Code Generator Outputs
+Behind the scenes the code generator is generating records for each ProjectValue name:
+  - `public record UserPublicProfile { ... included properties...}`
+  - `public record UserPrivateProfile { ... included properties ...}`
+
+The generator is also building the Query Builders for each Projection so you can use Fluent patterns to build your queries. Returning a `IEnumerable<UserPublicProfile>`
+
+``` csharp
+_monitor.Search()
+    .WithQuery(s => s.Name = "Jane Smith")
+    .WithMeta(m => m.CreatedAt = m.CreatedAt.Lt(DateTime.UtcNow))
+    .WithUerPublicProjection();
 ```
 
 ---
@@ -245,32 +259,35 @@ public partial class BlogPost
 
 public class BlogService
 {
-    // Future implementation
-    public async Task<IEnumerable<BlogPost>> GetPostList()
+    private IDocumentMonitor<BlogPost> _monitor;
+
+    public BlogService(IDocumentMonitor<BlogPost> monitor)
+    {
+        _monitor = monitor;
+    }
+
+    public async Task<IEnumerable<BlogPostList>> GetPostList()
     {
         // Will use "List" projection for efficient data retrieval
-        // return await monitor.GetWithProjection<BlogPost>("List");
-        throw new NotImplementedException("Projection API coming soon");
+        var blogs = await _monitor.Search()
+            .Limit(10)
+            .Skip(10)
+            .WithListProjection();
+
+        return blogs;
     }
     
-    public async Task<BlogPost> GetPostDetail(string id)
+    public async Task<BlogPostDetail> GetPostDetail(string id)
     {
         // Will use "Detail" projection
-        // return await monitor.GetWithProjection<BlogPost>(id, "Detail");
-        throw new NotImplementedException("Projection API coming soon");
+        var blogs = await _monitor.Search()
+            .Limit(10)
+            .Skip(10)
+            .WithDetailProjection();
+        return blogs;
     }
 }
 ```
-
----
-
-## Current Status
-
-> **🚧 Projection Module In Development**
->
-> The projection feature is currently being implemented. The `[ProjectValue]` attribute is available for defining projections, but the runtime API for executing projections is not yet complete.
->
-> Check back for updates in upcoming releases.
 
 ---
 

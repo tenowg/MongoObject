@@ -85,6 +85,17 @@ Timestamp of the last modification:
 }
 ```
 
+### CreatedAt
+
+Timestamp at the time of Creation
+``` javascript
+{ 
+  "Metadata": {
+    "CreatedAt": ISODate("2026-01-15T10:30:00Z")
+  }
+}
+```
+
 ---
 
 ## Generated Metadata Types

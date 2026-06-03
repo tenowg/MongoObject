@@ -163,40 +163,6 @@ Every update automatically includes:
 
 ---
 
-## Manual Change Notification
-
-For complex scenarios where you modify collections in place:
-
-```csharp
-// Modify a collection
-user.Tags.Add("new-tag");
-
-// Force re-evaluation of the collection
-monitor.Change(user);  // Marks the document as having changes
-```
-
----
-
-## Disabling Tracking
-
-You can temporarily disable tracking for bulk operations:
-
-```csharp
-user.SetTracking(false);
-
-// Make many changes without tracking
-user.Name = "New Name";
-user.Email = "new@test.com";
-user.Age = 30;
-
-// Re-enable tracking
-user.SetTracking(true);
-```
-
-> **Note:** Changes made while tracking is disabled won't be detected automatically. You'll need to call `monitor.Change(user)` to mark the document as changed.
-
----
-
 ## Subscribing to Changes
 
 You can subscribe to change notifications:

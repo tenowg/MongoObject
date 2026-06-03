@@ -23,6 +23,7 @@ namespace Progress
             //var first = ttt.FirstOrDefault();
             var nameProjection = await monitor.Search()
                 .WithQuery(f => { f.Name = "CraigR"; f.Age = f.Age.Gt(5); })
+                .WithMeta(f => f.Version = f.Version.Gt(0))
                 .WithLimit(5)
                 .WithNameProjection();
 
