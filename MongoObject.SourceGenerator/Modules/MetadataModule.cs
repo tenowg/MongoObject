@@ -24,6 +24,7 @@ namespace MongoObject.SourceGenerator.Modules
 
             sb.AppendLine("#nullable enable");
             sb.AppendLine("// auto-generated");
+            sb.AppendLine("using MongoDB.Driver;");
             sb.AppendLine($"namespace {model.Namespace}");
             sb.AppendLine("{");
             sb.AppendLine($"    public partial record {model.Metadata.Name}Query : global::MongoObject.Core.Interfaces.MetadataSearch, global::MongoObject.Core.Interfaces.IMetadataSearchBase");
@@ -74,7 +75,7 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"                var orFilters = Or.Select(o => {{");
             sb.AppendLine($"                    var query = new {model.Namespace}.{model.Metadata.Name}Query();");
             sb.AppendLine($"                    o.Invoke(query);");
-            sb.AppendLine($"                    return query.ToMongoFilter();");
+            sb.AppendLine($"                    return query.ToMongoFilter<T>();");
             sb.AppendLine($"                }});");
             sb.AppendLine($"                filters.Add(builder.Or(orFilters));");
             sb.AppendLine($"            }}");
@@ -84,7 +85,7 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"                var andFilters = And.Select(o => {{");
             sb.AppendLine($"                    var query = new {model.Namespace}.{model.Metadata.Name}Query();");
             sb.AppendLine($"                    o.Invoke(query);");
-            sb.AppendLine($"                    return query.ToMongoFilter();");
+            sb.AppendLine($"                    return query.ToMongoFilter<T>();");
             sb.AppendLine($"                }});");
             sb.AppendLine($"                filters.Add(builder.And(andFilters));");
             sb.AppendLine($"            }}");

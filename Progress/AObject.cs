@@ -34,7 +34,7 @@ namespace Progress.Test
 
     public class TestA
     {
-        public string TestString { get; set; }
+        public string? TestString { get; set; }
     }
 
     [MongoObject(DatabaseName = "BObjectsDatabase")]
@@ -44,8 +44,6 @@ namespace Progress.Test
         public partial string Name { get; set; }
         public partial int Age { get; set; }
         public partial BObject Nothing { get; set; }
-
-        
     }
 
     //public class AObjectNameProjectionT : global::MongoObject.Core.Interfaces.IProjectionBase, global::MongoObject.Core.Interfaces.IProjectionBase<global::Progress.Test.AObject>, IAObjectNameProjectionT1<global::Progress.Test.AObject, AObjectNameProjectionT>

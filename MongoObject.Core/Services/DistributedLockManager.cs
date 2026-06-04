@@ -22,13 +22,13 @@ namespace MongoObject.Core.Services
                 throw new InvalidOperationException("Cannot lock untracked Document");
             }
 
-            var holderId = GenerateHolderId(key);
+            var holderId = GenerateHolderId(key!);
             
             var now = DateTime.UtcNow;
             var expiresAt = now.Add(duration ?? options.DistributedLockDefaultLockDuration);
 
             var filter = _filterDefinition.And(
-                _filterDefinition.Eq(x => x.Id, key),
+                _filterDefinition.Eq(x => x.Id, key!),
                 _filterDefinition.Or(
                     _filterDefinition.Eq(x => x.LockedBy, null),
                     _filterDefinition.Lt(x => x.LockExpiresAt, now)
@@ -52,11 +52,11 @@ namespace MongoObject.Core.Services
                 return LockAcquisitionResult.Success(holderId, expiresAt);
             }
 
-            var current = await GetLock(key);
+            var current = await GetLock(key!);
 
             var data = new LockMetadata
             {
-                Id = key,
+                Id = key!,
                 LockAcquiredAt = now,
                 LockExpiresAt = expiresAt,
                 LockedBy = holderId
@@ -72,7 +72,7 @@ namespace MongoObject.Core.Services
                     return LockAcquisitionResult.Success(holderId, expiresAt);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return LockAcquisitionResult.Failed("Failed initilizing Lock on the database");
             }
@@ -92,7 +92,7 @@ namespace MongoObject.Core.Services
                 throw new InvalidOperationException("Cannot lock untracked Document");
             }
 
-            var current = await GetLock(key);
+            var current = await GetLock(key!);
             var now = DateTime.UtcNow;
             var expiresAt = now.Add(duration ?? options.DistributedLockDefaultLockDuration);
 
@@ -107,9 +107,9 @@ namespace MongoObject.Core.Services
 
 
                 // either expired lock or no lock
-                var holderId = GenerateHolderId(key);
+                var holderId = GenerateHolderId(key!);
 
-                var filter = _filterDefinition.Eq(x => x.Id, key);
+                var filter = _filterDefinition.Eq(x => x.Id, key!);
 
                 var update = _updateDefinition
                     .Set(x => x.LockedBy, holderId)
@@ -204,7 +204,7 @@ namespace MongoObject.Core.Services
                 throw new InvalidOperationException("A Lock cannot be released from a untracked document");
             }
 
-            GenerateHolderId(key);
+            GenerateHolderId(key!);
         }
 
         public async Task ReleaseLockAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(string recordKey, string holderId) where T : class, IDocumentFile, new()
@@ -239,7 +239,6 @@ namespace MongoObject.Core.Services
             {
                 throw new InvalidOperationException("Cannot aquire a lock on a untracked document");
             }
-            //var holderId = GenerateHolderId(key);
 
             var result = await LockDocumentAsync<T>(document, duration);
 
@@ -251,7 +250,7 @@ namespace MongoObject.Core.Services
                     $"Reason: {result.ErrorMessage}");
             }
 
-            return new MongoRecordLockScope<T>(this, null, key, result.HolderId);
+            return new MongoRecordLockScope<T>(this, null, key!, result.HolderId!);
         }
 
         public async Task<bool> RenewLockAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(string recordKey, string holderId, TimeSpan? extendBy = null) where T : class, IDocumentFile, new()

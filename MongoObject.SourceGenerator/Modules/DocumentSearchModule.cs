@@ -25,7 +25,7 @@ namespace MongoObject.SourceGenerator.Modules
                 if (prop.IsMongoObject)
                 {
                     // Use TypeName (the property's type name) for the query type, not the property name
-                    sb.AppendLine($"        public global::{model.Namespace}.{prop.TypeName}Query {prop.Name} {{ get; set; }}");
+                    sb.AppendLine($"        public global::{model.Namespace}.{prop.TypeName}Query? {prop.Name} {{ get; set; }}");
                 }
                 else
                 {

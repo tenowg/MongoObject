@@ -6,11 +6,11 @@ namespace Progress
 {
     public class App(IDocumentMonitor<AObject> monitor) : IDisposable
     {
-        IMongoLockScope? lockMeta;
+        //IMongoLockScope? lockMeta;
 
         public void Dispose()
         {
-            lockMeta?.DisposeAsync();
+            //lockMeta?.DisposeAsync();
         }
 
         public async Task Run()

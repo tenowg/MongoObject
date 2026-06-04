@@ -55,7 +55,7 @@ namespace MongoObject.SourceGenerator.Modules
             {
                 if (!string.IsNullOrEmpty(property.EnumName) && property.EnumName == "Include")
                 {
-                    sb.AppendLine($"                {property.Name} = u.Document.{property.Name},");
+                    sb.AppendLine($"                {property.Name} = u.Document!.{property.Name},");
                 }
             }
 

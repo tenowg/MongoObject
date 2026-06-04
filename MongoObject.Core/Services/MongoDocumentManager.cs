@@ -298,7 +298,7 @@ namespace MongoObject.Core.Services
                     internalDocument.ClearChanges();
                     await trans.CommitTransactionAsync();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     await trans.AbortTransactionAsync();
                     return SaveChangesResult.Failed($"Saves changes failed with a mongo Error");

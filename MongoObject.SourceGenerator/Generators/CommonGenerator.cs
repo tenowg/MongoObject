@@ -147,11 +147,11 @@ namespace MongoObject.SourceGenerator.Generators
                     // first lets build the list
                     foreach(var index in prop.Indexes)
                     {
-                        if (!indexes.ContainsKey(index.IndexName))
+                        if (!indexes.ContainsKey(index.IndexName!))
                         {
-                            indexes[index.IndexName] = new List<PropertyModel>();
+                            indexes[index.IndexName!] = new List<PropertyModel>();
                         }
-                        indexes[index.IndexName].Add(prop);
+                        indexes[index.IndexName!].Add(prop);
                     }
                 }
             }

@@ -24,7 +24,7 @@ namespace MongoObject.Core.Data
 
         protected void RegisterPossibleChange<T>(ref T? property, [CallerMemberName] string? propertyName = null)
         {
-            if (property is not TrackingObservableObject observable)
+            if (propertyName is not null && property is not TrackingObservableObject observable)
             {
                 if (property is IEnumerable enumerableValues && property is not IDictionary)
                 {

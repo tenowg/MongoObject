@@ -11,7 +11,7 @@ namespace MongoObject.Core.Interfaces
         void OnChanged(BsonDocument document);
     }
 
-    public interface IMongoConnection<T> : IDisposable, IMongoConnection
+    public interface IMongoConnection<T> : IDisposable
         where T : class, IDocumentFile, new()
     {
         IMongoCollection<MongoDocument<T>> Collection { get; }
