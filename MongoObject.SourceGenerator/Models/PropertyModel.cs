@@ -10,6 +10,7 @@ namespace MongoObject.SourceGenerator.Models
     {
         public string Name { get; init; } = string.Empty;
         public string FullName { get; init; } = string.Empty;
+        public string QueryName { get; init; } = string.Empty;
         public bool IsNumeric { get; init; }
         public string? EnumName { get; init; }
         

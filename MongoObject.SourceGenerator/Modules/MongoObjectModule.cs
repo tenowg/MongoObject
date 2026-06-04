@@ -16,6 +16,7 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine();
             sb.AppendLine($"namespace {model.Namespace}");
             sb.AppendLine("{");
+            sb.AppendLine($"    [global::MongoDB.Bson.Serialization.Attributes.BsonIgnoreExtraElements]");
             sb.AppendLine($"    public partial class {model.Name} : global::MongoObject.Core.Data.TrackingObservableObject,");
             sb.AppendLine($"                                         global::MongoObject.Core.Interfaces.IDocumentFile,");
             sb.AppendLine($"                                         global::MongoObject.Core.Interfaces.IDocumentFileInternal,");

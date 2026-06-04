@@ -22,11 +22,11 @@ namespace Progress
                 {
                     //f.Name = "CraigR"; 
                     f.Name = "Craig";
-                    f.Name = "John";
                     f.Age = f.Age.And(
                         f.Age = f.Age.Lt(40),
-                        f.Age = f.Age.Gt(10)
+                        f.Age = f.Age.Gt(5)
                     );
+                    f.Nothing(f => f.Age = f.Age.Gt(100));
                 })
                 .WithLimit(5);
             #endregion

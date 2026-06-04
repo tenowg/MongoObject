@@ -27,6 +27,7 @@ public partial class User
 | `CollectionName` | `string` | No | The MongoDB collection name. Defaults to the class name. |
 | `DatabaseName` | `string` | No | The MongoDB database name. Can be overridden at runtime. |
 | `MetadataType` | `Type` | No | A custom metadata type for the document. |
+| `` | `boolean` | No | Defaults to true, you can choose to opt out of the source generator adding `[BsonIgnoreExtraElements]`. |
 
 ---
 
@@ -86,7 +87,6 @@ public partial record UserMeta
     DatabaseName = "MyApp",
     MetadataType = typeof(UserMeta)
 )]
-[BsonIgnoreExtraElements]  // Recommended for forward compatibility
 public partial class User
 {
     // Simple properties
@@ -115,7 +115,8 @@ public class Address
 }
 ```
 
-NOTE: You can decorate the `Address` class as a `[MongoObject]` this will add the `TrackingObservableObject` but it will also allow you to save it seperately if you so choose. Currently this is the recommended path.
+> [!NOTE]
+> You can decorate the `Address` class as a `[MongoObject]` this will add the `TrackingObservableObject` but it will also allow you to save it seperately if you so choose. Currently this is the recommended path.
 
 ---
 
@@ -133,7 +134,8 @@ public partial class User
 
 This allows MongoObject to read documents with the old property name while writing with the new name.
 
-NOTE: This is still in developement and isn't in a working state yet
+> [!IMPORTANT] 
+> This is still in developement and isn't in a working state yet
 
 ---
 
@@ -142,7 +144,6 @@ NOTE: This is still in developement and isn't in a working state yet
 MongoObject works with standard MongoDB.Driver BSON attributes:
 
 ```csharp
-[BsonIgnoreExtraElements]  // Ignore unknown fields when deserializing
 public partial class User
 {
     [BsonElement("full_name")]  // Custom field name in MongoDB
@@ -162,6 +163,7 @@ When you build your project, the source generator creates:
 ### 1. Document Implementation
 
 ```csharp
+[BsonIgnoreExtraElements]
 public partial class User : TrackingObservableObject, IDocumentFile, IDisposable
 {
     public partial string Name
@@ -228,16 +230,7 @@ public class UserMeta
 }
 ```
 
-### 2. Apply BsonIgnoreExtraElements
-
-This attribute prevents deserialization errors when documents have fields that don't exist in your class:
-
-```csharp
-[BsonIgnoreExtraElements]
-public partial class User { }
-```
-
-### 3. Initialize Collection Properties
+### 2. Initialize Collection Properties
 
 ```csharp
 public partial class User
@@ -246,7 +239,7 @@ public partial class User
 }
 ```
 
-### 4. Keep Metadata Types Simple
+### 3. Keep Metadata Types Simple
 
 Metadata types should contain simple, serializable properties:
 

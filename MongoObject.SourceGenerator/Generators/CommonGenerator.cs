@@ -92,6 +92,7 @@ namespace MongoObject.SourceGenerator.Generators
             var trackingBaseSymbol = compilation.GetTypeByMetadataName("MongoObject.Core.Data.TrackingObservableObject");
             var mongoObjectAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.Core.Attributes.MongoObjectAttribute");
             var indexAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.Core.Attributes.MongoIndexAttribute");
+            var bsonElementAttrSymbol = compilation.GetTypeByMetadataName("MongoDB.Bson.Serialization.Attributes.BsonElementAttribute");
 
             var databaseName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "DatabaseName").Value.Value?.ToString();
             var collectionName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "CollectionName").Value.Value?.ToString();
@@ -137,7 +138,7 @@ namespace MongoObject.SourceGenerator.Generators
             }
 
             // Process properties and validate non-partial properties
-            var (validProperties, invalidProperties) = ProcessAllProperties(namedTypeSymbol, trackingBaseSymbol, mongoObjectAttrSymbol, indexAttrSymbol);
+            var (validProperties, invalidProperties) = ProcessAllProperties(namedTypeSymbol, trackingBaseSymbol, mongoObjectAttrSymbol, indexAttrSymbol, bsonElementAttrSymbol);
 
             Dictionary<string, List<PropertyModel>> indexes = [];
             foreach(var prop in validProperties)
@@ -180,7 +181,8 @@ namespace MongoObject.SourceGenerator.Generators
             INamedTypeSymbol symbol,
             INamedTypeSymbol? trackingBaseSymbol,
             INamedTypeSymbol? mongoObjectAttrSymbol,
-            INamedTypeSymbol? mongoIndexAttrSymbol)
+            INamedTypeSymbol? mongoIndexAttrSymbol,
+            INamedTypeSymbol? bsonElementAttrSymbol)
         {
             var validProperties = ImmutableArray.CreateBuilder<PropertyModel>();
             var invalidProperties = new List<IPropertySymbol>();
@@ -204,6 +206,7 @@ namespace MongoObject.SourceGenerator.Generators
                 // Pre-compute symbol-based checks
                 var isMongoObject = mongoObjectAttrSymbol != null && HasAttribute(prop.Type, mongoObjectAttrSymbol);
                 var isMongoIndex = mongoIndexAttrSymbol != null && prop.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, mongoIndexAttrSymbol));
+                var isBsonElement = bsonElementAttrSymbol != null && prop.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonElementAttrSymbol));
                 var isTrackable = trackingBaseSymbol != null && InheritsFrom(prop.Type, trackingBaseSymbol);
                 var isComplexUntracked = !isMongoObject && !isTrackable && IsComplexUntrackedClass(prop.Type);
 
@@ -228,6 +231,7 @@ namespace MongoObject.SourceGenerator.Generators
                 {
                     FullName = prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     Name = prop.Name,
+                    QueryName = isBsonElement ? prop.GetAttributes().First(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonElementAttrSymbol)).ConstructorArguments.FirstOrDefault().Value as string ?? prop.Name : prop.Name,
                     IsNumeric = IsNumericType(prop.Type),
                     IsMongoObject = isMongoObject,
                     IsTrackable = isTrackable,

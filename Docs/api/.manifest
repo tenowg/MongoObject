@@ -13,6 +13,7 @@
   "MongoObject.Core.Attributes.MongoObjectAttribute": "MongoObject.Core.Attributes.MongoObjectAttribute.yml",
   "MongoObject.Core.Attributes.MongoObjectAttribute.CollectionName": "MongoObject.Core.Attributes.MongoObjectAttribute.yml",
   "MongoObject.Core.Attributes.MongoObjectAttribute.DatabaseName": "MongoObject.Core.Attributes.MongoObjectAttribute.yml",
+  "MongoObject.Core.Attributes.MongoObjectAttribute.IgnoreExtraElements": "MongoObject.Core.Attributes.MongoObjectAttribute.yml",
   "MongoObject.Core.Attributes.MongoObjectAttribute.MetadataType": "MongoObject.Core.Attributes.MongoObjectAttribute.yml",
   "MongoObject.Core.Attributes.ProjectValue": "MongoObject.Core.Attributes.ProjectValue.yml",
   "MongoObject.Core.Attributes.ProjectValue.#ctor(System.String,ProjectionType)": "MongoObject.Core.Attributes.ProjectValue.yml",

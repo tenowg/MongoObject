@@ -1,16 +1,18 @@
-- name: Getting Started
-  href: getting-started.md
-- name: Defining Documents
-  href: defining-documents.md
-- name: Change Tracking
-  href: change-tracking.md
-- name: Metadata
-  href: metadata.md
-- name: Searching
-  href: searching.md
-- name: Fluent Queries
-  href: fluent-queries.md
-- name: Projections
-  href: projections.md
-- name: Dependency Injection
-  href: dependency-injection.md
+items:
+  - name: Getting Started
+    href: getting-started.md
+  - name: Defining Documents
+    href: defining-documents.md
+  - name: Change Tracking
+    href: change-tracking.md
+  - name: Metadata
+    href: metadata.md
+  - name: Searching
+    items:
+    - href: searching.md
+    - name: Fluent Queries
+      href: fluent-queries.md
+  - name: Projections
+    href: projections.md
+  - name: Dependency Injection
+    href: dependency-injection.md

@@ -44,24 +44,7 @@ git clone https://github.com/tenowg/MongoObjects.git
 
 Create a new partial class and decorate it with the `[MongoObject]` attribute:
 
-```csharp
-using MongoObject.Core.Attributes;
-
-namespace MyApp.Documents;
-
-[MongoObject(
-    CollectionName = "Products",
-    DatabaseName = "MyStore"
-)]
-public partial class Product
-{
-    public partial string Name { get; set; }
-    public partial decimal Price { get; set; }
-    public partial string Description { get; set; }
-    public partial int StockQuantity { get; set; }
-    public partial List<string> Tags { get; set; }
-}
-```
+[!code-csharp[Product](../../MongoObject.Examples/Models/Product.cs#Product)]
 
 **Key points:**
 - The class must be `partial` for the source generator to work
@@ -72,25 +55,7 @@ public partial class Product
 
 In your `Program.cs` or startup file:
 
-```csharp
-using MongoObject.Core.Extensions;
-
-var builder = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((_, services) =>
-    {
-        // Configure MongoObject
-        services.AddMongoObject(options =>
-        {
-            options.ConnectionString = "mongodb://localhost:27017";
-            options.DatabaseName = "MyStore";
-        })
-        .AddWatchStream()  // Optional: Enable real-time change monitoring
-        .RegisterDocumentsFromAssembly();  // Registers all [MongoObject] classes
-    });
-
-var host = builder.Build();
-await host.RunAsync();
-```
+[!code-csharp[RegisterMongoOption](../../MongoObject.Examples/Program.cs#ConfigureMongoObject)]
 
 ### Step 3: Use the Document Monitor
 

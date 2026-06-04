@@ -4,6 +4,7 @@ using MongoObject.Core.Attributes;
 using MongoObject.Core.Data;
 using MongoObject.Core.Interfaces;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 
 namespace Progress.Test
 {
@@ -14,7 +15,6 @@ namespace Progress.Test
     }
 
     [MongoObject(CollectionName = "AObjectsCollection", DatabaseName = "AObjectsDatabase", MetadataType = typeof(AObjectMeta))]
-    [BsonIgnoreExtraElements]
     public partial class AObject
     {
         [ProjectValue("Name", ProjectionType.Include)]
@@ -43,7 +43,6 @@ namespace Progress.Test
         [MongoIndex("BNameIndex", Type = AcsendingType.Ascending, Unique = true)]
         public partial string Name { get; set; }
         public partial int Age { get; set; }
-        public partial BObject Nothing { get; set; }
     }
 
     //public class AObjectNameProjectionT : global::MongoObject.Core.Interfaces.IProjectionBase, global::MongoObject.Core.Interfaces.IProjectionBase<global::Progress.Test.AObject>, IAObjectNameProjectionT1<global::Progress.Test.AObject, AObjectNameProjectionT>
