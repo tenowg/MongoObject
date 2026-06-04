@@ -1,4 +1,6 @@
-﻿namespace MongoObject.SourceGenerator.Models
+﻿using System.Collections.Generic;
+
+namespace MongoObject.SourceGenerator.Models
 {
     /// <summary>
     /// Equatable property model for incremental source generation.
@@ -41,5 +43,17 @@
         /// For nullable types, the underlying type name (e.g., "int" for "int?").
         /// </summary>
         public string? UnderlyingTypeName { get; init; }
+        
+        public bool IsMongoIndex { get; init; }
+
+        public IReadOnlyList<MongoIndexPropertyModel> Indexes { get; init; } = [];
+    }
+
+    internal sealed record MongoIndexPropertyModel
+    {
+        public string? IndexName { get; init; }
+        public string? Name { get; init; }
+        public bool? Unique { get; init; }
+        public string? Order { get; init; }
     }
 }

@@ -19,8 +19,11 @@ namespace Progress.Test
     {
         [ProjectValue("Name", ProjectionType.Include)]
         [ProjectValue("Other", ProjectionType.Exclude)]
+        [MongoIndex("NameIndex", Type = AcsendingType.Ascending, Unique = true)]
         public partial string Name { get; set; }
         [ProjectValue("Other", ProjectionType.Include)]
+        [MongoIndex("NameIndex", Type = AcsendingType.Ascending, Unique = true)]
+        [MongoIndex("AgeIndex", Type = AcsendingType.Descending)]
         public partial int Age { get; set; }
         public partial BObject Nothing { get; set; }
         public partial ObservableCollection<string> Tags { get; set; }
@@ -37,9 +40,12 @@ namespace Progress.Test
     [MongoObject(DatabaseName = "BObjectsDatabase")]
     public partial class BObject
     {
+        [MongoIndex("BNameIndex", Type = AcsendingType.Ascending, Unique = true)]
         public partial string Name { get; set; }
         public partial int Age { get; set; }
         public partial BObject Nothing { get; set; }
+
+        
     }
 
     //public class AObjectNameProjectionT : global::MongoObject.Core.Interfaces.IProjectionBase, global::MongoObject.Core.Interfaces.IProjectionBase<global::Progress.Test.AObject>, IAObjectNameProjectionT1<global::Progress.Test.AObject, AObjectNameProjectionT>

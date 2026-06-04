@@ -31,7 +31,7 @@ namespace MongoObject.SourceGenerator.Modules
             // Generate partial property implementations
             foreach (var prop in model.Properties)
             {
-                sb.AppendLine();
+                sb.AppendLine($"{prop.IsMongoIndex}");
                 sb.AppendLine($"        public partial {prop.FullName} {prop.Name}");
                 sb.AppendLine("        {");
                 sb.AppendLine("            get");

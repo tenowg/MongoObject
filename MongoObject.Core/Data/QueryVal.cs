@@ -1,4 +1,8 @@
-﻿namespace MongoObject.Core.Data
+﻿using MongoDB.Bson;
+using System.Text.RegularExpressions;
+using static MongoDB.Driver.WriteConcern;
+
+namespace MongoObject.Core.Data
 {
     public abstract record QueryVal<T>
     {
@@ -12,6 +16,14 @@
         public record GreaterThan(T Value) : QueryVal<T>;
         public record GreaterThanOrEqual(T Value) : QueryVal<T>;
         public record NotEquals(T Value) : QueryVal<T>;
+        public record In(T[] Values) : QueryVal<T>;
+        public record Or(params QueryVal<T>[] Conditions) : QueryVal<T>;
+        public record Range(T Min, T Max) : QueryVal<T>;
+        public record And(params QueryVal<T>[] Conditions) : QueryVal<T>;
+        public record IsNull() : QueryVal<T>;
+        public record IsNotNull() : QueryVal<T>;
+        public record Like(string Pattern, string Options) : QueryVal<T>;
+        public record All(T[] Values) : QueryVal<T>;
     }
 
     public static class QueryExtensions
@@ -24,23 +36,28 @@
             public QueryVal<T> Gte(T right) => new QueryVal<T>.GreaterThanOrEqual(right);
             public QueryVal<T> Ne(T right) => new QueryVal<T>.NotEquals(right);
 
-            public static QueryVal<T> operator >(QueryVal<T>? left, T right)
-                => new QueryVal<T>.GreaterThan(right);
+            public static QueryVal<T> operator >(QueryVal<T>? left, T right) => new QueryVal<T>.GreaterThan(right);
+            public static QueryVal<T> operator <(QueryVal<T>? left, T right) => new QueryVal<T>.LessThan(right);
+            public static QueryVal<T> operator >=(QueryVal<T>? left, T right) => new QueryVal<T>.GreaterThanOrEqual(right);
+            public static QueryVal<T> operator <=(QueryVal<T>? left, T right) => new QueryVal<T>.LessThanOrEqual(right);
 
-            public static QueryVal<T> operator <(QueryVal<T>? left, T right)
-                => new QueryVal<T>.LessThan(right);
-
-            public static QueryVal<T> operator >=(QueryVal<T>? left, T right)
-                => new QueryVal<T>.GreaterThanOrEqual(right);
-
-            public static QueryVal<T> operator <=(QueryVal<T>? left, T right)
-                => new QueryVal<T>.LessThanOrEqual(right);
+            public QueryVal<T> Or(params QueryVal<T>[] values) => new QueryVal<T>.Or(values);
+            public QueryVal<T> In(params T[] values) => new QueryVal<T>.In(values);
+            public QueryVal<T> Range(T min, T max) => new QueryVal<T>.Range(min, max);
+            public QueryVal<T> Range((T Min, T Max) range) => new QueryVal<T>.Range(range.Min, range.Max);
+            public QueryVal<T> InverseRange(T min, T max) => new QueryVal<T>.Or(new QueryVal<T>.LessThan(min), new QueryVal<T>.GreaterThan(max));
+            public QueryVal<T> And(params QueryVal<T>[] values)=> new QueryVal<T>.And(values);
         }
 
         extension(QueryVal<DateTime>? value)
         {
-            public QueryVal<DateTime> InLast24Hours
-                => new QueryVal<DateTime>.GreaterThanOrEqual(DateTime.UtcNow.AddHours(-24));
+            public QueryVal<DateTime> InLast24Hours => new QueryVal<DateTime>.GreaterThanOrEqual(DateTime.UtcNow.AddHours(-24));
+        }
+
+        extension(QueryVal<string>? q)
+        {
+            public QueryVal<string> Contains(string value, bool ignoreCase = true) => new QueryVal<string>.Like($".*{Regex.Escape(value)}.*", ignoreCase ? "i" : "");
+            public QueryVal<string> StartsWith(string value, bool ignoreCase = true) => new QueryVal<string>.Like($"^{Regex.Escape(value)}", ignoreCase ? "i" : "");
         }
     }
 }

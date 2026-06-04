@@ -32,6 +32,8 @@ namespace MongoObject.SourceGenerator.Modules
                     sb.AppendLine($"        public global::MongoObject.Core.Data.QueryVal<{prop.FullName}>? {prop.Name} {{ get; set; }}");
                 }
             }
+            sb.AppendLine($"        public Action<global::{model.Namespace}.{model.Name}Query>[]? Or {{ get; set; }}");
+            sb.AppendLine($"        public Action<global::{model.Namespace}.{model.Name}Query>[]? And {{ get; set; }}");
 
             // Generate ToMongoFilter method
             sb.AppendLine();
@@ -62,6 +64,26 @@ namespace MongoObject.SourceGenerator.Modules
 
                 sb.AppendLine("            }");
             }
+
+            sb.AppendLine($"            if (Or is {{ Length: > 0 }})");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                var orFilters = Or.Select(o => {{");
+            sb.AppendLine($"                    var query = new {model.Namespace}.{model.Name}Query();");
+            sb.AppendLine($"                    o.Invoke(query);");
+            sb.AppendLine($"                    return query.ToMongoFilter(prefix);");
+            sb.AppendLine($"                }});");
+            sb.AppendLine($"                filters.Add(builder.Or(orFilters));");
+            sb.AppendLine($"            }}");
+
+            sb.AppendLine($"            if (And is {{ Length: > 0 }})");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                var andFilters = And.Select(o => {{");
+            sb.AppendLine($"                    var query = new {model.Namespace}.{model.Name}Query();");
+            sb.AppendLine($"                    o.Invoke(query);");
+            sb.AppendLine($"                    return query.ToMongoFilter(prefix);");
+            sb.AppendLine($"                }});");
+            sb.AppendLine($"                filters.Add(builder.And(andFilters));");
+            sb.AppendLine($"            }}");
 
             sb.AppendLine();
             sb.AppendLine("            return filters.Count == 0 ? builder.Empty : builder.And(filters);");

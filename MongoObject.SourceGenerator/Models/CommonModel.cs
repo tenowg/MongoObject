@@ -16,5 +16,6 @@ namespace MongoObject.SourceGenerator.Models
         public MetadataModel Metadata { get; init; } = new();
         public IReadOnlyList<ProjectionModel> Projections { get; init; } = [];
         public IReadOnlyList<ValidationResult> Errors { get; init; } = [];
+        public IReadOnlyList<IndexModel> Indexes { get; init; } = [];
     }
 }

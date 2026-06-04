@@ -9,7 +9,7 @@ using System.Reflection;
 
 namespace MongoObject.Core.Services
 {
-    internal class MongoConnection<T> : IMongoConnection<T>
+    internal class MongoConnection<T> : IMongoCollection, IMongoConnection<T>
         where T : class, IDocumentFile, new()
     {
         public IMongoCollection<MongoDocument<T>> Collection { get; }

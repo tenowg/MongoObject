@@ -36,6 +36,8 @@ namespace MongoObject.SourceGenerator.Modules
             {
                 sb.AppendLine($"        public global::MongoObject.Core.Data.QueryVal<{prop.FullName}>? {prop.Name} {{ get; set; }}");
             }
+            sb.AppendLine($"        public Action<global::{model.Namespace}.{model.Metadata.Name}Query>[]? Or {{ get; set; }}");
+            sb.AppendLine($"        public Action<global::{model.Namespace}.{model.Metadata.Name}Query>[]? And {{ get; set; }}");
 
             sb.AppendLine();
             sb.AppendLine("        public global::MongoDB.Driver.FilterDefinition<global::MongoObject.Core.Data.MongoDocument<T>> ToMongoFilter<T>() where T : class, global::MongoObject.Core.Interfaces.IDocumentFile, new()");
@@ -66,6 +68,26 @@ namespace MongoObject.SourceGenerator.Modules
                 sb.AppendLine($"                filters.Add(CreateFilter(builder, \"Metadata.{prop.Name}\", {prop.Name}));");
                 sb.AppendLine("            }");
             }
+
+            sb.AppendLine($"            if (Or is {{ Length: > 0 }})");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                var orFilters = Or.Select(o => {{");
+            sb.AppendLine($"                    var query = new {model.Namespace}.{model.Metadata.Name}Query();");
+            sb.AppendLine($"                    o.Invoke(query);");
+            sb.AppendLine($"                    return query.ToMongoFilter();");
+            sb.AppendLine($"                }});");
+            sb.AppendLine($"                filters.Add(builder.Or(orFilters));");
+            sb.AppendLine($"            }}");
+
+            sb.AppendLine($"            if (And is {{ Length: > 0 }})");
+            sb.AppendLine($"            {{");
+            sb.AppendLine($"                var andFilters = And.Select(o => {{");
+            sb.AppendLine($"                    var query = new {model.Namespace}.{model.Metadata.Name}Query();");
+            sb.AppendLine($"                    o.Invoke(query);");
+            sb.AppendLine($"                    return query.ToMongoFilter();");
+            sb.AppendLine($"                }});");
+            sb.AppendLine($"                filters.Add(builder.And(andFilters));");
+            sb.AppendLine($"            }}");
 
             sb.AppendLine();
             sb.AppendLine("            return filters.Count == 0 ? builder.Empty : builder.And(filters);");

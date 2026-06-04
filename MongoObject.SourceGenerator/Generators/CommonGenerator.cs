@@ -5,6 +5,7 @@ using MongoObject.SourceGenerator.Models;
 using MongoObject.SourceGenerator.Modules;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 
 namespace MongoObject.SourceGenerator.Generators
@@ -22,16 +23,19 @@ namespace MongoObject.SourceGenerator.Generators
             new ProjectionModule(),
             new SearchBuilderModule(),
             new AddBuilderModule(),
-            new DeleteManyBuilderModule()
+            new DeleteManyBuilderModule(),
+            
         ];
 
         private static readonly ICodeModuleMultiple[] _modulesMultiple =
         [
-            new ObjectDiscoveryModule()
+            new ObjectDiscoveryModule(),
+            new MongoIndexModule()
         ];
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
+            //Debugger.Launch();
             var provider = context.SyntaxProvider
                 .CreateSyntaxProvider(
                     predicate: static (s, _) => s is ClassDeclarationSyntax { AttributeLists.Count: > 0 },
@@ -87,6 +91,7 @@ namespace MongoObject.SourceGenerator.Generators
             var compilation = ctx.SemanticModel.Compilation;
             var trackingBaseSymbol = compilation.GetTypeByMetadataName("MongoObject.Core.Data.TrackingObservableObject");
             var mongoObjectAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.Core.Attributes.MongoObjectAttribute");
+            var indexAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.Core.Attributes.MongoIndexAttribute");
 
             var databaseName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "DatabaseName").Value.Value?.ToString();
             var collectionName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "CollectionName").Value.Value?.ToString();
@@ -132,7 +137,24 @@ namespace MongoObject.SourceGenerator.Generators
             }
 
             // Process properties and validate non-partial properties
-            var (validProperties, invalidProperties) = ProcessAllProperties(namedTypeSymbol, trackingBaseSymbol, mongoObjectAttrSymbol);
+            var (validProperties, invalidProperties) = ProcessAllProperties(namedTypeSymbol, trackingBaseSymbol, mongoObjectAttrSymbol, indexAttrSymbol);
+
+            Dictionary<string, List<PropertyModel>> indexes = [];
+            foreach(var prop in validProperties)
+            {
+                if (prop.IsMongoIndex)
+                {
+                    // first lets build the list
+                    foreach(var index in prop.Indexes)
+                    {
+                        if (!indexes.ContainsKey(index.IndexName))
+                        {
+                            indexes[index.IndexName] = new List<PropertyModel>();
+                        }
+                        indexes[index.IndexName].Add(prop);
+                    }
+                }
+            }
 
             errors.AddRange(invalidProperties.Select(x => new ValidationResult(true, x.Locations.FirstOrDefault(), new List<string> { x.Name, x.Type.Name }, DeclaredDiagnosticDescriptor.InvalidPropertyTypeDescriptor)));
 
@@ -145,7 +167,8 @@ namespace MongoObject.SourceGenerator.Generators
                 Metadata = metadata,
                 Properties = validProperties,
                 Projections = ProcessProjections(namedTypeSymbol).ToImmutableArray(),
-                Errors = errors
+                Errors = errors,
+                Indexes = indexes.Select(g => new IndexModel { Name = g.Key, Properties = g.Value.ToImmutableArray() }).ToImmutableArray()
             };
         }
 
@@ -156,7 +179,8 @@ namespace MongoObject.SourceGenerator.Generators
         private static (ImmutableArray<PropertyModel> validProperties, IEnumerable<IPropertySymbol> invalidProperties) ProcessAllProperties(
             INamedTypeSymbol symbol,
             INamedTypeSymbol? trackingBaseSymbol,
-            INamedTypeSymbol? mongoObjectAttrSymbol)
+            INamedTypeSymbol? mongoObjectAttrSymbol,
+            INamedTypeSymbol? mongoIndexAttrSymbol)
         {
             var validProperties = ImmutableArray.CreateBuilder<PropertyModel>();
             var invalidProperties = new List<IPropertySymbol>();
@@ -179,11 +203,27 @@ namespace MongoObject.SourceGenerator.Generators
 
                 // Pre-compute symbol-based checks
                 var isMongoObject = mongoObjectAttrSymbol != null && HasAttribute(prop.Type, mongoObjectAttrSymbol);
+                var isMongoIndex = mongoIndexAttrSymbol != null && prop.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, mongoIndexAttrSymbol));
                 var isTrackable = trackingBaseSymbol != null && InheritsFrom(prop.Type, trackingBaseSymbol);
                 var isComplexUntracked = !isMongoObject && !isTrackable && IsComplexUntrackedClass(prop.Type);
 
                 var (typeName, isNullable, underlyingTypeName) = GetTypeInfo(prop.Type);
-                
+
+                var indexName = new List<MongoIndexPropertyModel>();
+                if (isMongoIndex)
+                {
+                    indexName = prop.GetAttributes()
+                        .Where(prop => SymbolEqualityComparer.Default.Equals(prop.AttributeClass, mongoIndexAttrSymbol))
+                        .Select(a => new MongoIndexPropertyModel
+                        {
+                            IndexName = a.ConstructorArguments.FirstOrDefault().Value as string,
+                            Name = prop.Name,
+                            Order = a.NamedArguments.Where(x => x.Key == "Type").FirstOrDefault().Value.Value as int? == 0 ? "Ascending" : "Descending",
+                            Unique = a.NamedArguments.Where(x => x.Key == "Unique").FirstOrDefault().Value.Value as bool? ?? false,
+                        })
+                        .ToList();
+                }
+
                 validProperties.Add(new PropertyModel
                 {
                     FullName = prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
@@ -194,7 +234,9 @@ namespace MongoObject.SourceGenerator.Generators
                     IsComplexUntrackedClass = isComplexUntracked,
                     TypeName = typeName,
                     IsNullable = isNullable,
-                    UnderlyingTypeName = underlyingTypeName
+                    UnderlyingTypeName = underlyingTypeName,
+                    IsMongoIndex = isMongoIndex,
+                    Indexes = indexName
                 });
             }
 

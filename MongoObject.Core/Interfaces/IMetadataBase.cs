@@ -9,7 +9,6 @@ namespace MongoObject.Core.Interfaces
         public QueryVal<DateTime>? CreatedAt { get; set; }
         public QueryVal<DateTime>? LastModifiedAt { get; set; }
         public FilterDefinition<MongoDocument<T>> ToMongoFilter<T>() where T : class, IDocumentFile, new();
-        //public void FromDictionary(Dictionary<string, object> dictionary);
     }
 
     public abstract record MetadataSearch
@@ -27,6 +26,17 @@ namespace MongoObject.Core.Interfaces
                 QueryVal<TValue>.GreaterThanOrEqual gte => builder.Gte(fieldPath, gte.Value),
                 QueryVal<TValue>.LessThan lt => builder.Lt(fieldPath, lt.Value),
                 QueryVal<TValue>.LessThanOrEqual lte => builder.Lte(fieldPath, lte.Value),
+                QueryVal<TValue>.IsNull => builder.Eq(fieldPath, BsonNull.Value),
+                QueryVal<TValue>.IsNotNull => builder.Ne(fieldPath, BsonNull.Value),
+                QueryVal<TValue>.All all => builder.All(fieldPath, all.Values),
+                QueryVal<TValue>.In @in => builder.In(fieldPath, @in.Values),
+                QueryVal<TValue>.Or or => builder.Or(or.Conditions.Select(c => CreateFilter(builder, fieldPath, c))),
+                QueryVal<TValue>.Like like => builder.Regex(fieldPath, new BsonRegularExpression(like.Pattern, like.Options)),
+                QueryVal<TValue>.Range range => builder.And(
+                    builder.Gte(fieldPath, range.Min),
+                    builder.Lte(fieldPath, range.Max)
+                ),
+                QueryVal<TValue>.And and => builder.And(and.Conditions.Select(c => CreateFilter(builder, fieldPath, c))),
                 _ => throw new NotSupportedException($"Query type {queryVal.GetType().Name} is not supported.")
             };
         }

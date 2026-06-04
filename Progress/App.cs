@@ -22,10 +22,21 @@ namespace Progress
             //var ttt = await monitor.DocumentSearch(f => { f.Name = "CraigR"; f.Age = 10; });
             //var first = ttt.FirstOrDefault();
             var nameProjection = await monitor.Search()
-                .WithQuery(f => { f.Name = "CraigR"; f.Age = f.Age.Gt(5); })
-                .WithMeta(f => f.Version = f.Version.Gt(0))
-                .WithLimit(5)
-                .WithNameProjection();
+                .WithQuery(f =>
+                {
+                    //f.Name = "CraigR"; 
+                    f.Name = "Craig";
+                    f.Or = [
+                        or => {
+                            or.Age = 9;
+                        },
+                        or => {
+                            or.Age = 4;
+                        }
+                    ];
+                })
+                //.WithMeta(f => f.Version = f.Version.Gt(0))
+                .WithLimit(5);
 
             //lockMeta = await monitor.LockDocument(first);
             //first.Tags = new();
