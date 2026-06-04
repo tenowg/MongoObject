@@ -8,6 +8,8 @@
   href: metadata.md
 - name: Searching
   href: searching.md
+- name: Fluent Queries
+  href: fluent-queries.md
 - name: Projections
   href: projections.md
 - name: Dependency Injection

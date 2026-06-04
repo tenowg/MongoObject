@@ -16,28 +16,20 @@ namespace Progress
         public async Task Run()
         {
             Console.WriteLine("Hello, World!");
-            //var testr = await monitor.Get("Anything");
-            //await monitor.Add(new AObject { Name = "CraigR", Age = 500 }, null);
-
-            //var ttt = await monitor.DocumentSearch(f => { f.Name = "CraigR"; f.Age = 10; });
-            //var first = ttt.FirstOrDefault();
+            #region QueryExample
             var nameProjection = await monitor.Search()
                 .WithQuery(f =>
                 {
                     //f.Name = "CraigR"; 
                     f.Name = "Craig";
-                    f.Or = [
-                        or => {
-                            or.Age = 9;
-                        },
-                        or => {
-                            or.Age = 4;
-                        }
-                    ];
+                    f.Name = "John";
+                    f.Age = f.Age.And(
+                        f.Age = f.Age.Lt(40),
+                        f.Age = f.Age.Gt(10)
+                    );
                 })
-                //.WithMeta(f => f.Version = f.Version.Gt(0))
                 .WithLimit(5);
-
+            #endregion
             //lockMeta = await monitor.LockDocument(first);
             //first.Tags = new();
             //first.Tags.Add("Hello");
