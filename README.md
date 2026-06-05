@@ -29,11 +29,11 @@ MongoObject bridges the gap between MongoDB's document model and modern .NET dev
 
 ## Installation
 
-> **📦 NuGet Package: Coming Soon**
->
-> The `Tenowg.MongoObjects` package is currently in active development and will be published to NuGet once it reaches stability.
->
-> In the meantime, you can clone this repository and reference the projects directly.
+> The `Tenowg.MongoObjects` package is currently in active development.
+
+```
+dotnet add package Tenowg.MongoObjects --version 0.1.0-alpha
+```
 
 ```bash
 # Clone the repository
