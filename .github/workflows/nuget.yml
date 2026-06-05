@@ -30,7 +30,7 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore -p:MinVerVersionOverride=${{ github.ref_name }} -p:PackageVersion=${{ github.ref_name }}
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --configuration Release --no-build --verbosity normal
 
     - name: Pack Package
       run: dotnet pack --configuration Release --no-build -p:MinVerVersionOverride=${{ github.ref_name }} -p:PackageVersion=${{ github.ref_name }} --output .
