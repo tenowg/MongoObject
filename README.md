@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE.txt)
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
 [![C# 14](https://img.shields.io/badge/C%23-14-239120)](https://learn.microsoft.com/en-us/dotnet/csharp/)
+[![Deploy Documentation](https://github.com/tenowg/MongoObject/actions/workflows/docs.yml/badge.svg)](https://github.com/tenowg/MongoObject/actions/workflows/docs.yml)
 
 ---
 
@@ -35,7 +36,7 @@ MongoObject bridges the gap between MongoDB's document model and modern .NET dev
 
 ```bash
 # Clone the repository
-git clone https://github.com/tenowg/MongoObjects.git
+git clone https://github.com/tenowg/MongoObject.git
 
 # Add project reference to your .csproj
 <ProjectReference Include="path/to/MongoObject.Core/MongoObject.Core.csproj" />
@@ -176,8 +177,7 @@ public class MongoDocument<T>
 
 ## Documentation
 
-[![Build and Deploy Documentation](https://github.com/tenowg/MongoObject/actions/workflows/docs.yml/badge.svg)](https://github.com/tenowg/MongoObject/actions/workflows/docs.yml)
-Full documentation is available at **[https://tenowg.github.io/MongoObjects](https://tenowg.github.io/MongoObjects)**
+Full documentation is available at **[https://tenowg.github.io/MongoObjects](https://tenowg.github.io/MongoObject)**
 
 ### Articles
 

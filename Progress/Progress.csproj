@@ -5,6 +5,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UserSecretsId>f4dd0eb6-e629-434a-b62c-e950b9e885a4</UserSecretsId>
   </PropertyGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\MongoObject.Core\MongoObject.Core.csproj" />

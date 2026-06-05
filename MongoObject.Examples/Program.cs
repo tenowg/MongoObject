@@ -24,6 +24,8 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<App>();
     })
     .Build();
+
+await host.StartAsync();
 #endregion
 // Run the app
 var app = host.Services.GetRequiredService<App>();

@@ -7,12 +7,12 @@
 	  <NoWarn>$(NoWarn);NU5128</NoWarn>
 	  <PackageId>Tenowg.MongoObjects</PackageId>
 	  <Authors>Craig Russell</Authors>
-	  <PackageProjectUrl>https://github.com/tenowg/MongoObjects</PackageProjectUrl>
+	  <PackageProjectUrl>https://github.com/tenowg/MongoObject</PackageProjectUrl>
 	  <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-	  <RepositoryUrl>https://github.com/tenowg/MongoObjects</RepositoryUrl>
+	  <RepositoryUrl>https://github.com/tenowg/MongoObject</RepositoryUrl>
 	  <RepositoryType>git</RepositoryType>
 	  <Description>No Description Yet</Description>
-	  <PackageTags>mongodb;dotnet10;odm;configuration;csharp14</PackageTags>
+	  <PackageTags>mongodb;dotnet10;odm;csharp14</PackageTags>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
 
 	  <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>

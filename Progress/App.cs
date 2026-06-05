@@ -16,42 +16,33 @@ namespace Progress
         public async Task Run()
         {
             Console.WriteLine("Hello, World!");
+
+            //await monitor.Add(new AObject {Name = "Craig", Age = 4}, f => f.OwnerId = "123.abc");
+            
             #region QueryExample
             var nameProjection = await monitor.Search()
                 .WithQuery(f =>
                 {
                     f.Name = "Craig";
                     f.Age = f.Age.And(
-                        f.Age = f.Age.Lt(40),
-                        f.Age = f.Age.Gt(5)
+                        f.Age = f.Age.Lt(40000),
+                        f.Age = f.Age.Gt(2)
                     );
                 })
-                .WithListTestProjection()
-                .WithListTestSlice(5, 3)
+                //.WithListTestProjection()
+                //.WithListTestSlice(5, 3)
                 .WithLimit(5);
             #endregion
+await Task.Delay(500);
+Console.WriteLine("Commensing Change");
+            var first = nameProjection.FirstOrDefault();
 
-            //var first = nameProjection.FirstOrDefault();
-            //first.ListTest = [];
-            //first.ListTest.AddRange(["test", "test2", "test3", "test4", "test5", "test6"]);
-            //await monitor.SaveChanges(first);
-            //lockMeta = await monitor.LockDocument(first);
-            //first.Tags = new();
-            //first.Tags.Add("Hello");
-            //first.Age = 9;
-            //first.Nothing.Age = 6;
-            //first.test = new();
-            //first.Age = 10;
-            //first.test.TestString = "hello6";
-            //first.Tags = new();
-            //first.Tags.Add("Hello44334244");
-            //first.Properties = [];
-            //first.Properties.Add("tst", "test");
-            //first.Nothing.Age = 75;
-
-            //first.Nothing.Nothing.Age = 190;
-
-            //var result = await monitor.SaveChanges(first, lockMeta);
+            if (first != null)
+            {
+                monitor.OnChange(first, () => Console.WriteLine("File Changed"));
+                first.Age += 50;
+                var result = await monitor.SaveChanges(first);
+            }
         }
     }
 }

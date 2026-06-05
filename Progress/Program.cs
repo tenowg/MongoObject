@@ -20,7 +20,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
     {
         services.AddMongoObject(options =>
         {
-            options.ConnectionString = "mongodb://localhost:27017/?directConnection=true";
+            options.ConnectionString = "mongodb://localhost:27018/?directConnection=true";
             options.DatabaseName = "mydatabase";
         })
         .AddWatchStream()
@@ -28,7 +28,10 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddSingleton<App>();
     })
     .Build();
+await host.StartAsync();
 
 // Run the app
 var app = host.Services.GetRequiredService<App>();
 await app.Run();
+
+await host.WaitForShutdownAsync();
