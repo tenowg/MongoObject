@@ -4,9 +4,7 @@
     <Build Solution="Release|*" Project="false" />
   </Project>
   <Project Path="MongoObject.SourceGenerator/MongoObject.SourceGenerator.csproj" />
-  <Project Path="MongoObject.Tests/MongoObject.Tests.csproj" Id="c4b940ba-6b8f-4aaa-9fbf-fefaf486ca5d">
-    <Build Solution="Release|*" Project="false" />
-  </Project>
+  <Project Path="MongoObject.Tests/MongoObject.Tests.csproj" Id="c4b940ba-6b8f-4aaa-9fbf-fefaf486ca5d"/>
   <Project Path="Progress/Progress.csproj" Id="4f88e210-ce1f-460a-bdc1-b8d265eb5345">
     <Build Solution="Release|*" Project="false" />
   </Project>
