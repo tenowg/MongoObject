@@ -160,7 +160,7 @@ namespace MongoObject.Core.Services
         }
 
         public async Task<IEnumerable<TProjection>> SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(
-            Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, int limit = 0, int skip = 0)
+            Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, TProjection projection, int limit = 0, int skip = 0)
             where TClassSearch : class, IClassSearch<T>, new()
             where TMetaSearch : class, IMetadataSearchBase, new()
             where TProjection : class, IProjectionBase<T, TProjection>, new()
@@ -187,8 +187,8 @@ namespace MongoObject.Core.Services
             var collection = connection.Collection;
             
             // Create projection instance to get the projection definition
-            var projectionInstance = new TProjection();
-            var projectionDefinition = projectionInstance.ToMongoProjection();
+            //var projectionInstance = new TProjection();
+            var projectionDefinition = projection.ToMongoProjection();
 
             var results = await collection.Find(combinedFilter)
                 .Project(projectionDefinition)

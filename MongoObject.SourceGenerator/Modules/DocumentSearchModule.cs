@@ -1,7 +1,6 @@
 using Microsoft.CodeAnalysis;
 using MongoObject.SourceGenerator.Interfaces;
 using MongoObject.SourceGenerator.Models;
-using System.Linq;
 using System.Text;
 
 namespace MongoObject.SourceGenerator.Modules
@@ -23,7 +22,7 @@ namespace MongoObject.SourceGenerator.Modules
             // Generate query properties
             foreach (var prop in model.Properties)
             {
-                if (prop.IsMongoObject)
+                if (prop.IsMongoObject && !prop.IsBsonIgnore)
                 {
                     // Use TypeName (the property's type name) for the query type, not the property name
                     sb.AppendLine($"        private global::{model.Namespace}.{prop.TypeName}Query? _{char.ToLowerInvariant(prop.Name[0]) + prop.Name[1..]};");
@@ -39,7 +38,7 @@ namespace MongoObject.SourceGenerator.Modules
                     sb.AppendLine($"            configure(_{char.ToLowerInvariant(prop.Name[0]) + prop.Name[1..]});");
                     sb.AppendLine("        }");
                 }
-                else
+                else if (!prop.IsBsonIgnore)
                 {
                     sb.AppendLine($"        public global::MongoObject.Core.Data.QueryVal<{prop.FullName}>? {prop.Name} {{ get; set; }}");
                 }
@@ -56,7 +55,7 @@ namespace MongoObject.SourceGenerator.Modules
 
             foreach (var prop in model.Properties)
             {
-                if (prop.IsMongoObject)
+                if (prop.IsMongoObject && !prop.IsBsonIgnore)
                 {
                     sb.AppendLine();
                     sb.AppendLine($"            if ({prop.Name}Value != null)");
@@ -68,16 +67,16 @@ namespace MongoObject.SourceGenerator.Modules
                     sb.AppendLine($"                var renderArgs_{prop.Name} = new global::MongoDB.Driver.RenderArgs<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{prop.TypeName}>>(nestedSerializer_{prop.Name}, global::MongoDB.Bson.Serialization.BsonSerializer.SerializerRegistry);");
                     sb.AppendLine($"                var bsonDoc_{prop.Name} = nestedFilter_{prop.Name}.Render(renderArgs_{prop.Name});");
                     sb.AppendLine($"                filters.Add(new global::MongoDB.Driver.BsonDocumentFilterDefinition<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>>(bsonDoc_{prop.Name}));");
+                    sb.AppendLine("             }");
                 }
-                else
+                else if (!prop.IsBsonIgnore)
                 {
                     sb.AppendLine();
                     sb.AppendLine($"            if ({prop.Name} != null)");
                     sb.AppendLine("            {");
                     sb.AppendLine($"                filters.Add(CreateFilter(builder, $\"{{prefix}}.{prop.QueryName}\", {prop.Name}));");
+                    sb.AppendLine("            }");
                 }
-
-                sb.AppendLine("            }");
             }
 
             sb.AppendLine($"            if (Or is {{ Length: > 0 }})");

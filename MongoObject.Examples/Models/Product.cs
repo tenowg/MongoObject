@@ -8,7 +8,6 @@ namespace MongoObject.Examples.Models;
     CollectionName = "Products",
     DatabaseName = "MyStore"
 )]
-[BsonIgnoreExtraElements]
 public partial class Product
 {
     [BsonElement("name")]

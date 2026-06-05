@@ -5,8 +5,9 @@ using System.Text;
 
 public enum ProjectionType
 {
-    Include,
-    Exclude
+    Include = 0,
+    Exclude = 1,
+    Slice = 2
 }
 
 namespace MongoObject.Core.Attributes

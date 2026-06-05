@@ -155,7 +155,14 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"        private global::System.Action<global::{model.Namespace}.{model.Metadata.Name}Query>? _meta;");
             sb.AppendLine($"        private int _limit;");
             sb.AppendLine($"        private int _skip;");
-            sb.AppendLine();
+            foreach (var prop in projection.Properties)
+            {
+                if (!string.IsNullOrEmpty(prop.EnumName) && prop.EnumName == "Slice")
+                {
+                    sb.AppendLine($"        private global::MongoObject.Core.Data.ProjectionVal.Slice? _{prop.Name};");
+                }
+            }
+                sb.AppendLine();
 
             // Internal constructor
             sb.AppendLine($"        internal {projectionTypeName}SearchBuilder(");
@@ -205,6 +212,20 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine("        }");
             sb.AppendLine();
 
+            // Build method to handle slices projections
+            foreach(var prop in projection.Properties)
+            {
+                if (!string.IsNullOrEmpty(prop.EnumName) && prop.EnumName == "Slice")
+                {
+                    sb.AppendLine($"        public {projectionTypeName}SearchBuilder With{prop.Name}Slice(int limit, int skip)");
+                    sb.AppendLine("        {");
+                    sb.AppendLine($"            _{prop.Name} = new global::MongoObject.Core.Data.ProjectionVal.Slice(limit, skip);");
+                    sb.AppendLine("            return this;");
+                    sb.AppendLine("        }");
+                    sb.AppendLine();
+                }
+            }
+
             // GetAwaiter method - returns projected type
             sb.AppendLine($"        public global::System.Runtime.CompilerServices.TaskAwaiter<global::System.Collections.Generic.IEnumerable<global::{model.Namespace}.{projectionTypeName}>> GetAwaiter()");
             sb.AppendLine("        {");
@@ -217,7 +238,15 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine("        {");
             sb.AppendLine($"            if (_monitor is global::MongoObject.Core.Interfaces.IDocumentMonitorInternal<global::{model.Namespace}.{model.Name}> internalMonitor)");
             sb.AppendLine("            {");
-            sb.AppendLine($"                return await internalMonitor.SearchWithProjection<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query, global::{model.Namespace}.{projectionTypeName}>(_query, _meta, _limit, _skip);");
+            sb.AppendLine($"                var projection = new global::{model.Namespace}.{projectionTypeName}();");
+            foreach(var prop in projection.Properties)
+            {
+                if (!string.IsNullOrEmpty(prop.EnumName) && prop.EnumName == "Slice")
+                {
+                    sb.AppendLine($"                projection.SetSliceProjection(\"{prop.Name}\", _{prop.Name});");
+                }
+            }
+            sb.AppendLine($"                return await internalMonitor.SearchWithProjection<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query, global::{model.Namespace}.{projectionTypeName}>(_query, _meta, projection, _limit, _skip);");
             sb.AppendLine("            }");
             sb.AppendLine($"            return global::System.Array.Empty<global::{model.Namespace}.{projectionTypeName}>();");
             sb.AppendLine("        }");

@@ -83,5 +83,28 @@ namespace MongoObject.SourceGenerator.Generators
 
             return null;
         }
+
+        public static string GetProjectionTypeName(AttributeData attributeData)
+        {
+            var projectionType = attributeData.NamedArguments.Where(x => x.Key == "Type").FirstOrDefault().Value.Value as int? ?? 0;
+            return projectionType switch
+            {
+                0 => "Include",
+                1 => "Exclude",
+                2 => "Slice",
+                _ => throw new ArgumentOutOfRangeException(nameof(projectionType), $"Unsupported projection type: {projectionType}")
+            };
+        }
+
+        public static string GetIndexTypeName(AttributeData attributeData)
+        {
+            var projectionType = attributeData.NamedArguments.Where(x => x.Key == "Type").FirstOrDefault().Value.Value as int? ?? 0;
+            return projectionType switch
+            {
+                0 => "Ascending",
+                1 => "Descending",
+                _ => throw new ArgumentOutOfRangeException(nameof(projectionType), $"Unsupported projection type: {projectionType}")
+            };
+        }
     }
 }

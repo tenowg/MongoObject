@@ -1,10 +1,7 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Driver;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using MongoObject.Core.Attributes;
-using MongoObject.Core.Data;
-using MongoObject.Core.Interfaces;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 
 namespace Progress.Test
 {
@@ -19,16 +16,19 @@ namespace Progress.Test
     {
         [ProjectValue("Name", ProjectionType.Include)]
         [ProjectValue("Other", ProjectionType.Exclude)]
-        [MongoIndex("NameIndex", Type = AcsendingType.Ascending, Unique = true)]
+        [MongoIndex("NameIndex", Type = IndexType.Ascending, Unique = true)]
+        //[BsonElement("name")]
         public partial string Name { get; set; }
         [ProjectValue("Other", ProjectionType.Include)]
-        [MongoIndex("NameIndex", Type = AcsendingType.Ascending, Unique = true)]
-        [MongoIndex("AgeIndex", Type = AcsendingType.Descending)]
+        [MongoIndex("NameIndex", Type = IndexType.Ascending, Unique = true)]
+        [MongoIndex("AgeIndex", Type = IndexType.Descending)]
         public partial int Age { get; set; }
+        //[BsonIgnore]
         public partial BObject Nothing { get; set; }
         public partial ObservableCollection<string> Tags { get; set; }
         public partial TestA test { get; set; }
         public partial Dictionary<string, string> Properties { get; set; }
+        [ProjectValue("ListTest", ProjectionType.Slice)]
         public partial List<string> ListTest { get; set; } = [];
     }
 
@@ -40,7 +40,7 @@ namespace Progress.Test
     [MongoObject(DatabaseName = "BObjectsDatabase")]
     public partial class BObject
     {
-        [MongoIndex("BNameIndex", Type = AcsendingType.Ascending, Unique = true)]
+        [MongoIndex("BNameIndex", Type = IndexType.Ascending, Unique = true)]
         public partial string Name { get; set; }
         public partial int Age { get; set; }
     }

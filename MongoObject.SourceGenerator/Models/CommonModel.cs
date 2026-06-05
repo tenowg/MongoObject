@@ -12,6 +12,7 @@ namespace MongoObject.SourceGenerator.Models
         public string Name { get; init; } = string.Empty;
         public string DatabaseName { get; init; } = string.Empty;
         public string CollectionName { get; init; } = string.Empty;
+        public bool BsonValidation { get; init; } = false;
         public IReadOnlyList<PropertyModel> Properties { get; init; } = [];
         public MetadataModel Metadata { get; init; } = new();
         public IReadOnlyList<ProjectionModel> Projections { get; init; } = [];

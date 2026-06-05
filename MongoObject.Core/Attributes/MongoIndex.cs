@@ -5,7 +5,7 @@ using System.Text;
 
 namespace MongoObject.Core.Attributes
 {
-    public enum AcsendingType
+    public enum IndexType
     {
         Ascending = 0,
         Descending = 1
@@ -19,7 +19,7 @@ namespace MongoObject.Core.Attributes
     public class MongoIndexAttribute(string IndexName) : Attribute
     {
         public string IndexName { get; set; } = IndexName;
-        public AcsendingType Type { get; set; } = AcsendingType.Ascending;
+        public IndexType Type { get; set; } = IndexType.Ascending;
         public string Description { get; set; } = string.Empty;
         public bool Unique { get; set; } = false;
     }

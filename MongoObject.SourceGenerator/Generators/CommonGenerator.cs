@@ -13,6 +13,17 @@ namespace MongoObject.SourceGenerator.Generators
     [Generator]
     internal partial class CommonGenerator : IIncrementalGenerator
     {
+        private SymbolDisplayFormat format = SymbolDisplayFormat.FullyQualifiedFormat
+            .WithMemberOptions(
+                SymbolDisplayMemberOptions.IncludeContainingType |
+                //SymbolDisplayMemberOptions..IncludeNamespaces |
+                SymbolDisplayMemberOptions.IncludeType
+            )
+            .WithMiscellaneousOptions(
+                SymbolDisplayMiscellaneousOptions.EscapeKeywordIdentifiers |
+                SymbolDisplayMiscellaneousOptions.UseSpecialTypes |
+                SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+            );
         private static readonly ICodeModule[] _modules =
         [
             new ValidatorModule(),
@@ -24,6 +35,7 @@ namespace MongoObject.SourceGenerator.Generators
             new SearchBuilderModule(),
             new AddBuilderModule(),
             new DeleteManyBuilderModule(),
+            new BsonProjectionSerialilzerModule(),
             
         ];
 
@@ -71,7 +83,7 @@ namespace MongoObject.SourceGenerator.Generators
             });
         }
 
-        public static CommonModel? BuildCommonModel(GeneratorSyntaxContext ctx, System.Threading.CancellationToken ct)
+        public CommonModel? BuildCommonModel(GeneratorSyntaxContext ctx, System.Threading.CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
 
@@ -93,6 +105,7 @@ namespace MongoObject.SourceGenerator.Generators
             var mongoObjectAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.Core.Attributes.MongoObjectAttribute");
             var indexAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.Core.Attributes.MongoIndexAttribute");
             var bsonElementAttrSymbol = compilation.GetTypeByMetadataName("MongoDB.Bson.Serialization.Attributes.BsonElementAttribute");
+            var bsonIgnoreAttrSymbol = compilation.GetTypeByMetadataName("MongoDB.Bson.Serialization.Attributes.BsonIgnoreAttribute");
 
             var databaseName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "DatabaseName").Value.Value?.ToString();
             var collectionName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "CollectionName").Value.Value?.ToString();
@@ -114,7 +127,7 @@ namespace MongoObject.SourceGenerator.Generators
                 metadata = new MetadataModel
                 {
                     Name = metaTypeSymbol.Name,
-                    Properties = metaTypeSymbol.GetMembers()
+                    Properties = [.. metaTypeSymbol.GetMembers()
                         .OfType<IPropertySymbol>()
                         .Where(c => !c.Name.StartsWith("EqualityContract"))
                         .Select(x => new PropertyModel
@@ -122,23 +135,22 @@ namespace MongoObject.SourceGenerator.Generators
                             FullName = x.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                             Name = x.Name,
                             IsNumeric = IsNumericType(x.Type)
-                        })
-                        .ToImmutableArray()
+                        })]
                 };
 
                 errors.AddRange(metaTypeSymbol.GetMembers()
                     .OfType<IPropertySymbol>()
                     .Where(c => c.Name.StartsWith("Version") || c.Name.StartsWith("LastModifiedAt") || c.Name.StartsWith("CreatedAt"))
-                    .Select(x => new ValidationResult(true, x.Locations.FirstOrDefault(), new List<string> { x.Name, x.Type.Name }, DeclaredDiagnosticDescriptor.InvalidPropertyNameReservedDescriptor)));
+                    .Select(x => new ValidationResult(true, x.Locations.FirstOrDefault(), [x.Name, x.Type.Name], DeclaredDiagnosticDescriptor.InvalidPropertyNameReservedDescriptor)));
 
                 errors.AddRange(metaTypeSymbol.GetMembers()
                     .OfType<IPropertySymbol>()
                     .Where(c => !IsNullable(c.Type) && !c.Name.StartsWith("EqualityContract"))
-                    .Select(x => new ValidationResult(true, x.Locations.FirstOrDefault(), new List<string> { x.Name, x.Type.Name }, DeclaredDiagnosticDescriptor.InvalidPropertyNonNullableDescriptor)));
+                    .Select(x => new ValidationResult(true, x.Locations.FirstOrDefault(), [x.Name, x.Type.Name], DeclaredDiagnosticDescriptor.InvalidPropertyNonNullableDescriptor)));
             }
 
             // Process properties and validate non-partial properties
-            var (validProperties, invalidProperties) = ProcessAllProperties(namedTypeSymbol, trackingBaseSymbol, mongoObjectAttrSymbol, indexAttrSymbol, bsonElementAttrSymbol);
+            var (validProperties, invalidProperties) = ProcessAllProperties(namedTypeSymbol, trackingBaseSymbol, mongoObjectAttrSymbol, indexAttrSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol);
 
             Dictionary<string, List<PropertyModel>> indexes = [];
             foreach(var prop in validProperties)
@@ -150,14 +162,14 @@ namespace MongoObject.SourceGenerator.Generators
                     {
                         if (!indexes.ContainsKey(index.IndexName!))
                         {
-                            indexes[index.IndexName!] = new List<PropertyModel>();
+                            indexes[index.IndexName!] = [];
                         }
                         indexes[index.IndexName!].Add(prop);
                     }
                 }
             }
 
-            errors.AddRange(invalidProperties.Select(x => new ValidationResult(true, x.Locations.FirstOrDefault(), new List<string> { x.Name, x.Type.Name }, DeclaredDiagnosticDescriptor.InvalidPropertyTypeDescriptor)));
+            errors.AddRange(invalidProperties.Select(x => new ValidationResult(true, x.Locations.FirstOrDefault(), [x.Name, x.Type.Name], DeclaredDiagnosticDescriptor.InvalidPropertyTypeDescriptor)));
 
             return new CommonModel
             {
@@ -165,11 +177,12 @@ namespace MongoObject.SourceGenerator.Generators
                 Name = symbol.Name,
                 DatabaseName = databaseName ?? "",
                 CollectionName = collectionName ?? symbol.Name,
+                BsonValidation = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "IgnoreExtraElements").Value.Value as bool? ?? true,
                 Metadata = metadata,
                 Properties = validProperties,
-                Projections = ProcessProjections(namedTypeSymbol).ToImmutableArray(),
+                Projections = [.. ProcessProjections(namedTypeSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol)],
                 Errors = errors,
-                Indexes = indexes.Select(g => new IndexModel { Name = g.Key, Properties = g.Value.ToImmutableArray() }).ToImmutableArray()
+                Indexes = [.. indexes.Select(g => new IndexModel { Name = g.Key, Properties = [.. g.Value] })]
             };
         }
 
@@ -182,7 +195,8 @@ namespace MongoObject.SourceGenerator.Generators
             INamedTypeSymbol? trackingBaseSymbol,
             INamedTypeSymbol? mongoObjectAttrSymbol,
             INamedTypeSymbol? mongoIndexAttrSymbol,
-            INamedTypeSymbol? bsonElementAttrSymbol)
+            INamedTypeSymbol? bsonElementAttrSymbol,
+            INamedTypeSymbol? bsonIgnoreAttrSymbol)
         {
             var validProperties = ImmutableArray.CreateBuilder<PropertyModel>();
             var invalidProperties = new List<IPropertySymbol>();
@@ -207,6 +221,7 @@ namespace MongoObject.SourceGenerator.Generators
                 var isMongoObject = mongoObjectAttrSymbol != null && HasAttribute(prop.Type, mongoObjectAttrSymbol);
                 var isMongoIndex = mongoIndexAttrSymbol != null && prop.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, mongoIndexAttrSymbol));
                 var isBsonElement = bsonElementAttrSymbol != null && prop.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonElementAttrSymbol));
+                var isBsonIgnore = bsonIgnoreAttrSymbol != null && prop.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonIgnoreAttrSymbol));
                 var isTrackable = trackingBaseSymbol != null && InheritsFrom(prop.Type, trackingBaseSymbol);
                 var isComplexUntracked = !isMongoObject && !isTrackable && IsComplexUntrackedClass(prop.Type);
 
@@ -215,16 +230,15 @@ namespace MongoObject.SourceGenerator.Generators
                 var indexName = new List<MongoIndexPropertyModel>();
                 if (isMongoIndex)
                 {
-                    indexName = prop.GetAttributes()
+                    indexName = [.. prop.GetAttributes()
                         .Where(prop => SymbolEqualityComparer.Default.Equals(prop.AttributeClass, mongoIndexAttrSymbol))
                         .Select(a => new MongoIndexPropertyModel
                         {
                             IndexName = a.ConstructorArguments.FirstOrDefault().Value as string,
                             Name = prop.Name,
-                            Order = a.NamedArguments.Where(x => x.Key == "Type").FirstOrDefault().Value.Value as int? == 0 ? "Ascending" : "Descending",
+                            Order = GetIndexTypeName(a),
                             Unique = a.NamedArguments.Where(x => x.Key == "Unique").FirstOrDefault().Value.Value as bool? ?? false,
-                        })
-                        .ToList();
+                        })];
                 }
 
                 validProperties.Add(new PropertyModel
@@ -232,6 +246,7 @@ namespace MongoObject.SourceGenerator.Generators
                     FullName = prop.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     Name = prop.Name,
                     QueryName = isBsonElement ? prop.GetAttributes().First(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonElementAttrSymbol)).ConstructorArguments.FirstOrDefault().Value as string ?? prop.Name : prop.Name,
+                    IsBsonIgnore = isBsonIgnore,
                     IsNumeric = IsNumericType(prop.Type),
                     IsMongoObject = isMongoObject,
                     IsTrackable = isTrackable,
@@ -289,23 +304,29 @@ namespace MongoObject.SourceGenerator.Generators
             return typeSymbol.NullableAnnotation == NullableAnnotation.Annotated;
         }
 
-        public static IEnumerable<ProjectionModel> ProcessProjections(INamedTypeSymbol symbol)
+        public IEnumerable<ProjectionModel> ProcessProjections(INamedTypeSymbol symbol, INamedTypeSymbol? bsonElementAttrSymbol, INamedTypeSymbol? bsonIgnoreAttrSymbol)
         {
             var projections = symbol.GetMembers()
                 .OfType<IPropertySymbol>()
                 .SelectMany(prop => prop.GetAttributes()
                     .Where(attr => attr.AttributeClass?.Name is "ProjectValueAttribute" or "ProjectValue")
                     .Select(attr => new { Property = prop, Attribute = attr }))
-                .Select(target => new
-                {
-                    Name = target.Attribute?.ConstructorArguments.FirstOrDefault().Value as string ?? target.Property.Name,
-                    Prop = new PropertyModel
+                .Select(target => {
+                    var isBsonElement = bsonElementAttrSymbol != null && target.Property.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonElementAttrSymbol));
+                    var isBsonIgnore = bsonIgnoreAttrSymbol != null && target.Property.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonIgnoreAttrSymbol));
+                    return new
                     {
-                        FullName = target.Property.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                        IsNumeric = IsNumericType(target.Property.Type),
-                        Name = target.Property.Name,
-                        EnumName = EnumToString(target.Attribute)
-                    }
+                        Name = target.Attribute?.ConstructorArguments.FirstOrDefault().Value as string ?? target.Property.Name,
+                        Prop = new PropertyModel
+                        {
+                            FullName = target.Property.Type.ToDisplayString(format),
+                            QueryName = isBsonElement ? target.Property.GetAttributes().First(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonElementAttrSymbol)).ConstructorArguments.FirstOrDefault().Value as string ?? target.Property.Name : target.Property.Name,
+                            IsBsonIgnore = isBsonIgnore,
+                            IsNumeric = IsNumericType(target.Property.Type),
+                            Name = target.Property.Name,
+                            EnumName = EnumToString(target.Attribute)
+                        }
+                    };
                 })
                 .GroupBy(x => x.Name);
 
@@ -315,7 +336,7 @@ namespace MongoObject.SourceGenerator.Generators
                 {
                     Name = group.Key!,
                     Description = "nothing right now",
-                    Properties = group.Select(x => x.Prop).ToImmutableArray()
+                    Properties = [.. group.Select(x => x.Prop)]
                 };
             }
         }

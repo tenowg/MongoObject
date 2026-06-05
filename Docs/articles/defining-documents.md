@@ -27,7 +27,7 @@ public partial class User
 | `CollectionName` | `string` | No | The MongoDB collection name. Defaults to the class name. |
 | `DatabaseName` | `string` | No | The MongoDB database name. Can be overridden at runtime. |
 | `MetadataType` | `Type` | No | A custom metadata type for the document. |
-| `` | `boolean` | No | Defaults to true, you can choose to opt out of the source generator adding `[BsonIgnoreExtraElements]`. |
+| `IgnoreExtraElements` | `boolean` | No | Defaults to true, set to false to opt out of the source generator adding `[BsonIgnoreExtraElements]`. |
 
 ---
 

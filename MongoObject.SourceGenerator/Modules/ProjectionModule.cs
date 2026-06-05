@@ -26,6 +26,8 @@ namespace MongoObject.SourceGenerator.Modules
 
             sb.AppendLine("#nullable enable");
             sb.AppendLine("// auto-generated");
+            sb.AppendLine("using MongoDB.Driver;");
+            sb.AppendLine();
             sb.AppendLine($"namespace {model.Namespace}");
             sb.AppendLine("{");
             sb.AppendLine($"    public record {projectionTypeName} : global::MongoObject.Core.Interfaces.IProjectionBase, global::MongoObject.Core.Interfaces.IProjectionBase<global::{model.Namespace}.{model.Name}, global::{model.Namespace}.{projectionTypeName}>");
@@ -38,28 +40,60 @@ namespace MongoObject.SourceGenerator.Modules
                 {
                     sb.AppendLine($"        public {property.FullName}? {property.Name} {{ get; set; }}");
                 }
-            }
 
+                if (!string.IsNullOrEmpty(property.EnumName) && property.EnumName == "Slice")
+                {
+                    sb.AppendLine($"        public {property.FullName} {property.Name} {{ get; set; }} = new {property.FullName}();");
+                }
+            }
+            sb.AppendLine($"        private Dictionary<string, global::MongoObject.Core.Data.ProjectionVal.Slice> _sliceProjections = new Dictionary<string, global::MongoObject.Core.Data.ProjectionVal.Slice>();");
             sb.AppendLine();
+
+            sb.AppendLine($"        public void SetSliceProjection(string propertyName, global::MongoObject.Core.Data.ProjectionVal.Slice slice)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            _sliceProjections[propertyName] = slice;");
+            sb.AppendLine("        }");
 
             // Public ToMongoProjection method returning concrete type
             // Uses Expression which defines both the fields and the result type
             sb.AppendLine($"        public global::MongoDB.Driver.ProjectionDefinition<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>, global::{model.Namespace}.{projectionTypeName}> ToMongoProjection(string prefix = \"\")");
             sb.AppendLine("        {");
-            sb.AppendLine($"            var builder = global::MongoDB.Driver.Builders<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>>.Projection;");
+            sb.AppendLine($"            var projectionDoc = new global::MongoDB.Bson.BsonDocument();");
             sb.AppendLine();
-            sb.AppendLine($"            return builder.Expression(u => new global::{model.Namespace}.{projectionTypeName}");
-            sb.AppendLine("            {");
-
+            //sb.AppendLine("             var projection = new global::{model.Namespace}.{projectionTypeName}()");
+            //sb.AppendLine($"            return builder.Expression(u => {{");
+            //sb.AppendLine($"                 var projection = new global::{model.Namespace}.{projectionTypeName}();");
+            sb.AppendLine($"            projectionDoc[\"_id\"] = 0;");
             foreach (var property in projection.Properties)
             {
-                if (!string.IsNullOrEmpty(property.EnumName) && property.EnumName == "Include")
+                if (!string.IsNullOrEmpty(property.EnumName))
                 {
-                    sb.AppendLine($"                {property.Name} = u.Document!.{property.Name},");
+                    
+                    if (property.EnumName == "Include")
+                    {
+                        
+                        sb.AppendLine($"            projectionDoc[\"{property.Name}\"] = \"$Document.{property.QueryName}\";");
+                    }
+                    else if (property.EnumName == "Slice")
+                    {
+                        sb.AppendLine($"            if (_sliceProjections.TryGetValue(\"{property.Name}\", out var slice))");
+                        sb.AppendLine($"            {{");
+                        sb.AppendLine($"                projectionDoc[\"Document.{property.Name}\"] = new global::MongoDB.Bson.BsonDocument(\"$slice\", new global::MongoDB.Bson.BsonArray");
+                        sb.AppendLine($"                {{");
+                        //sb.AppendLine($"                    \"$Document.{property.QueryName}\", ");
+                        sb.AppendLine($"                    slice.Skip,");
+                        sb.AppendLine($"                    slice.Limit");
+                        sb.AppendLine($"                }});");
+                        sb.AppendLine($"            }}");
+                    }
                 }
             }
+            sb.AppendLine("            return new BsonDocumentProjectionDefinition<");
+            sb.AppendLine($"                global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>,");
+            sb.AppendLine($"                global::{model.Namespace}.{projectionTypeName}>(projectionDoc, new {model.Name}{projection.Name}Serializer());");
+            //sb.AppendLine($"                }});");
 
-            sb.AppendLine("            });");
+            //sb.AppendLine("            });");
             sb.AppendLine("        }");
             sb.AppendLine();
 
@@ -71,7 +105,7 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"            var serializer = global::MongoDB.Bson.Serialization.BsonSerializer.SerializerRegistry.GetSerializer<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>>();");
             sb.AppendLine($"            var renderArgs = new global::MongoDB.Driver.RenderArgs<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>>(serializer, global::MongoDB.Bson.Serialization.BsonSerializer.SerializerRegistry);");
             sb.AppendLine("            var rendered = concreteProjection.Render(renderArgs);");
-            sb.AppendLine($"            return new global::MongoDB.Driver.BsonDocumentProjectionDefinition<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>, global::{model.Namespace}.{projectionTypeName}>(rendered.Document);");
+            sb.AppendLine($"            return new global::MongoDB.Driver.BsonDocumentProjectionDefinition<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>, global::{model.Namespace}.{projectionTypeName}>(rendered.Document, new {model.Name}{projection.Name}Serializer());");
             sb.AppendLine("        }");
 
             sb.AppendLine("    }");

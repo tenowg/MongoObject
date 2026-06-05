@@ -1,9 +1,4 @@
-﻿using MongoDB.Driver;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace MongoObject.Core.Data
+﻿namespace MongoObject.Core.Data
 {
     public abstract record ProjectionVal
     {
@@ -11,11 +6,11 @@ namespace MongoObject.Core.Data
         public static implicit operator ProjectionVal(bool include) => include ? new Include() : new Exclude();
 
         // Implicit operator: int maps to an array Slice operation
-        public static implicit operator ProjectionVal(int sliceCount) => new Slice(sliceCount);
+        //public static implicit operator ProjectionVal(int sliceCount, int skipCount) => new Slice(sliceCount, skipCount);
 
         public record Include : ProjectionVal;
         public record Exclude : ProjectionVal;
-        public record Slice(int Count) : ProjectionVal;
+        public record Slice(int Limit, int Skip) : ProjectionVal;
         // You can add more complex operations later (e.g., ElementAt, AsString, etc.)
     }
 
@@ -25,6 +20,7 @@ namespace MongoObject.Core.Data
         {
             public static ProjectionVal Include => new ProjectionVal.Include();
             public static ProjectionVal Exclude => new ProjectionVal.Exclude();
+            public static ProjectionVal Slice(int limit, int skip) => new ProjectionVal.Slice(limit, skip);
         }
     }
 }

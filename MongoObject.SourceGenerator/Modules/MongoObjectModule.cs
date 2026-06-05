@@ -16,7 +16,10 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine();
             sb.AppendLine($"namespace {model.Namespace}");
             sb.AppendLine("{");
-            sb.AppendLine($"    [global::MongoDB.Bson.Serialization.Attributes.BsonIgnoreExtraElements]");
+            if (model.BsonValidation)
+            {
+                sb.AppendLine($"    [global::MongoDB.Bson.Serialization.Attributes.BsonIgnoreExtraElements]");
+            }
             sb.AppendLine($"    public partial class {model.Name} : global::MongoObject.Core.Data.TrackingObservableObject,");
             sb.AppendLine($"                                         global::MongoObject.Core.Interfaces.IDocumentFile,");
             sb.AppendLine($"                                         global::MongoObject.Core.Interfaces.IDocumentFileInternal,");
@@ -32,6 +35,12 @@ namespace MongoObject.SourceGenerator.Modules
             // Generate partial property implementations
             foreach (var prop in model.Properties)
             {
+                if (prop.IsBsonIgnore)
+                {
+                    // For properties marked with [BsonIgnore], generate auto-properties without change tracking
+                    sb.AppendLine($"        public partial {prop.FullName} {prop.Name} {{ get {{ return field; }} set {{ field = value; }} }}");
+                    continue;
+                }
                 sb.AppendLine($"        public partial {prop.FullName} {prop.Name}");
                 sb.AppendLine("        {");
                 sb.AppendLine("            get");
@@ -66,6 +75,11 @@ namespace MongoObject.SourceGenerator.Modules
 
             foreach (var prop in model.Properties)
             {
+                if (prop.IsBsonIgnore)
+                {
+                    // Skip properties marked with [BsonIgnore]
+                    continue;
+                }
                 if (prop.IsTrackable || prop.IsMongoObject)
                 {
                     // Trackable property - call TrackChanges on it

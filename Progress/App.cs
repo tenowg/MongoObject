@@ -20,16 +20,21 @@ namespace Progress
             var nameProjection = await monitor.Search()
                 .WithQuery(f =>
                 {
-                    //f.Name = "CraigR"; 
                     f.Name = "Craig";
                     f.Age = f.Age.And(
                         f.Age = f.Age.Lt(40),
                         f.Age = f.Age.Gt(5)
                     );
-                    f.Nothing(f => f.Age = f.Age.Gt(100));
                 })
+                .WithListTestProjection()
+                .WithListTestSlice(5, 3)
                 .WithLimit(5);
             #endregion
+
+            //var first = nameProjection.FirstOrDefault();
+            //first.ListTest = [];
+            //first.ListTest.AddRange(["test", "test2", "test3", "test4", "test5", "test6"]);
+            //await monitor.SaveChanges(first);
             //lockMeta = await monitor.LockDocument(first);
             //first.Tags = new();
             //first.Tags.Add("Hello");

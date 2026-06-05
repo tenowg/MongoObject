@@ -92,9 +92,9 @@ namespace MongoObject.Core.Services
         }
 
         async Task<IEnumerable<TProjection>> IDocumentMonitorInternal<TDocument>.SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(
-            Action<TClassSearch>? query, Action<TMetaSearch>? meta, int limit, int skip)
+            Action<TClassSearch>? query, Action<TMetaSearch>? meta, TProjection projection, int limit, int skip)
         {
-            return await documentManager.SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(query, meta, limit, skip);
+            return await documentManager.SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(query, meta, projection, limit, skip);
         }
 
         async Task<long> IDocumentMonitorInternal<TDocument>.DeleteMany<TClassSearch, TMetaSearch>(

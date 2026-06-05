@@ -26,7 +26,7 @@ namespace MongoObject.Core.Interfaces
             where TMetaSearch : class, IMetadataSearchBase, new();
         
         Task<IEnumerable<TProjection>> SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(
-            Action<TClassSearch>? query, Action<TMetaSearch>? meta, int limit = 0, int skip = 0) 
+            Action<TClassSearch>? query, Action<TMetaSearch>? meta, TProjection projection, int limit = 0, int skip = 0) 
             where TClassSearch : class, IClassSearch<TDocument>, new()
             where TMetaSearch : class, IMetadataSearchBase, new()
             where TProjection : class, IProjectionBase<TDocument, TProjection>, new();

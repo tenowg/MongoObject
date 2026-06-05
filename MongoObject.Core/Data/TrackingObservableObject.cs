@@ -29,7 +29,7 @@ namespace MongoObject.Core.Data
                 if (property is IEnumerable enumerableValues && property is not IDictionary)
                 {
                     var bson = new BsonDocument();
-                    _potentialChanges[propertyName] = bson.Add(propertyName, new BsonArray(enumerableValues));
+                    _potentialChanges.TryAdd(propertyName, bson.Add(propertyName, new BsonArray(enumerableValues)));
                 }
                 else
                 {
