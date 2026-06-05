@@ -6,6 +6,7 @@
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
 [![C# 14](https://img.shields.io/badge/C%23-14-239120)](https://learn.microsoft.com/en-us/dotnet/csharp/)
 [![Deploy Documentation](https://github.com/tenowg/MongoObject/actions/workflows/docs.yml/badge.svg)](https://github.com/tenowg/MongoObject/actions/workflows/docs.yml)
+[![Build](https://github.com/tenowg/MongoObject/actions/workflows/dotnet.yml/badge.svg)](https://github.com/tenowg/MongoObject/actions/workflows/dotnet.yml)
 
 ---
 
