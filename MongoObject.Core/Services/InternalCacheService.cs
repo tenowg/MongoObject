@@ -28,6 +28,12 @@ namespace MongoOptions.Services
             if(cache.TryGetValue(BuildKey<T>(key), out BsonDocument? value))
             {
                 doc = BsonSerializer.Deserialize<MongoDocument<T>>(value);
+                if (doc.Document == null)
+                {
+                    // this is an error that we will need to log.
+                    return false;
+                }
+                doc.Document.Version = doc.Metadata["Version"].AsInt64;
                 return true;
             }
             doc = null;

@@ -8,7 +8,10 @@ namespace MongoObject.Core.Interfaces
     {
         string CollectionName { get; }
         string DatabaseName { get; }
+        [Obsolete]
         void OnChanged(BsonDocument document);
+        void OnChanged(string id);
+        Type DocumentType();
     }
 
     public interface IMongoConnection<T> : IDisposable

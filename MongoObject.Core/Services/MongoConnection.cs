@@ -36,6 +36,7 @@ namespace MongoObject.Core.Services
             
         }
 
+        [Obsolete]
         public void OnChanged(BsonDocument document)
         {
             var doc = BsonSerializer.Deserialize<MongoDocument<T>>(document);
@@ -44,6 +45,17 @@ namespace MongoObject.Core.Services
                 _cache.Remove<T>(doc.Id!);
                 _changeMonitor.SignalChange(doc.Id!);
             }
+        }
+
+        public void OnChanged(string id)
+        {
+            _cache.Remove<T>(id);
+            _changeMonitor.SignalChange(id);
+        }
+
+        public Type DocumentType()
+        {
+            return typeof(MongoDocument<T>);
         }
     }
 }

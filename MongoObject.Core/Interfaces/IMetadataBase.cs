@@ -46,6 +46,6 @@ namespace MongoObject.Core.Interfaces
     {
         public DateTime? CreatedAt { get; set; }
         public DateTime? LastModifiedAt { get; set; }
-        public int? Version { get; set; }
+        public long? Version { get; set; }
     }
 }

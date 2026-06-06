@@ -25,24 +25,6 @@ MongoObject bridges the gap between MongoDB's document model and modern .NET dev
 
 ---
 
-## Installation
-
-> **📦 NuGet Package: Coming Soon**
->
-> The `Tenowg.MongoObjects` package is currently in active development and will be published to NuGet once it reaches stability.
->
-> In the meantime, you can clone this repository and reference the projects directly.
-
-```bash
-# Clone the repository
-git clone https://github.com/tenowg/MongoObjects.git
-
-# Add project reference to your .csproj
-<ProjectReference Include="path/to/MongoObject.Core/MongoObject.Core.csproj" />
-```
-
----
-
 ## Quick Start
 
 ### 1. Define Your Document
@@ -176,7 +158,7 @@ public class MongoDocument<T>
 
 ## Documentation
 
-Full documentation is available at **[https://tenowg.github.io/MongoObjects](https://tenowg.github.io/MongoObjects)**
+Full documentation is available at **[https://tenowg.github.io/MongoObject](https://tenowg.github.io/MongoObject)**
 
 ### Articles
 
@@ -187,27 +169,6 @@ Full documentation is available at **[https://tenowg.github.io/MongoObjects](htt
 - [Searching](Docs/articles/searching.md)
 - [Projections](Docs/articles/projections.md)
 - [Dependency Injection](Docs/articles/dependency-injection.md)
-
----
-
-## Project Structure
-
-```
-MongoObject/
-├── MongoObject.Core/              # Core library
-│   ├── Attributes/                # [MongoObject], [ProjectValue]
-│   ├── Data/                      # MongoDocument, TrackingObservableObject
-│   ├── Interfaces/                # Core interfaces
-│   ├── Services/                  # Service implementations
-│   └── Extensions/                # DI extensions
-├── MongoObject.SourceGenerator/   # Roslyn source generator
-│   ├── Generators/                # CommonGenerator
-│   └── Modules/                   # Generation modules
-├── Docs/                          # Documentation (DocFX)
-│   ├── articles/                  # Manual documentation
-│   └── api/                       # API reference
-└── Progress/                      # Demo/test project
-```
 
 ---
 
@@ -236,12 +197,12 @@ dotnet run --project Progress
 
 ## Roadmap
 
-- [ ] Complete projection module implementation
+- [X] Complete projection module implementation
 - [ ] Add delete operations
 - [ ] Implement polling-based watch mode
 - [ ] Add batch operations support
 - [ ] Comprehensive unit and integration tests
-- [ ] Publish to NuGet
+- [X] Publish to NuGet
 
 ---
 

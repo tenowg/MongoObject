@@ -3,8 +3,9 @@
   <Project Path="MongoObject.Examples/MongoObject.Examples.csproj" Id="49161c6e-7f23-4cb0-8884-5d0ee1a9d289">
     <Build Solution="Release|*" Project="false" />
   </Project>
+  <Project Path="MongoObject.RedisDistributedLock/MongoObject.RedisDistributedLock.csproj" Id="91114b44-56bb-42a7-8c26-52693143bfed" />
   <Project Path="MongoObject.SourceGenerator/MongoObject.SourceGenerator.csproj" />
-  <Project Path="MongoObject.Tests/MongoObject.Tests.csproj" Id="c4b940ba-6b8f-4aaa-9fbf-fefaf486ca5d"/>
+  <Project Path="MongoObject.Tests/MongoObject.Tests.csproj" Id="c4b940ba-6b8f-4aaa-9fbf-fefaf486ca5d" />
   <Project Path="Progress/Progress.csproj" Id="4f88e210-ce1f-460a-bdc1-b8d265eb5345">
     <Build Solution="Release|*" Project="false" />
   </Project>

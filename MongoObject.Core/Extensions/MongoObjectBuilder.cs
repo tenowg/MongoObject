@@ -4,7 +4,7 @@ using MongoObject.Core.Services;
 
 namespace MongoObject.Core.Extensions
 {
-    public class MongoObjectBuilder(IServiceCollection sp)
+    public partial class MongoObjectBuilder(IServiceCollection sp)
     {
         public MongoObjectBuilder RegisterDocument<TDocument, TMetaSearch, TMetaRecord>() 
             where TDocument : class, IDocumentFile<TMetaSearch, TMetaRecord>, new()
@@ -22,12 +22,13 @@ namespace MongoObject.Core.Extensions
 
         public MongoObjectBuilder AddWatchStream()
         {
-            sp.AddHostedService<MongoDocumentWatcher>();
+            sp.AddHostedService<MongoDocumentWatcherStream>();
             return this;
         }
 
         public MongoObjectBuilder AddWatchPolling()
         {
+            sp.AddHostedService<MongoDocumentWatcherPolling>();
             return this;
         }
     }

@@ -6,7 +6,7 @@ using MongoObject.Core.Interfaces;
 
 namespace MongoObject.Core.Services
 {
-    internal class MongoDocumentWatcher(IServiceProvider sp, IEnumerable<IMongoConnection> connections, ILogger<MongoDocumentWatcher> logger) : BackgroundService
+    internal class MongoDocumentWatcherStream(IServiceProvider sp, IEnumerable<IMongoConnection> connections, ILogger<MongoDocumentWatcherStream> logger) : BackgroundService
     {
         private record Database(string database, string collection);
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)

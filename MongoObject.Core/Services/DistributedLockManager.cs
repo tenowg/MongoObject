@@ -1,6 +1,4 @@
-﻿using Microsoft.Extensions.Options;
-using MongoDB.Bson;
-using MongoDB.Driver;
+﻿using MongoDB.Driver;
 using MongoObject.Core.Data;
 using MongoObject.Core.Exceptions;
 using MongoObject.Core.Interfaces;
@@ -8,13 +6,13 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace MongoObject.Core.Services
 {
-    internal class DistributedLockManager(IMongoClient client, MongoObjectOptions options, IDocumentKeyManager keys)
+    internal class DistributedLockManager(IMongoClient client, MongoObjectOptions options, IDocumentKeyManager keys) : IDistributedLockManager
     {
         private IMongoCollection<LockMetadata> _lockCollection = client.GetDatabase(options.MongoSystemDatabaseName).GetCollection<LockMetadata>(options.DistributedLockCollectionName);
         private FilterDefinitionBuilder<LockMetadata> _filterDefinition = Builders<LockMetadata>.Filter;
         private UpdateDefinitionBuilder<LockMetadata> _updateDefinition = Builders<LockMetadata>.Update;
 
-        public async Task<LockAcquisitionResult> LockDocumentAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(T document, TimeSpan? duration = null) 
+        public async Task<LockAcquisitionResult> LockDocumentAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(T document, TimeSpan? duration = null)
             where T : class, IDocumentFile, new()
         {
             if (!keys.TryGetKey(document, out string? key))
@@ -23,7 +21,7 @@ namespace MongoObject.Core.Services
             }
 
             var holderId = GenerateHolderId(key!);
-            
+
             var now = DateTime.UtcNow;
             var expiresAt = now.Add(duration ?? options.DistributedLockDefaultLockDuration);
 

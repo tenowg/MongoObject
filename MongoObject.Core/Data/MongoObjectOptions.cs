@@ -6,7 +6,6 @@ namespace MongoObject.Core.Data
 {
     public class MongoObjectOptions
     {
-        public string ConnectionString { get; set; } = string.Empty;
         public string DatabaseName { get; set; } = string.Empty;
 
         /// <summary>
@@ -32,5 +31,6 @@ namespace MongoObject.Core.Data
         public string MongoSystemDatabaseName { get; set; } = "mongo_system";
         public string DistributedLockCollectionName { get; set; } = "distributed_lock";
         public TimeSpan DistributedLockDefaultLockDuration { get; set; } = TimeSpan.FromMinutes(10);
+        public TimeSpan WatchPollInterval { get; set; } = TimeSpan.FromSeconds(15);
     }
 }

@@ -1,5 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using MongoDB.Bson;
+using MongoDB.Driver;
+using MongoDB.Driver.Core.Events;
 using MongoObject.Core.Extensions;
 using Progress;
 using Progress.Extensions;
@@ -15,12 +18,30 @@ AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
     Console.WriteLine($"Unhandled exception: {e.ExceptionObject}");
 };
 
+
+
 using IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((_, services) =>
     {
+        services.AddSingleton<IMongoClient>(sp =>
+        {
+            var mongoConnectionUrl = new MongoUrl("mongodb://localhost:27018/?directConnection=true");
+            var mongoClientSettings = MongoClientSettings.FromUrl(mongoConnectionUrl);
+
+            // Log everything to the console
+            mongoClientSettings.ClusterConfigurator = cb =>
+            {
+                cb.Subscribe<CommandStartedEvent>(e =>
+                {
+                    Console.WriteLine($"{e.CommandName} - {e.Command.ToJson()}");
+                });
+            };
+
+            return new MongoClient(mongoClientSettings);
+        });
+
         services.AddMongoObject(options =>
         {
-            options.ConnectionString = "mongodb://localhost:27018/?directConnection=true";
             options.DatabaseName = "mydatabase";
         })
         .AddWatchStream()

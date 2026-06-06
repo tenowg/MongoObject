@@ -24,21 +24,6 @@ namespace MongoObject.Core.Extensions
                 services.AddMemoryCache();
                 services.AddSingleton<DistributedLockManager>();
                 services.AddSingleton<InternalCacheService>();
-                
-                services.AddSingleton<IMongoClient>(sp =>
-                {
-                    var mongoConnectionUrl = new MongoUrl(optionsInstance.ConnectionString);
-                    var mongoClientSettings = MongoClientSettings.FromUrl(mongoConnectionUrl);
-
-                    // Log everything to the console
-                    mongoClientSettings.ClusterConfigurator = cb => {
-                        cb.Subscribe<CommandStartedEvent>(e => {
-                            Console.WriteLine($"{e.CommandName} - {e.Command.ToJson()}");
-                        });
-                    };
-                    
-                    return new MongoClient(mongoClientSettings);
-                });
 
                 var objectSerializer = new ObjectSerializer(ObjectSerializer.AllAllowedTypes);
                 BsonSerializer.RegisterSerializer(objectSerializer);

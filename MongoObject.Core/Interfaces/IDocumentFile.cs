@@ -12,6 +12,10 @@ namespace MongoObject.Core.Interfaces
 
     public interface IDocumentFile
     {
+        /// <summary>
+        /// The version of the stored Document, 
+        /// </summary>
+        long Version { get; set; }
         Type GetSearchMetaType();
         Type GetRecordMetaType();
         

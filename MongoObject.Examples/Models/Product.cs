@@ -4,9 +4,15 @@ using MongoObject.Core.Attributes;
 
 namespace MongoObject.Examples.Models;
 
+public record ProductMeta
+{
+    public string? Department { get; set; } = string.Empty;
+}
+
 [MongoObject(
     CollectionName = "Products",
-    DatabaseName = "MyStore"
+    DatabaseName = "MyStore",
+    MetadataType = typeof(ProductMeta)
 )]
 public partial class Product
 {

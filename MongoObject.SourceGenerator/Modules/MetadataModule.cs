@@ -31,7 +31,7 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine("    {");
             sb.AppendLine("        public global::MongoObject.Core.Data.QueryVal<System.DateTime>? CreatedAt { get; set; }");
             sb.AppendLine("        public global::MongoObject.Core.Data.QueryVal<System.DateTime>? LastModifiedAt { get; set; }");
-            sb.AppendLine("        public global::MongoObject.Core.Data.QueryVal<int>? Version { get; set; }");
+            sb.AppendLine("        public global::MongoObject.Core.Data.QueryVal<long>? Version { get; set; }");
 
             foreach (var prop in model.Metadata.Properties)
             {
@@ -111,7 +111,7 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine("    {");
             sb.AppendLine("        public System.DateTime? CreatedAt { get; set; }");
             sb.AppendLine("        public System.DateTime? LastModifiedAt { get; set; }");
-            sb.AppendLine("        public int? Version { get; set; }");
+            sb.AppendLine("        public long? Version { get; set; }");
 
             foreach (var prop in model.Metadata.Properties)
             {

@@ -25,12 +25,15 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"                                         global::MongoObject.Core.Interfaces.IDocumentFileInternal,");
             sb.AppendLine($"                                         global::MongoObject.Core.Interfaces.IDocumentFile<{model.Metadata.Name}Query, {model.Metadata.Name}Record>");
             sb.AppendLine("    {");
+            sb.AppendLine("        private long _Version;");
             sb.AppendLine($"        public System.Type GetSearchMetaType() => typeof({model.Metadata.Name}Query);");
             sb.AppendLine($"        public System.Type GetRecordMetaType() => typeof({model.Metadata.Name}Record);");
             sb.AppendLine($"        public string GetDatabaseName() => \"{model.DatabaseName}\";");
             sb.AppendLine($"        public string GetCollectioName() => \"{model.CollectionName}\";");
             sb.AppendLine();
-            sb.AppendLine("        private readonly System.Collections.Generic.HashSet<string> _changedFields = new();");
+            sb.AppendLine("        [global::MongoDB.Bson.Serialization.Attributes.BsonIgnore]");
+            sb.AppendLine("        public long Version { get { return _Version;} set { _Version = value; } }");   
+            //sb.AppendLine("        private readonly System.Collections.Generic.HashSet<string> _changedFields = new();");
 
             // Generate partial property implementations
             foreach (var prop in model.Properties)

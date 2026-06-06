@@ -14,6 +14,7 @@
 	  <Description>No Description Yet</Description>
 	  <PackageTags>mongodb;dotnet10;odm;csharp14</PackageTags>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
+	  <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 
 	  <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
 	  <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Debug'">false</GeneratePackageOnBuild>
@@ -31,6 +32,11 @@
 	<IncludeSymbols>true</IncludeSymbols>
 	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Docs\**" />
+    <EmbeddedResource Remove="Docs\**" />
+    <None Remove="Docs\**" />
+  </ItemGroup>
 	<ItemGroup>
 		<None Include="CHANGELOG.md" Pack="true" PackagePath="\" />
 		<None Include="README.md" Pack="true" PackagePath="\" />
@@ -55,10 +61,10 @@
 		<ProjectReference Include="..\MongoObject.SourceGenerator\MongoObject.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="Docs\Articles\" />
 	  <Folder Include="Generator\" />
 	</ItemGroup>
 	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
 		<InternalsVisibleTo Include="MongoObject.Tests" />
+	<InternalsVisibleTo Include="MongoObject.RedisDistributedLock" />
 	</ItemGroup>
 </Project>
