@@ -27,7 +27,7 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine("        {");
             sb.AppendLine($"            public global::MongoObject.Core.Extensions.MongoObjectBuilder RegisterDocuments{SanitizeName(rootNamespace)}()");
             sb.AppendLine("            {");
-
+            sb.AppendLine($"                builder.RegisterIndexBuilder<global::{args.rootNamespace}.{args.rootNamespace.Replace(".", "")}IndexBuilder>();");
             foreach (var model in models)
             {
                 if (model == null) continue;

@@ -14,5 +14,7 @@ items:
       href: fluent-queries.md
   - name: Projections
     href: projections.md
+  - name: Creating Indexes
+    href: creating-indexes.md
   - name: Dependency Injection
     href: dependency-injection.md

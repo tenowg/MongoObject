@@ -5,9 +5,6 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoObject.Core.Data;
 using MongoObject.Core.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace MongoObject.Core.Services
 {

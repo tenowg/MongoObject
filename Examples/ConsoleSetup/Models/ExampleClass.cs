@@ -1,7 +1,7 @@
 ﻿#region ExampleClass
 using MongoObject.Core.Attributes;
 
-namespace MongoObject.Examples.Models
+namespace ConsoleSetup.Models
 {
     [MongoObject]
     public partial class ExampleClass

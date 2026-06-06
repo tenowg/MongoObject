@@ -1,5 +1,5 @@
 # Fluent Search
-While MongoObject also provides code generated QueryBuilders. This allows for full fluent query building for most operations.
+MongoObject also provides code generated QueryBuilders. This allows for fully fluent query building for most operations.
 
 ## Basic Search
 

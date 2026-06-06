@@ -53,6 +53,14 @@ The field will be excluded from the projection:
 public partial string SensitiveData { get; set; }
 ```
 
+### Slice
+
+The field will be Sliced in the projection returning a part of an array
+
+```csharp
+[ProjectValue("MyProjection", ProjectionType.Slice)]
+public partial List<string> Tags { get; set; } = [];
+```
 ---
 
 ## Multiple Projections
@@ -88,15 +96,21 @@ This creates three projection sets:
 
 ## Using Projections
 
-> **Note:** Projection support is currently in development. The API will be finalized in an upcoming release.
+> [!NOTE] 
+> Projection support is currently in development. The API will be finalized in an upcoming release.
 
-### Planned API
+### Current API
 
 ```csharp
-// Future API - not yet implemented
-var users = await monitor.GetWithProjection<User>("BasicInfo");
+var users = await monitor.Search().WithProjectionBasicInfo();
 // Returns users with only Name and Email populated
 ```
+
+```csharp
+var users = await monitor.Search().WithProjectionMyProjection().WithTagsSlice(5, 3);
+```
+
+Because Codegen generates a custom Builder for every projection model all queries because fluent and 100% accessible from intellisense
 
 ---
 
@@ -107,6 +121,9 @@ var users = await monitor.GetWithProjection<User>("BasicInfo");
 1. **Include Mode**: Only specified fields are returned (plus `_id`)
 2. **Exclude Mode**: All fields except excluded ones are returned
 3. **Cannot Mix**: You cannot mix include and exclude in the same projection (except for `_id`)
+
+> [!NOTE]
+> Exclude does not work as expected yet, as of now it only insures that it is not included along with Include types, this is on the roadmap to be fixed
 
 ### How MongoObject Handles This
 
@@ -141,21 +158,17 @@ public partial class Article
 {
     // For list views
     [ProjectValue("ListView", ProjectionType.Include)]
+    [ProjectValue("DetailView", ProjectionType.Include)]
     public partial string Title { get; set; }
     
     [ProjectValue("ListView", ProjectionType.Include)]
+    [ProjectValue("DetailView", ProjectionType.Include)]
     public partial string Author { get; set; }
     
     [ProjectValue("ListView", ProjectionType.Include)]
     public partial DateTime PublishedAt { get; set; }
     
     // For detail views
-    [ProjectValue("DetailView", ProjectionType.Include)]
-    public partial string Title { get; set; }
-    
-    [ProjectValue("DetailView", ProjectionType.Include)]
-    public partial string Author { get; set; }
-    
     [ProjectValue("DetailView", ProjectionType.Include)]
     public partial string Content { get; set; }
     
@@ -208,7 +221,7 @@ The generator is also building the Query Builders for each Projection so you can
 _monitor.Search()
     .WithQuery(s => s.Name = "Jane Smith")
     .WithMeta(m => m.CreatedAt = m.CreatedAt.Lt(DateTime.UtcNow))
-    .WithUerPublicProjection();
+    .WithUserPublicProjection();
 ```
 
 ---
@@ -221,32 +234,25 @@ public partial class BlogPost
 {
     // List view projection
     [ProjectValue("List", ProjectionType.Include)]
+    [ProjectValue("Detail", ProjectionType.Include)]
     public partial string Title { get; set; }
     
     [ProjectValue("List", ProjectionType.Include)]
     public partial string Excerpt { get; set; }
     
     [ProjectValue("List", ProjectionType.Include)]
+    [ProjectValue("Detail", ProjectionType.Include)]
     public partial string AuthorName { get; set; }
     
     [ProjectValue("List", ProjectionType.Include)]
+    [ProjectValue("Detail", ProjectionType.Include)]
     public partial DateTime PublishedAt { get; set; }
     
     [ProjectValue("List", ProjectionType.Include)]
     public partial List<string> Tags { get; set; }
     
-    // Detail view adds full content
-    [ProjectValue("Detail", ProjectionType.Include)]
-    public partial string Title { get; set; }
-    
     [ProjectValue("Detail", ProjectionType.Include)]
     public partial string FullContent { get; set; }
-    
-    [ProjectValue("Detail", ProjectionType.Include)]
-    public partial string AuthorName { get; set; }
-    
-    [ProjectValue("Detail", ProjectionType.Include)]
-    public partial DateTime PublishedAt { get; set; }
     
     [ProjectValue("Detail", ProjectionType.Include)]
     public partial List<Comment> Comments { get; set; }

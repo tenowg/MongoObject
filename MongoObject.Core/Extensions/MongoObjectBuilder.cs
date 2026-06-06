@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using MongoObject.Core.Interfaces;
 using MongoObject.Core.Services;
+using System.Diagnostics.CodeAnalysis;
 
 namespace MongoObject.Core.Extensions
 {
@@ -17,6 +18,13 @@ namespace MongoObject.Core.Extensions
             sp.AddSingleton<IMongoConnection<TDocument>, MongoConnection<TDocument>>();
             sp.AddSingleton<IMongoConnection, MongoConnection<TDocument>>();
             sp.AddSingleton<MongoDocumentManager<TDocument>>();
+            return this;
+        }
+
+        public MongoObjectBuilder RegisterIndexBuilder<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TIndexBuilder>()
+            where TIndexBuilder : class, IIndexBuilder, new()
+        {
+            sp.AddSingleton<IIndexBuilder, TIndexBuilder>();
             return this;
         }
 

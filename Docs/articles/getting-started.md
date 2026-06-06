@@ -44,7 +44,7 @@ git clone https://github.com/tenowg/MongoObjects.git
 
 Create a new partial class and decorate it with the `[MongoObject]` attribute:
 
-[!code-csharp[Product](../../MongoObject.Examples/Models/Product.cs#Product)]
+[!code-csharp[Product](../../Examples/ConsoleSetup/Models/Product.cs#Product)]
 
 **Key points:**
 - The class must be `partial` for the source generator to work
@@ -55,7 +55,7 @@ Create a new partial class and decorate it with the `[MongoObject]` attribute:
 
 In your `Program.cs` or startup file:
 
-[!code-csharp[RegisterMongoOption](../../MongoObject.Examples/Program.cs#ConfigureMongoObject)]
+[!code-csharp[RegisterMongoOption](../../Examples/ConsoleSetup/Program.cs#ConfigureMongoObject)]
 
 ### Step 3: Use the Document Monitor
 
@@ -86,6 +86,10 @@ public class ProductService
     // Update a product
     public async Task UpdateProductPriceAsync(string id, decimal newPrice)
     {
+        // using Get is similar to EF's Attach, becuase all documents are cached
+        // in a per App cache, this will either immediately return a ref to your document
+        // or will fetch it from the database. This will ensure that the document you are
+        // updating is always fresh.
         var product = await _monitor.Get(id);
         product.Price = newPrice;  // Change is automatically tracked
         await _monitor.SaveChanges(product);

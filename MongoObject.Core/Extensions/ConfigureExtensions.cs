@@ -1,9 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
-using MongoDB.Driver;
-using MongoDB.Driver.Core.Events;
 using MongoObject.Core.Data;
 using MongoObject.Core.Interfaces;
 using MongoObject.Core.Services;
@@ -24,6 +21,7 @@ namespace MongoObject.Core.Extensions
                 services.AddMemoryCache();
                 services.AddSingleton<DistributedLockManager>();
                 services.AddSingleton<InternalCacheService>();
+                services.AddHostedService<BuildIndexesHostService>();
 
                 var objectSerializer = new ObjectSerializer(ObjectSerializer.AllAllowedTypes);
                 BsonSerializer.RegisterSerializer(objectSerializer);

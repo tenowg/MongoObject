@@ -8,7 +8,9 @@ namespace MongoObject.Core.Attributes
     public enum IndexType
     {
         Ascending = 0,
-        Descending = 1
+        Descending = 1,
+        Vector = 2,
+        Search = 3
     };
 
     /// <summary>
