@@ -145,3 +145,4 @@ _ReSharper*/
 node_modules/
 .clineignore
 /.clinerules/*
+/Progress/GeneratedFiles
