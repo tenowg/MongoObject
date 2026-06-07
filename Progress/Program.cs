@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MongoDB.Bson;
 using MongoDB.Driver;
@@ -18,14 +19,19 @@ AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
     Console.WriteLine($"Unhandled exception: {e.ExceptionObject}");
 };
 
+IConfiguration config = new ConfigurationBuilder()
+            //.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddUserSecrets<Program>() // This pulls keys from secrets.json
+            .Build();
 
+string apiKey = config["Mongo:Connection"];
 
 using IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((_, services) =>
     {
         services.AddSingleton<IMongoClient>(sp =>
         {
-            var mongoConnectionUrl = new MongoUrl("mongodb://localhost:27018/?directConnection=true");
+            var mongoConnectionUrl = new MongoUrl(apiKey);
             var mongoClientSettings = MongoClientSettings.FromUrl(mongoConnectionUrl);
 
             // Log everything to the console
@@ -43,6 +49,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         services.AddMongoObject(options =>
         {
             options.DatabaseName = "mydatabase";
+            options.IsAtlasMongoDBInstance = true;
         })
         .AddWatchStream()
         .RegisterDocumentsProgress();

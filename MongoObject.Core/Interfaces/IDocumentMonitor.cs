@@ -1,4 +1,5 @@
 ﻿using MongoObject.Core.Data;
+using System.Linq.Expressions;
 
 namespace MongoObject.Core.Interfaces
 {
@@ -34,5 +35,17 @@ namespace MongoObject.Core.Interfaces
         Task<long> DeleteMany<TClassSearch, TMetaSearch>(Action<TClassSearch>? query, Action<TMetaSearch>? meta)
             where TClassSearch : class, IClassSearch<TDocument>, new()
             where TMetaSearch : class, IMetadataSearchBase, new();
+
+        Task<IEnumerable<TProjection>> VectorSearchWithProjection<TClassSearch, TMetaSearch, TProjection>(
+            Action<TClassSearch>? query, Action<TMetaSearch>? meta, TProjection projection, string index, string embeddingName, float[] embedding, int limit = 0, int skip = 0, int returnCount = -1, int conciderFrom = 150)
+            where TClassSearch : class, IClassSearch<TDocument>, new()
+            where TMetaSearch : class, IMetadataSearchBase, new()
+            where TProjection : class, IProjectionBase<TDocument, TProjection>, new();
+
+        Task<IEnumerable<TProjection>> AutoVectorSearchWithProjection<TClassSearch, TMetaSearch, TProjection, TField>(
+            Action<TClassSearch>? query, Action<TMetaSearch>? meta, TProjection projection, string index, Expression<Func<MongoDocument<TDocument>, TField>> embeddingName,  string embedding, int limit = 0, int skip = 0, int returnCount = -1, int conciderFrom = 150)
+            where TClassSearch : class, IClassSearch<TDocument>, new()
+            where TMetaSearch : class, IMetadataSearchBase, new()
+            where TProjection : class, IProjectionBase<TDocument, TProjection>, new();
     }
 }

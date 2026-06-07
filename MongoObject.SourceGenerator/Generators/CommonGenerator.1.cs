@@ -92,6 +92,8 @@ namespace MongoObject.SourceGenerator.Generators
                 0 => "Include",
                 1 => "Exclude",
                 2 => "Slice",
+                3 => "Vector",
+                4 => "AutoVector",
                 _ => throw new ArgumentOutOfRangeException(nameof(projectionType), $"Unsupported projection type: {projectionType}")
             };
         }
@@ -103,6 +105,9 @@ namespace MongoObject.SourceGenerator.Generators
             {
                 0 => "Ascending",
                 1 => "Descending",
+                2 => "Vector",
+                3 => "AutoVector",
+                4 => "Search",
                 _ => throw new ArgumentOutOfRangeException(nameof(projectionType), $"Unsupported projection type: {projectionType}")
             };
         }

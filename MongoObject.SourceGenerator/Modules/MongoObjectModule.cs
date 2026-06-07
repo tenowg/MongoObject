@@ -2,6 +2,7 @@
 using MongoObject.SourceGenerator.Interfaces;
 using MongoObject.SourceGenerator.Models;
 using System.Text;
+using System.Linq;
 
 namespace MongoObject.SourceGenerator.Modules
 {
@@ -32,7 +33,13 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"        public string GetCollectioName() => \"{model.CollectionName}\";");
             sb.AppendLine();
             sb.AppendLine("        [global::MongoDB.Bson.Serialization.Attributes.BsonIgnore]");
-            sb.AppendLine("        public long Version { get { return _Version;} set { _Version = value; } }");   
+            sb.AppendLine("        public long Version { get { return _Version;} set { _Version = value; } }");
+
+            var vectorProjections = model.Projections.Where(p => p.Properties.Any(x => x.EnumName == "Vector"));
+            foreach ( var vectorProjection in vectorProjections )
+            {
+                sb.AppendLine($"        public float[] {vectorProjection.Name}Embedding {{ get; set; }} = [];");
+            }
             //sb.AppendLine("        private readonly System.Collections.Generic.HashSet<string> _changedFields = new();");
 
             // Generate partial property implementations

@@ -2,6 +2,6 @@
 {
     public interface IIndexBuilder
     {
-        Task EnsureIndexExists(IServiceProvider sp);
+        Task EnsureIndexExists(IServiceProvider sp, bool isAtlasServer);
     }
 }

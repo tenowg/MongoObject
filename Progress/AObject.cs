@@ -17,6 +17,7 @@ namespace Progress.Test
     {
         [ProjectValue("Name", ProjectionType.Include)]
         [ProjectValue("Other", ProjectionType.Exclude)]
+        [ProjectValue("VectorTest", ProjectionType.AutoVector)]
         [MongoIndex("NameIndex", Type = IndexType.Ascending, Unique = true)]
         //[BsonElement("name")]
         public partial string Name { get; set; }

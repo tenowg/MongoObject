@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Primitives;
 using MongoObject.Core.Data;
 using MongoObject.Core.Interfaces;
+using System.Linq.Expressions;
 
 namespace MongoObject.Core.Services
 {
@@ -101,6 +102,26 @@ namespace MongoObject.Core.Services
             Action<TClassSearch>? query, Action<TMetaSearch>? meta)
         {
             return await documentManager.DeleteMany<TClassSearch, TMetaSearch>(query, meta);
+        }
+
+        async Task<IEnumerable<TProjection>> IDocumentMonitorInternal<TDocument>.VectorSearchWithProjection<TClassSearch, TMetaSearch, TProjection>(Action<TClassSearch>? query, Action<TMetaSearch>? meta, TProjection projection, string index, string embeddingName, float[] embedding, int limit, int skip, int returnCount, int conciderFrom)
+        {
+            return await documentManager.SearchWithVector(query, meta, projection, index, embeddingName, embedding, limit, skip, returnCount, conciderFrom);
+        }
+
+        async Task<IEnumerable<TProjection>> IDocumentMonitorInternal<TDocument>.AutoVectorSearchWithProjection<TClassSearch, TMetaSearch, TProjection, TField>(
+            Action<TClassSearch>? query, 
+            Action<TMetaSearch>? meta, 
+            TProjection projection, 
+            string index,
+            Expression<Func<MongoDocument<TDocument>, TField>> embeddingName, 
+            string embedding, 
+            int limit, 
+            int skip, 
+            int returnCount, 
+            int conciderFrom)
+        {
+            return await documentManager.SearchWithAutoVector(query, meta, projection, index, embeddingName, embedding, limit, skip, returnCount, conciderFrom);
         }
     }
 }

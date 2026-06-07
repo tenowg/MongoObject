@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using MongoObject.SourceGenerator.Interfaces;
 using MongoObject.SourceGenerator.Models;
+using System.Linq;
 using System.Text;
 
 namespace MongoObject.SourceGenerator.Modules
@@ -45,6 +46,7 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"        private global::System.Action<global::{model.Namespace}.{model.Metadata.Name}Query>? _meta;");
             sb.AppendLine($"        private int _limit;");
             sb.AppendLine($"        private int _skip;");
+            sb.AppendLine("        private float[] _embedding;");
             sb.AppendLine();
 
             // Constructor
@@ -61,12 +63,14 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"            global::System.Action<global::{model.Namespace}.{model.Metadata.Name}Query>? meta,");
             sb.AppendLine($"            int limit,");
             sb.AppendLine($"            int skip)");
+            //sb.AppendLine("             float[] embedding = [])");
             sb.AppendLine("        {");
             sb.AppendLine("            _monitor = monitor;");
             sb.AppendLine("            _query = query;");
             sb.AppendLine("            _meta = meta;");
             sb.AppendLine("            _limit = limit;");
             sb.AppendLine("            _skip = skip;");
+            //sb.AppendLine("            _embedding = embedding;");
             sb.AppendLine("        }");
             sb.AppendLine();
 
@@ -105,8 +109,13 @@ namespace MongoObject.SourceGenerator.Modules
             // Projection methods
             foreach (var projection in model.Projections)
             {
+                var projectionName = projection.Name + "Projection";
+                if (projection.Properties.Any(x => x.EnumName == "Vector" || x.EnumName == "AutoVector"))
+                {
+                    projectionName = projection.Name + "Vector";
+                }
                 ct.ThrowIfCancellationRequested();
-                sb.AppendLine($"        public {model.Name}{projection.Name}SearchBuilder With{projection.Name}Projection()");
+                sb.AppendLine($"        public {model.Name}{projection.Name}SearchBuilder With{projectionName}()");
                 sb.AppendLine("        {");
                 sb.AppendLine($"            return new {model.Name}{projection.Name}SearchBuilder(_monitor, _query, _meta, _limit, _skip);");
                 sb.AppendLine("        }");
@@ -153,8 +162,25 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"        private readonly global::MongoObject.Core.Interfaces.IDocumentMonitor<global::{model.Namespace}.{model.Name}> _monitor;");
             sb.AppendLine($"        private global::System.Action<global::{model.Namespace}.{model.Name}Query>? _query;");
             sb.AppendLine($"        private global::System.Action<global::{model.Namespace}.{model.Metadata.Name}Query>? _meta;");
-            sb.AppendLine($"        private int _limit;");
-            sb.AppendLine($"        private int _skip;");
+            sb.AppendLine("        private int _limit;");
+            sb.AppendLine("        private int _skip;");
+
+            if (projection.Properties.Any(x => x.EnumName == "Vector" || x.EnumName == "AutoVector"))
+            {
+                sb.AppendLine("        private int _returnCount = 10;");
+                sb.AppendLine("        private int _maxConsidered = 50;");
+            }
+
+            if (projection.Properties.Any(x => x.EnumName == "Vector"))
+            {
+                sb.AppendLine("        private float[] _embedding = [];");
+            }
+
+            if (projection.Properties.Any(x => x.EnumName == "AutoVector"))
+            {
+                sb.AppendLine("        private string _embedding = string.Empty;");
+            }
+
             foreach (var prop in projection.Properties)
             {
                 if (!string.IsNullOrEmpty(prop.EnumName) && prop.EnumName == "Slice")
@@ -177,6 +203,7 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine("            _meta = meta;");
             sb.AppendLine("            _limit = limit;");
             sb.AppendLine("            _skip = skip;");
+            //sb.AppendLine("            _embedding = embedding;");
             sb.AppendLine("        }");
             sb.AppendLine();
 
@@ -212,8 +239,53 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine("        }");
             sb.AppendLine();
 
+            if (projection.Properties.Any(x => x.EnumName == "Vector"))
+            {
+                // Embedded Search
+                sb.AppendLine($"        public {projectionTypeName}SearchBuilder WithEmbedding(float[] embedding)");
+                sb.AppendLine("         {");
+                sb.AppendLine("             _embedding = embedding;");
+                sb.AppendLine("             return this;");
+                sb.AppendLine("         }");
+            }
+
+            if (projection.Properties.Any(x => x.EnumName == "AutoVector"))
+            {
+                // Embedded Search
+                sb.AppendLine($"        public {projectionTypeName}SearchBuilder WithEmbedding(string embedding)");
+                sb.AppendLine("         {");
+                sb.AppendLine("             _embedding = embedding;");
+                sb.AppendLine("             return this;");
+                sb.AppendLine("         }");
+            }
+
+            //if (projection.Properties.Any(x => x.EnumName == "AutoVector"))
+            //{
+            //    // Embedded Search
+            //    sb.AppendLine($"        public {model.Name}SearchBuilder WithEmbedding()");
+            //    sb.AppendLine("         {");
+            //    sb.AppendLine("             _embedding = embedding;");
+            //    sb.AppendLine("             return this;");
+            //    sb.AppendLine("         }");
+            //}
+
+            if (projection.Properties.Any(x => x.EnumName == "Vector" || x.EnumName == "AutoVector"))
+            {
+                // Embedded Search
+                sb.AppendLine($"        public {projectionTypeName}SearchBuilder WithMaxConsider(int maxConsiderations)");
+                sb.AppendLine("         {");
+                sb.AppendLine("             _maxConsidered = maxConsiderations;");
+                sb.AppendLine("             return this;");
+                sb.AppendLine("         }");
+                sb.AppendLine($"        public {projectionTypeName}SearchBuilder WithMaxReturns(int returns)");
+                sb.AppendLine("         {");
+                sb.AppendLine("             _returnCount = returns;");
+                sb.AppendLine("             return this;");
+                sb.AppendLine("         }");
+            }
+
             // Build method to handle slices projections
-            foreach(var prop in projection.Properties)
+            foreach (var prop in projection.Properties)
             {
                 if (!string.IsNullOrEmpty(prop.EnumName) && prop.EnumName == "Slice")
                 {
@@ -246,7 +318,23 @@ namespace MongoObject.SourceGenerator.Modules
                     sb.AppendLine($"                projection.SetSliceProjection(\"{prop.Name}\", _{prop.Name});");
                 }
             }
-            sb.AppendLine($"                return await internalMonitor.SearchWithProjection<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query, global::{model.Namespace}.{projectionTypeName}>(_query, _meta, projection, _limit, _skip);");
+
+            if (projection.Properties.Any(x => x.EnumName == "AutoVector"))
+            {
+                // return a call to a new method called SearchWithVector()
+                var vectorName = projection.Properties.Where(x => x.EnumName == "AutoVector").FirstOrDefault();
+                sb.AppendLine($"                 return await internalMonitor.AutoVectorSearchWithProjection<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query, global::{model.Namespace}.{projectionTypeName}, {vectorName.FullName}>(_query, _meta, projection, \"{projection.Name}\", x => x.Document.{vectorName.QueryName}, _embedding, _limit, _skip, _returnCount, _maxConsidered);");
+            }
+            else if (projection.Properties.Any(x => x.EnumName == "Vector"))
+            {
+                // return a call to a new method called SearchWithVector()
+                var vectorName = projection.Properties.Where(x => x.EnumName == "Vector").FirstOrDefault().Name;
+                sb.AppendLine($"                 return await internalMonitor.VectorSearchWithProjection<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query, global::{model.Namespace}.{projectionTypeName}>(_query, _meta, projection, \"{projection.Name}\", \"Document.{projection.Name}Embedding\", _embedding, _limit, _skip, _returnCount, _maxConsidered);");
+            }
+            else
+            {
+                sb.AppendLine($"                return await internalMonitor.SearchWithProjection<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query, global::{model.Namespace}.{projectionTypeName}>(_query, _meta, projection, _limit, _skip);");
+            }
             sb.AppendLine("            }");
             sb.AppendLine($"            return global::System.Array.Empty<global::{model.Namespace}.{projectionTypeName}>();");
             sb.AppendLine("        }");

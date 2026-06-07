@@ -1,6 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using MongoObject.SourceGenerator.Interfaces;
 using MongoObject.SourceGenerator.Models;
+using System.Linq;
 using System.Text;
 
 namespace MongoObject.SourceGenerator.Modules
@@ -36,7 +37,7 @@ namespace MongoObject.SourceGenerator.Modules
             // Properties - only for Include properties
             foreach (var property in projection.Properties)
             {
-                if (!string.IsNullOrEmpty(property.EnumName) && property.EnumName == "Include")
+                if (!string.IsNullOrEmpty(property.EnumName) && (property.EnumName == "Include" || property.EnumName == "Vector" || property.EnumName == "AutoVector"))
                 {
                     sb.AppendLine($"        public {property.FullName}? {property.Name} {{ get; set; }}");
                 }
@@ -46,6 +47,12 @@ namespace MongoObject.SourceGenerator.Modules
                     sb.AppendLine($"        public {property.FullName} {property.Name} {{ get; set; }} = new {property.FullName}();");
                 }
             }
+
+            if (projection.Properties.Any(p => p.EnumName == "Vector" || p.EnumName == "AutoVector"))
+            {
+                sb.AppendLine("        public float Score { get; set; }");
+            }
+
             sb.AppendLine($"        private Dictionary<string, global::MongoObject.Core.Data.ProjectionVal.Slice> _sliceProjections = new Dictionary<string, global::MongoObject.Core.Data.ProjectionVal.Slice>();");
             sb.AppendLine();
 
@@ -60,18 +67,14 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine("        {");
             sb.AppendLine($"            var projectionDoc = new global::MongoDB.Bson.BsonDocument();");
             sb.AppendLine();
-            //sb.AppendLine("             var projection = new global::{model.Namespace}.{projectionTypeName}()");
-            //sb.AppendLine($"            return builder.Expression(u => {{");
-            //sb.AppendLine($"                 var projection = new global::{model.Namespace}.{projectionTypeName}();");
             sb.AppendLine($"            projectionDoc[\"_id\"] = 0;");
             foreach (var property in projection.Properties)
             {
                 if (!string.IsNullOrEmpty(property.EnumName))
                 {
                     
-                    if (property.EnumName == "Include")
+                    if (property.EnumName == "Include" || property.EnumName == "AutoVector")
                     {
-                        
                         sb.AppendLine($"            projectionDoc[\"{property.Name}\"] = \"$Document.{property.QueryName}\";");
                     }
                     else if (property.EnumName == "Slice")
@@ -80,7 +83,6 @@ namespace MongoObject.SourceGenerator.Modules
                         sb.AppendLine($"            {{");
                         sb.AppendLine($"                projectionDoc[\"Document.{property.Name}\"] = new global::MongoDB.Bson.BsonDocument(\"$slice\", new global::MongoDB.Bson.BsonArray");
                         sb.AppendLine($"                {{");
-                        //sb.AppendLine($"                    \"$Document.{property.QueryName}\", ");
                         sb.AppendLine($"                    slice.Skip,");
                         sb.AppendLine($"                    slice.Limit");
                         sb.AppendLine($"                }});");
@@ -88,12 +90,15 @@ namespace MongoObject.SourceGenerator.Modules
                     }
                 }
             }
+
+            if (projection.Properties.Any(p => p.EnumName == "Vector" || p.EnumName == "AutoVector"))
+            {
+                sb.AppendLine("             projectionDoc[\"Score\"] = new global::MongoDB.Bson.BsonDocument(\"$meta\", \"vectorSearchScore\");");
+            }
+
             sb.AppendLine("            return new BsonDocumentProjectionDefinition<");
             sb.AppendLine($"                global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>,");
             sb.AppendLine($"                global::{model.Namespace}.{projectionTypeName}>(projectionDoc, new {model.Name}{projection.Name}Serializer());");
-            //sb.AppendLine($"                }});");
-
-            //sb.AppendLine("            });");
             sb.AppendLine("        }");
             sb.AppendLine();
 

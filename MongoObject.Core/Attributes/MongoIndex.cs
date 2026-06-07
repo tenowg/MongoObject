@@ -10,7 +10,8 @@ namespace MongoObject.Core.Attributes
         Ascending = 0,
         Descending = 1,
         Vector = 2,
-        Search = 3
+        AutoVector = 3,
+        Search = 4
     };
 
     /// <summary>

@@ -7,7 +7,9 @@ public enum ProjectionType
 {
     Include = 0,
     Exclude = 1,
-    Slice = 2
+    Slice = 2,
+    Vector = 3,
+    AutoVector = 4
 }
 
 namespace MongoObject.Core.Attributes

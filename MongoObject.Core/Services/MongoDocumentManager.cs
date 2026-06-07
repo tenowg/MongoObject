@@ -4,6 +4,7 @@ using MongoDB.Driver;
 using MongoObject.Core.Data;
 using MongoObject.Core.Interfaces;
 using MongoOptions.Services;
+using System.Linq.Expressions;
 
 namespace MongoObject.Core.Services
 {
@@ -165,6 +166,98 @@ namespace MongoObject.Core.Services
             where TMetaSearch : class, IMetadataSearchBase, new()
             where TProjection : class, IProjectionBase<T, TProjection>, new()
         {
+            ProcessFiltersAndProjection(queryAction, metaAction, projection, out FilterDefinition<MongoDocument<T>> combinedFilter, out IMongoCollection<MongoDocument<T>> collection, out ProjectionDefinition<MongoDocument<T>, TProjection> projectionDefinition);
+            //var builder = Builders<MongoDocument<T>>.Filter;
+            //var filters = new List<FilterDefinition<MongoDocument<T>>>();
+
+            //if (queryAction != null)
+            //{
+            //    var queryFilter = new TClassSearch();
+            //    queryAction.Invoke(queryFilter);
+            //    filters.Add(queryFilter.ToMongoFilter());
+            //}
+
+            //if (metaAction != null)
+            //{
+            //    var metaFilter = new TMetaSearch();
+            //    metaAction.Invoke(metaFilter);
+            //    filters.Add(metaFilter.ToMongoFilter<T>());
+            //}
+
+            //var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
+
+            //var collection = connection.Collection;
+            
+            //// Create projection instance to get the projection definition
+            ////var projectionInstance = new TProjection();
+            //var projectionDefinition = projection.ToMongoProjection();
+
+            var results = await collection.Find(combinedFilter)
+                .Project(projectionDefinition)
+                .Skip(skip)
+                .Limit(limit)
+                .ToListAsync();
+
+            // Cast results to TProjection - the projection expression creates TProjection instances
+            return results.Cast<TProjection>();
+        }
+
+        public async Task<IEnumerable<TProjection>> SearchWithVector<TClassSearch, TMetaSearch, TProjection>(
+            Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, TProjection projection, string index, string embeddingName, float[] embedding, int limit, int skip, int returnCount, int conciderFrom)
+            where TClassSearch : class, IClassSearch<T>, new()
+            where TMetaSearch : class, IMetadataSearchBase, new()
+            where TProjection : class, IProjectionBase<T, TProjection>, new()
+        {
+            ProcessFiltersAndProjection(queryAction, metaAction, projection, out FilterDefinition<MongoDocument<T>> combinedFilter, out IMongoCollection<MongoDocument<T>> collection, out ProjectionDefinition<MongoDocument<T>, TProjection> projectionDefinition);
+
+            var options = new VectorSearchOptions<MongoDocument<T>>()
+            {
+                IndexName = index,
+                Filter = combinedFilter,
+                NumberOfCandidates = conciderFrom
+            };
+
+            var pipeline = new EmptyPipelineDefinition<MongoDocument<T>>()
+                .VectorSearch(embeddingName, embedding, returnCount, options)
+                .Project(projectionDefinition);
+
+            var results = await collection.Aggregate(pipeline).ToListAsync();
+
+            // Cast results to TProjection - the projection expression creates TProjection instances
+            return results.Cast<TProjection>();
+        }
+
+        public async Task<IEnumerable<TProjection>> SearchWithAutoVector<TClassSearch, TMetaSearch, TProjection, TField>(
+            Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, TProjection projection, string index, Expression<Func<MongoDocument<T>, TField>> embeddingName, string embedding, int limit, int skip, int returnCount, int conciderFrom)
+            where TClassSearch : class, IClassSearch<T>, new()
+            where TMetaSearch : class, IMetadataSearchBase, new()
+            where TProjection : class, IProjectionBase<T, TProjection>, new()
+        {
+
+            ProcessFiltersAndProjection(queryAction, metaAction, projection, out FilterDefinition<MongoDocument<T>> combinedFilter, out IMongoCollection<MongoDocument<T>> collection, out ProjectionDefinition<MongoDocument<T>, TProjection> projectionDefinition);
+
+            var options = new VectorSearchOptions<MongoDocument<T>>()
+            {
+                IndexName = index,
+                Filter = combinedFilter,
+                NumberOfCandidates = conciderFrom
+            };
+
+            var pipeline = new EmptyPipelineDefinition<MongoDocument<T>>()
+                .VectorSearch(embeddingName, embedding, returnCount, options)
+                .Project(projectionDefinition);
+
+            var results = await collection.Aggregate(pipeline).ToListAsync();
+
+            // Cast results to TProjection - the projection expression creates TProjection instances
+            return results.Cast<TProjection>();
+        }
+
+        private void ProcessFiltersAndProjection<TClassSearch, TMetaSearch, TProjection>(Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, TProjection projection, out FilterDefinition<MongoDocument<T>> combinedFilter, out IMongoCollection<MongoDocument<T>> collection, out ProjectionDefinition<MongoDocument<T>, TProjection> projectionDefinition)
+            where TClassSearch : class, IClassSearch<T>, new()
+            where TMetaSearch : class, IMetadataSearchBase, new()
+            where TProjection : class, IProjectionBase<T, TProjection>, new()
+        {
             var builder = Builders<MongoDocument<T>>.Filter;
             var filters = new List<FilterDefinition<MongoDocument<T>>>();
 
@@ -182,22 +275,12 @@ namespace MongoObject.Core.Services
                 filters.Add(metaFilter.ToMongoFilter<T>());
             }
 
-            var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
+            combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
+            collection = connection.Collection;
 
-            var collection = connection.Collection;
-            
             // Create projection instance to get the projection definition
             //var projectionInstance = new TProjection();
-            var projectionDefinition = projection.ToMongoProjection();
-
-            var results = await collection.Find(combinedFilter)
-                .Project(projectionDefinition)
-                .Skip(skip)
-                .Limit(limit)
-                .ToListAsync();
-
-            // Cast results to TProjection - the projection expression creates TProjection instances
-            return results.Cast<TProjection>();
+            projectionDefinition = projection.ToMongoProjection();
         }
 
         public async Task<long> DeleteMany<TClassSearch, TMetaSearch>(Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction)

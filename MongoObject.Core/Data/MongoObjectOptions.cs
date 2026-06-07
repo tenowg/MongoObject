@@ -32,5 +32,9 @@ namespace MongoObject.Core.Data
         public string DistributedLockCollectionName { get; set; } = "distributed_lock";
         public TimeSpan DistributedLockDefaultLockDuration { get; set; } = TimeSpan.FromMinutes(10);
         public TimeSpan WatchPollInterval { get; set; } = TimeSpan.FromSeconds(15);
+        /// <summary>
+        /// Is the database connection an Atlas Server, this will enable some features not available in the Community Additions
+        /// </summary>
+        public bool IsAtlasMongoDBInstance { get; set; }
     }
 }

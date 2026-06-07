@@ -1,11 +1,11 @@
 ﻿using ConsoleSetup;
+using ConsoleSetup.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MongoDB.Driver;
 using MongoObject.Core.Extensions;
-using MongoObject.Examples.Extensions;
 
-namespace MongoObject.Examples.Snippets
+namespace ConsoleSetup.Snippets
 {
     internal class PolingSetup
     {
@@ -35,7 +35,7 @@ namespace MongoObject.Examples.Snippets
                 .AddWatchPolling()
                 // This is the important part - this is where you register your documents.
                 // You can have multiple calls to RegisterDocument, or you can have extension methods like this one to group them together.
-                .RegisterDocumentsMongoObject_Examples();
+                .RegisterDocumentsConsoleSetup();
                 #endregion
                 services.AddSingleton<App>();
             })
