@@ -1,17 +1,9 @@
-﻿using Microsoft.Extensions.Diagnostics.HealthChecks;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace MongoObject.Core.Attributes
+﻿namespace MongoObject.Core.Attributes
 {
     public enum IndexType
     {
         Ascending = 0,
-        Descending = 1,
-        Vector = 2,
-        AutoVector = 3,
-        Search = 4
+        Descending = 1
     };
 
     /// <summary>

@@ -32,7 +32,7 @@ namespace Progress
                 //})
                 //.WithNameProjection();
                 .WithVectorTestVector()
-                .WithEmbedding("Craig is eating biskits in the morning, I wonder if he is a cat")
+                //.WithEmbedding("Craig is eating biskits in the morning, I wonder if he is a cat")
                 .WithMaxReturns(5);
             //.WithListTestProjection()
             //.WithListTestSlice(5, 3)
@@ -55,7 +55,13 @@ namespace Progress
             //                first.Age += 50;
             //                var result = await monitor.SaveChanges(first);
             //            }
-
+            var model = new global::MongoDB.Driver.CreateVectorSearchIndexModel<global::MongoObject.Core.Data.MongoDocument<AObject>>(
+                                x => x.Document.Name,
+                                "dddas",
+                                VectorSimilarity.Cosine,
+                                1024
+            // m => m.Runtime, m => m.Year  // Optional filter fields
+                                );
         }
     }
 }

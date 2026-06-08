@@ -70,6 +70,11 @@ namespace MongoObject.SourceGenerator.Generators
             if (symbol.ConstructorArguments.Length < 2) return null;
 
             var type = symbol.ConstructorArguments[1];
+            return EnumTypeToStringValue(type);
+        }
+
+        private static string? EnumTypeToStringValue(TypedConstant type)
+        {
             object? numericValue = type.Value;
 
             if (type.Type is INamedTypeSymbol enumTypeSymbol && numericValue != null)
@@ -105,9 +110,19 @@ namespace MongoObject.SourceGenerator.Generators
             {
                 0 => "Ascending",
                 1 => "Descending",
-                2 => "Vector",
-                3 => "AutoVector",
-                4 => "Search",
+                _ => throw new ArgumentOutOfRangeException(nameof(projectionType), $"Unsupported projection type: {projectionType}")
+            };
+        }
+
+        public static string GetSimilarityTypeName(AttributeData? attributeData)
+        {
+            if (attributeData == null) return "Cosine";
+            var projectionType = attributeData.NamedArguments.Where(x => x.Key == "Similarity").FirstOrDefault().Value.Value as int? ?? 0;
+            return projectionType switch
+            {
+                0 => "Euclidean",
+                1 => "Cosine",
+                2 => "DotProduct",
                 _ => throw new ArgumentOutOfRangeException(nameof(projectionType), $"Unsupported projection type: {projectionType}")
             };
         }

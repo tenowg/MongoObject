@@ -106,6 +106,7 @@ namespace MongoObject.SourceGenerator.Generators
             var indexAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.Core.Attributes.MongoIndexAttribute");
             var bsonElementAttrSymbol = compilation.GetTypeByMetadataName("MongoDB.Bson.Serialization.Attributes.BsonElementAttribute");
             var bsonIgnoreAttrSymbol = compilation.GetTypeByMetadataName("MongoDB.Bson.Serialization.Attributes.BsonIgnoreAttribute");
+            var projectionAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.Core.Attributes.ProjectValue");
 
             var databaseName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "DatabaseName").Value.Value?.ToString();
             var collectionName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "CollectionName").Value.Value?.ToString();
@@ -150,7 +151,7 @@ namespace MongoObject.SourceGenerator.Generators
             }
 
             // Process properties and validate non-partial properties
-            var (validProperties, invalidProperties) = ProcessAllProperties(namedTypeSymbol, trackingBaseSymbol, mongoObjectAttrSymbol, indexAttrSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol);
+            var (validProperties, invalidProperties) = ProcessAllProperties(namedTypeSymbol, trackingBaseSymbol, mongoObjectAttrSymbol, indexAttrSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol, projectionAttrSymbol);
 
             Dictionary<string, List<PropertyModel>> indexes = [];
             foreach(var prop in validProperties)
@@ -180,7 +181,7 @@ namespace MongoObject.SourceGenerator.Generators
                 BsonValidation = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "IgnoreExtraElements").Value.Value as bool? ?? true,
                 Metadata = metadata,
                 Properties = validProperties,
-                Projections = [.. ProcessProjections(namedTypeSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol)],
+                Projections = [.. ProcessProjections(namedTypeSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol, projectionAttrSymbol)],
                 Errors = errors,
                 Indexes = [.. indexes.Select(g => new IndexModel { Name = g.Key, Properties = [.. g.Value] })]
             };
@@ -196,7 +197,8 @@ namespace MongoObject.SourceGenerator.Generators
             INamedTypeSymbol? mongoObjectAttrSymbol,
             INamedTypeSymbol? mongoIndexAttrSymbol,
             INamedTypeSymbol? bsonElementAttrSymbol,
-            INamedTypeSymbol? bsonIgnoreAttrSymbol)
+            INamedTypeSymbol? bsonIgnoreAttrSymbol,
+            INamedTypeSymbol? projectionAttrSymbol)
         {
             var validProperties = ImmutableArray.CreateBuilder<PropertyModel>();
             var invalidProperties = new List<IPropertySymbol>();
@@ -304,7 +306,11 @@ namespace MongoObject.SourceGenerator.Generators
             return typeSymbol.NullableAnnotation == NullableAnnotation.Annotated;
         }
 
-        public IEnumerable<ProjectionModel> ProcessProjections(INamedTypeSymbol symbol, INamedTypeSymbol? bsonElementAttrSymbol, INamedTypeSymbol? bsonIgnoreAttrSymbol)
+        public IEnumerable<ProjectionModel> ProcessProjections(
+            INamedTypeSymbol symbol, 
+            INamedTypeSymbol? bsonElementAttrSymbol, 
+            INamedTypeSymbol? bsonIgnoreAttrSymbol,
+            INamedTypeSymbol? projectionAttrSymbol)
         {
             var projections = symbol.GetMembers()
                 .OfType<IPropertySymbol>()
@@ -314,9 +320,11 @@ namespace MongoObject.SourceGenerator.Generators
                 .Select(target => {
                     var isBsonElement = bsonElementAttrSymbol != null && target.Property.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonElementAttrSymbol));
                     var isBsonIgnore = bsonIgnoreAttrSymbol != null && target.Property.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonIgnoreAttrSymbol));
+                    var dimensions = (int)(target.Property.GetAttributes().First(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, projectionAttrSymbol)).NamedArguments.FirstOrDefault(x => x.Key == "Dimensions").Value.Value ?? 1024);
                     return new
                     {
                         Name = target.Attribute?.ConstructorArguments.FirstOrDefault().Value as string ?? target.Property.Name,
+
                         Prop = new PropertyModel
                         {
                             FullName = target.Property.Type.ToDisplayString(format),
@@ -324,7 +332,10 @@ namespace MongoObject.SourceGenerator.Generators
                             IsBsonIgnore = isBsonIgnore,
                             IsNumeric = IsNumericType(target.Property.Type),
                             Name = target.Property.Name,
-                            EnumName = EnumToString(target.Attribute)
+                            EnumName = EnumToString(target.Attribute),
+                            VectorDimensions = dimensions,
+                            SimilarityType = GetSimilarityTypeName(target.Property.GetAttributes().FirstOrDefault(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, projectionAttrSymbol) && x.NamedArguments.Any(x => (x.Key != null && x.Key == "Similarity")))) ?? "Cosine", //.NamedArguments.FirstOrDefault(x => x.Key == "Similarity").Value.Value as string ?? "Cosine",
+                            VectorModel = target.Property.GetAttributes().First(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, projectionAttrSymbol)).NamedArguments.FirstOrDefault(x => x.Key == "VectorModel").Value.Value as string ?? "voyage-4"
                         }
                     };
                 })

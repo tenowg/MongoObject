@@ -17,7 +17,7 @@ namespace Progress.Test
     {
         [ProjectValue("Name", ProjectionType.Include)]
         [ProjectValue("Other", ProjectionType.Exclude)]
-        [ProjectValue("VectorTest", ProjectionType.AutoVector)]
+        [ProjectValue("VectorTest", ProjectionType.AutoVector, Similarity = MongoDB.Driver.VectorSimilarity.DotProduct, Dimensions = 2048)]
         [MongoIndex("NameIndex", Type = IndexType.Ascending, Unique = true)]
         //[BsonElement("name")]
         public partial string Name { get; set; }

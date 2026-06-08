@@ -49,6 +49,9 @@ namespace MongoObject.SourceGenerator.Models
         public bool IsMongoIndex { get; init; }
 
         public IReadOnlyList<MongoIndexPropertyModel> Indexes { get; init; } = [];
+        public int VectorDimensions { get; init; } = 1024;
+        public string SimilarityType { get; set; } = "Cosine";
+        public string VectorModel { get; set; } = string.Empty;
     }
 
     internal sealed record MongoIndexPropertyModel

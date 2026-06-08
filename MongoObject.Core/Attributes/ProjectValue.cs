@@ -1,4 +1,5 @@
 ﻿using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Driver;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -19,5 +20,8 @@ namespace MongoObject.Core.Attributes
     {
         public string ProjectionName { get; init; } = ProjectionName;
         public ProjectionType ProjectionType { get; init; } = projection;
+        public int Dimensions { get; init; } = 1024;
+        public VectorSimilarity Similarity { get; init; } = VectorSimilarity.Cosine;
+        public string VectorModel { get; set; } = "voyage-4";
     }
 }

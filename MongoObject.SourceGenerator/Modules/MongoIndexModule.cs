@@ -70,14 +70,30 @@ namespace MongoObject.SourceGenerator.Modules
                     sb.AppendLine("         {");
                     if (projection.Properties.Any(x => x.EnumName == "AutoVector"))
                     {
-                        var vectorPropName = projection.Properties.Where(x => x.EnumName == "AutoVector").Select(x => x.QueryName).FirstOrDefault();
+                        var vectorPropName = projection.Properties.Where(x => x.EnumName == "AutoVector").FirstOrDefault(); //.Select(x => x.QueryName).FirstOrDefault();
                         // create the vector search
-                        sb.AppendLine($"             var model = new global::MongoDB.Driver.CreateAutoEmbeddingVectorSearchIndexModel<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>> (");
-                        sb.AppendLine($"                    x => x.Document.{vectorPropName},");
+                        sb.AppendLine($"             var {projection.Name}model = new global::MongoDB.Driver.CreateAutoEmbeddingVectorSearchIndexModel<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>> (");
+                        sb.AppendLine($"                    x => x.Document.{vectorPropName.QueryName},");
                         sb.AppendLine($"                    \"{projection.Name}\",");
-                        sb.AppendLine("                    \"voyage-4\"");
+                        sb.AppendLine($"                    \"{vectorPropName.VectorModel}\"");
                         // m => m.Runtime, m => m.Year  // Optional filter fields
-                        sb.AppendLine("                    ){\r\n                 Similarity = VectorSimilarity.Cosine\r\n            };");
+                        sb.AppendLine($"                    )");
+                        sb.AppendLine($"                    {{");
+                        sb.AppendLine($"                        Similarity = VectorSimilarity.{vectorPropName.SimilarityType}");
+                        sb.AppendLine($"                    }};");
+                        sb.AppendLine($"             await {model.Name}connection.Collection.SearchIndexes.CreateOneAsync({projection.Name}model);");
+                    } else if (projection.Properties.Any(x => x.EnumName == "Vector"))
+                    {
+                        var vectorPropName = projection.Properties.Where(x => x.EnumName == "Vector").FirstOrDefault(); //.Select(x => x.QueryName).FirstOrDefault();
+                        // create the vector search
+                        sb.AppendLine($"             var model = new global::MongoDB.Driver.CreateVectorSearchIndexModel<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>> (");
+                        sb.AppendLine($"                    x => x.Document.{projection.Name}Embedding,");
+                        sb.AppendLine($"                    \"{projection.Name}\",");
+                        //sb.AppendLine($"                    \"{vectorPropName.VectorModel}\"");
+                        sb.AppendLine($"                    VectorSimilarity.{vectorPropName.SimilarityType},");
+                        sb.AppendLine($"                    {vectorPropName.VectorDimensions}");
+                        // m => m.Runtime, m => m.Year  // Optional filter fields
+                        sb.AppendLine($"                    );");
                         sb.AppendLine($"             await {model.Name}connection.Collection.SearchIndexes.CreateOneAsync(model);");
                     }
                     sb.AppendLine("         }");
