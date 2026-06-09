@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-namespace MongoObject.RedisDistributedLock.Extensions
+namespace MongoObject.MongoDistributedLock.Extensions
 {
     public partial class MongoObjectBuilder(IServiceCollection sp)
     {
-        public MongoObjectBuilder AddRedisLockManager()
+        public MongoObjectBuilder AddMongoLockManager()
         {
             return this;
         }
