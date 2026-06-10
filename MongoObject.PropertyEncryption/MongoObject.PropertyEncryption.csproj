@@ -5,12 +5,13 @@
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   
-  <Target Name="EnsureCorrectMongoEncryption" AfterTargets="Build;Publish" Condition="$([MSBuild]::IsOsPlatform('Linux'))">
+  <!-- <Target Name="EnsureCorrectMongoEncryption" AfterTargets="Build;Publish" Condition="$([MSBuild]::IsOsPlatform('Linux'))">
+  Revisit this if it becomes an issue
     <ItemGroup>
       <_MongoLib Include="$(PkgMongoDB_Driver_Encryption)\runtimes\linux-x64\native\libmongocrypt.so" />
     </ItemGroup>
     <Copy SourceFiles="@(_MongoLib)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
-  </Target>
+  </Target> -->
 
   <ItemGroup>
     <PackageReference Include="MongoDB.Driver.Encryption" Version="3.9.0" />
