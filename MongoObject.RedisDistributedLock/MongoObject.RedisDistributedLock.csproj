@@ -6,24 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <!-- <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.8" />
-  </ItemGroup> -->
-
   <ItemGroup>
-    <!-- TreatAsPackageReference=false prevents NuGet from auto-generating the dependency -->
-  <ProjectReference Include="..\MongoObject.Core\MongoObject.Core.csproj" TreatAsPackageReference="false" />
-  
-  <!-- This explicitly maps the dependency cleanly using your MinVer variable -->
-  <PackageReference Include="Tenowg.MongoObjects" Version="$(MINVERVERSIONOVERRIDE)" />
-    <!-- <ProjectReference Include="..\MongoObject.Core\MongoObject.Core.csproj" Condition="'$(IsPacking)' != 'true'" />
-
-  2. When packing, swap the ProjectReference out for a fake PackageReference
-  This completely tricks the pack engine into printing your exact dynamic string
-  <PackageReference Include="Tenowg.MongoObjects" Version="$(DUMB_HACK)" Condition="'$(IsPacking)' == 'true'" /> -->
-      <!-- <ProjectReference Include="..\MongoObject.Core\MongoObject.Core.csproj">
-      <PackageVersion>$(DUMB_HACK)</PackageVersion>
-    </ProjectReference> -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.8" />
   </ItemGroup>
 
 </Project>
