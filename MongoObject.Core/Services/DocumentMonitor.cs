@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Primitives;
+using MongoDB.Driver;
 using MongoObject.Core.Data;
 using MongoObject.Core.Interfaces;
 using System.Linq.Expressions;
@@ -7,10 +8,12 @@ namespace MongoObject.Core.Services
 {
     internal class DocumentMonitor<TDocument>(
             MongoDocumentManager<TDocument> documentManager, 
+            IMongoConnection<TDocument> connection,
             IDocumentTokenChangeMonitor<TDocument> monitor,
-            DistributedLockManager lockManager) : IDocumentMonitor<TDocument>, IDocumentMonitorInternal<TDocument> 
+            IDistributedLockManager lockManager) : IDocumentMonitor<TDocument>, IDocumentMonitorInternal<TDocument> 
         where TDocument : class, IDocumentFile, new()
     {
+        public IMongoCollection<MongoDocument<TDocument>> GetConnection() => connection.Collection;
         public async Task<IMongoLockScope> LockDocument(TDocument Document)
         {
             return await lockManager.LockScopedAsync(Document);

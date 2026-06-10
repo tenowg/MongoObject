@@ -25,11 +25,11 @@ namespace MongoObject.SourceGenerator.Helpers
         public void AppendLine() => _sb.AppendLine();
 
         // Opens a block, writes the opening character, and bumps indentation
-        public IndentScope Block(string opener = "{")
+        public IndentScope Block(string opener = "{", string closer = "")
         {
             AppendLine(opener);
             _indentLevel++;
-            return new IndentScope(this);
+            return new IndentScope(this, closer);
         }
 
         public override string ToString() => _sb.ToString();
@@ -38,10 +38,12 @@ namespace MongoObject.SourceGenerator.Helpers
         public readonly struct IndentScope : IDisposable
         {
             private readonly IndentedStringBuilder _builder;
+            private readonly string _closer = "";
 
-            public IndentScope(IndentedStringBuilder builder)
+            public IndentScope(IndentedStringBuilder builder, string closer = "")
             {
                 _builder = builder;
+                _closer = closer;
             }
 
             public void Dispose()
@@ -49,7 +51,7 @@ namespace MongoObject.SourceGenerator.Helpers
                 if (_builder != null)
                 {
                     _builder._indentLevel--;
-                    _builder.AppendLine("}");
+                    _builder.AppendLine($"}}{_closer}");
                 }
             }
         }

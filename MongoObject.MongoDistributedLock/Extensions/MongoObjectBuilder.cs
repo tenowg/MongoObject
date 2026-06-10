@@ -1,12 +1,18 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using MongoObject.Core.Interfaces;
+using MongoObject.RedisDistributedLock.Services;
 
-namespace MongoObject.MongoDistributedLock.Extensions
+namespace MongoObject.Core.Extensions
 {
-    public partial class MongoObjectBuilder(IServiceCollection sp)
+    public static class DistributedLockExtensions
     {
-        public MongoObjectBuilder AddMongoLockManager()
+        extension(MongoObjectBuilder builder)
         {
-            return this;
+            public MongoObjectBuilder AddMongoLockManager()
+            {
+                builder.Services.AddSingleton<IDistributedLockManager, MongoDistributedLockManager>();
+                return builder;
+            }
         }
     }
 }

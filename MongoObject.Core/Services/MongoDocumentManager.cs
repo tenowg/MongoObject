@@ -10,9 +10,10 @@ namespace MongoObject.Core.Services
 {
     internal class MongoDocumentManager<T>(IMongoConnection<T> connection,
                                            IDocumentKeyManager keyManager,
-                                           DistributedLockManager lockManager,
+                                           IDistributedLockManager lockManager,
                                            InternalCacheService cache,
                                            IMongoClient client,
+                                           MongoServerCapabilities capabilities,
                                            MongoObjectOptions options) 
         where T : class, IDocumentFile, new()
     {
@@ -167,30 +168,6 @@ namespace MongoObject.Core.Services
             where TProjection : class, IProjectionBase<T, TProjection>, new()
         {
             ProcessFiltersAndProjection(queryAction, metaAction, projection, out FilterDefinition<MongoDocument<T>> combinedFilter, out IMongoCollection<MongoDocument<T>> collection, out ProjectionDefinition<MongoDocument<T>, TProjection> projectionDefinition);
-            //var builder = Builders<MongoDocument<T>>.Filter;
-            //var filters = new List<FilterDefinition<MongoDocument<T>>>();
-
-            //if (queryAction != null)
-            //{
-            //    var queryFilter = new TClassSearch();
-            //    queryAction.Invoke(queryFilter);
-            //    filters.Add(queryFilter.ToMongoFilter());
-            //}
-
-            //if (metaAction != null)
-            //{
-            //    var metaFilter = new TMetaSearch();
-            //    metaAction.Invoke(metaFilter);
-            //    filters.Add(metaFilter.ToMongoFilter<T>());
-            //}
-
-            //var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
-
-            //var collection = connection.Collection;
-            
-            //// Create projection instance to get the projection definition
-            ////var projectionInstance = new TProjection();
-            //var projectionDefinition = projection.ToMongoProjection();
 
             var results = await collection.Find(combinedFilter)
                 .Project(projectionDefinition)
@@ -279,7 +256,6 @@ namespace MongoObject.Core.Services
             collection = connection.Collection;
 
             // Create projection instance to get the projection definition
-            //var projectionInstance = new TProjection();
             projectionDefinition = projection.ToMongoProjection();
         }
 

@@ -1,0 +1,47 @@
+<Project>
+  <!-- Shared Build Settings -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- Shared NuGet Metadata -->
+  <PropertyGroup>
+    <Authors>Craig Russell</Authors>
+    <PackageProjectUrl>https://tenowg.github.io/MongoObject</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/tenowg/MongoObject</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>mongodb;dotnet10;odm;csharp14</PackageTags>
+    <PublishAot>false</PublishAot>
+    <IsAotCompatible>true</IsAotCompatible>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Configurations>Debug;Release</Configurations>
+    <VersionSuffixRequirement>Exact</VersionSuffixRequirement>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">false</GeneratePackageOnBuild>
+	  <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Debug'">false</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <!-- Global Files to Pack -->
+  <ItemGroup>
+    <!-- $(MSBuildThisFileDirectory) points to the root directory where this props file lives -->
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)README.md')" />
+    <None Include="$(MSBuildThisFileDirectory)CHANGELOG.md" Pack="true" PackagePath="\" Condition="Exists('$(MSBuildThisFileDirectory)CHANGELOG.md')" />
+  </ItemGroup>
+
+  <!-- Global Package References -->
+  <ItemGroup>
+    <PackageReference Include="MinVer" Version="7.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

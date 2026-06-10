@@ -52,6 +52,7 @@ namespace MongoObject.SourceGenerator.Models
         public int VectorDimensions { get; init; } = 1024;
         public string SimilarityType { get; set; } = "Cosine";
         public string VectorModel { get; set; } = string.Empty;
+        public bool isEncrypted { get; set; } = false;
     }
 
     internal sealed record MongoIndexPropertyModel

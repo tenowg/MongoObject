@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
@@ -20,13 +21,13 @@ namespace MongoObject.Core.Extensions
                 services.AddSingleton(optionsInstance);
                 services.AddSingleton<IDocumentKeyManager, MongoDocumentKeyManager>();
                 services.AddMemoryCache();
-                services.AddSingleton<DistributedLockManager>();
+                services.TryAddSingleton<IDistributedLockManager, NoOpLockManager>();
                 services.AddSingleton<InternalCacheService>();
                 services.AddHostedService<BuildIndexesHostService>();
-                services.AddSingleton(sp =>
+                services.AddSingleton<MongoServerCapabilities>(sp =>
                 {
                     var client = sp.GetRequiredService<IMongoClient>();
-                    return MongoServerCapabilities.ResolveAsync(client);
+                    return MongoServerCapabilities.Resolve(client);
                 });
 
                 var objectSerializer = new ObjectSerializer(ObjectSerializer.AllAllowedTypes);

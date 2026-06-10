@@ -8,14 +8,9 @@
 	<IsRoslynComponent>true</IsRoslynComponent>
   </PropertyGroup>
 
-	<PropertyGroup>
-		<IncludeBuildOutput>false</IncludeBuildOutput>
-		<IsPackable>true</IsPackable>
-	</PropertyGroup>
-
-	<ItemGroup>
+	<!-- <ItemGroup>
 		<None Include="$(OutputPath)\$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-	</ItemGroup>
+	</ItemGroup> -->
 	
   <ItemGroup>
     <PackageReference Include="Microsoft.Bcl.Memory" Version="10.0.8" />

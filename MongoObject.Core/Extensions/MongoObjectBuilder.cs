@@ -5,9 +5,10 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace MongoObject.Core.Extensions
 {
-    public partial class MongoObjectBuilder(IServiceCollection sp)
+    public class MongoObjectBuilder(IServiceCollection sp)
     {
-        public MongoObjectBuilder RegisterDocument<TDocument, TMetaSearch, TMetaRecord>() 
+        public IServiceCollection Services => sp;
+        public MongoObjectBuilder RegisterDocument<TDocument, TMetaSearch, TMetaRecord>(bool IsSecured) 
             where TDocument : class, IDocumentFile<TMetaSearch, TMetaRecord>, new()
             where TMetaSearch : class, IMetadataSearchBase, new()
             where TMetaRecord : class, IMetadataBase, new()

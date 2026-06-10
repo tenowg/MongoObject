@@ -18,5 +18,7 @@ namespace MongoObject.SourceGenerator.Models
         public IReadOnlyList<ProjectionModel> Projections { get; init; } = [];
         public IReadOnlyList<ValidationResult> Errors { get; init; } = [];
         public IReadOnlyList<IndexModel> Indexes { get; init; } = [];
+        public bool IsEncryptedModel { get; init; } = false;
+        public EncryptedModel EncryptedModels { get; init; } = new();
     }
 }

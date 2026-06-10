@@ -1,11 +1,14 @@
-﻿using MongoDB.Driver;
+﻿using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
+using MongoDB.Driver;
+using MongoDB.Driver.Encryption;
 using MongoObject.Core.Data;
 using MongoObject.Core.Interfaces;
 using Progress.Test;
 
 namespace Progress
 {
-    public class App(IDocumentMonitor<AObject> monitor, IMongoClient client) : IDisposable
+    public class App(IDocumentMonitor<AObject> monitor, [FromKeyedServices("SecuredClient")] IMongoClient client) : IDisposable
     {
         //IMongoLockScope? lockMeta;
 
@@ -20,20 +23,28 @@ namespace Progress
 
             //await monitor.Add(new AObject {Name = "Craig is a cat that likes to eat biskits in the morning, along with himself", Age = 4}, f => f.OwnerId = "123.abc");
 
+            var collection = client.GetDatabase("BObjectsDatabase").GetCollection<MongoDocument<BObject>>("BObject");
+            try
+            {
+                collection.InsertOne(new MongoDocument<BObject> { Document = new BObject { Name = "John " }, Metadata = new() });
+            } catch(Exception ex)
+            {
+                var t = 5;
+            }
             #region QueryExample
-            var nameProjection = await monitor.Search()
-                //.WithQuery(f =>
-                //{
-                //    f.Name = "Craig";
-                //    f.Age = f.Age.And(
-                //        f.Age = f.Age.Lt(40000),
-                //        f.Age = f.Age.Gt(2)
-                //    );
-                //})
-                //.WithNameProjection();
-                .WithVectorTestVector()
-                //.WithEmbedding("Craig is eating biskits in the morning, I wonder if he is a cat")
-                .WithMaxReturns(5);
+            //var nameProjection = await monitor.Search()
+            //    //.WithQuery(f =>
+            //    //{
+            //    //    f.Name = "Craig";
+            //    //    f.Age = f.Age.And(
+            //    //        f.Age = f.Age.Lt(40000),
+            //    //        f.Age = f.Age.Gt(2)
+            //    //    );
+            //    //})
+            //    //.WithNameProjection();
+            //    .WithVectorTestVector()
+            //    .WithEmbedding("Craig is eating biskits in the morning, I wonder if he is a cat")
+            //    .WithMaxReturns(5);
             //.WithListTestProjection()
             //.WithListTestSlice(5, 3)
             //.WithLimit(5);
@@ -55,13 +66,18 @@ namespace Progress
             //                first.Age += 50;
             //                var result = await monitor.SaveChanges(first);
             //            }
-            var model = new global::MongoDB.Driver.CreateVectorSearchIndexModel<global::MongoObject.Core.Data.MongoDocument<AObject>>(
-                                x => x.Document.Name,
-                                "dddas",
-                                VectorSimilarity.Cosine,
-                                1024
-            // m => m.Runtime, m => m.Year  // Optional filter fields
-                                );
+            //
+            //var createCollectionOptions = new CreateCollectionOptions<Patient>
+            //{
+            //    EncryptedFields = encryptedFields
+            //};
+            //clientEncryption.CreateEncryptedCollection(patientDatabase,
+            //    encryptedCollectionName,
+            //    createCollectionOptions,
+            //    kmsProviderName,
+            //    customerMasterKeyCredentials);
+
+            //var clientEncryption = new ClientEncryption(clientEncryptionOptions);
         }
     }
 }

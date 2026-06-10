@@ -1,4 +1,5 @@
 using Microsoft.CodeAnalysis;
+using MongoObject.SourceGenerator.Helpers;
 using MongoObject.SourceGenerator.Interfaces;
 using MongoObject.SourceGenerator.Models;
 using System.Linq;
@@ -30,117 +31,126 @@ namespace MongoObject.SourceGenerator.Modules
 
         private static void GenerateBaseSearchBuilder(SourceProductionContext context, CommonModel model, System.Threading.CancellationToken ct)
         {
-            var sb = new StringBuilder(4096);
+            var sb = new IndentedStringBuilder();
 
             sb.AppendLine("#nullable enable");
             sb.AppendLine("// auto-generated");
             sb.AppendLine($"namespace {model.Namespace}");
-            sb.AppendLine("{");
-            sb.AppendLine($"    /// <summary>");
-            sb.AppendLine($"    /// Fluent search builder for {model.Name} documents.");
-            sb.AppendLine($"    /// </summary>");
-            sb.AppendLine($"    public class {model.Name}SearchBuilder");
-            sb.AppendLine("    {");
-            sb.AppendLine($"        private readonly global::MongoObject.Core.Interfaces.IDocumentMonitor<global::{model.Namespace}.{model.Name}> _monitor;");
-            sb.AppendLine($"        private global::System.Action<global::{model.Namespace}.{model.Name}Query>? _query;");
-            sb.AppendLine($"        private global::System.Action<global::{model.Namespace}.{model.Metadata.Name}Query>? _meta;");
-            sb.AppendLine($"        private int _limit;");
-            sb.AppendLine($"        private int _skip;");
-            sb.AppendLine("        private float[] _embedding;");
-            sb.AppendLine();
-
-            // Constructor
-            sb.AppendLine($"        public {model.Name}SearchBuilder(global::MongoObject.Core.Interfaces.IDocumentMonitor<global::{model.Namespace}.{model.Name}> monitor)");
-            sb.AppendLine("        {");
-            sb.AppendLine("            _monitor = monitor;");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-
-            // Internal constructor for copying state
-            sb.AppendLine($"        internal {model.Name}SearchBuilder(");
-            sb.AppendLine($"            global::MongoObject.Core.Interfaces.IDocumentMonitor<global::{model.Namespace}.{model.Name}> monitor,");
-            sb.AppendLine($"            global::System.Action<global::{model.Namespace}.{model.Name}Query>? query,");
-            sb.AppendLine($"            global::System.Action<global::{model.Namespace}.{model.Metadata.Name}Query>? meta,");
-            sb.AppendLine($"            int limit,");
-            sb.AppendLine($"            int skip)");
-            //sb.AppendLine("             float[] embedding = [])");
-            sb.AppendLine("        {");
-            sb.AppendLine("            _monitor = monitor;");
-            sb.AppendLine("            _query = query;");
-            sb.AppendLine("            _meta = meta;");
-            sb.AppendLine("            _limit = limit;");
-            sb.AppendLine("            _skip = skip;");
-            //sb.AppendLine("            _embedding = embedding;");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-
-            // WithLimit method
-            sb.AppendLine($"        public {model.Name}SearchBuilder WithLimit(int limit)");
-            sb.AppendLine("        {");
-            sb.AppendLine("            _limit = limit;");
-            sb.AppendLine("            return this;");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-
-            // WithSkip method
-            sb.AppendLine($"        public {model.Name}SearchBuilder WithSkip(int skip)");
-            sb.AppendLine("        {");
-            sb.AppendLine("            _skip = skip;");
-            sb.AppendLine("            return this;");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-
-            // WithQuery method
-            sb.AppendLine($"        public {model.Name}SearchBuilder WithQuery(global::System.Action<global::{model.Namespace}.{model.Name}Query> query)");
-            sb.AppendLine("        {");
-            sb.AppendLine("            _query = query;");
-            sb.AppendLine("            return this;");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-
-            // WithMeta method
-            sb.AppendLine($"        public {model.Name}SearchBuilder WithMeta(global::System.Action<global::{model.Namespace}.{model.Metadata.Name}Query> meta)");
-            sb.AppendLine("        {");
-            sb.AppendLine("            _meta = meta;");
-            sb.AppendLine("            return this;");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-
-            // Projection methods
-            foreach (var projection in model.Projections)
+            using (sb.Block())
             {
-                var projectionName = projection.Name + "Projection";
-                if (projection.Properties.Any(x => x.EnumName == "Vector" || x.EnumName == "AutoVector"))
+                sb.AppendLine($"/// <summary>");
+                sb.AppendLine($"/// Fluent search builder for {model.Name} documents.");
+                sb.AppendLine($"/// </summary>");
+                sb.AppendLine($"public class {model.Name}SearchBuilder");
+                using (sb.Block())
                 {
-                    projectionName = projection.Name + "Vector";
+                    sb.AppendLine($"private readonly global::MongoObject.Core.Interfaces.IDocumentMonitor<global::{model.Namespace}.{model.Name}> _monitor;");
+                    sb.AppendLine($"private global::System.Action<global::{model.Namespace}.{model.Name}Query>? _query;");
+                    sb.AppendLine($"private global::System.Action<global::{model.Namespace}.{model.Metadata.Name}Query>? _meta;");
+                    sb.AppendLine($"private int _limit;");
+                    sb.AppendLine($"private int _skip;");
+                    sb.AppendLine();
+
+                    // Constructor
+                    sb.AppendLine($"public {model.Name}SearchBuilder(global::MongoObject.Core.Interfaces.IDocumentMonitor<global::{model.Namespace}.{model.Name}> monitor)");
+                    using (sb.Block())
+                    {
+                        sb.AppendLine("_monitor = monitor;");
+                    }
+                    sb.AppendLine();
+
+                    // Internal constructor for copying state
+                    sb.AppendLine($"internal {model.Name}SearchBuilder(");
+                    sb.AppendLine($"    global::MongoObject.Core.Interfaces.IDocumentMonitor<global::{model.Namespace}.{model.Name}> monitor,");
+                    sb.AppendLine($"    global::System.Action<global::{model.Namespace}.{model.Name}Query>? query,");
+                    sb.AppendLine($"    global::System.Action<global::{model.Namespace}.{model.Metadata.Name}Query>? meta,");
+                    sb.AppendLine($"    int limit,");
+                    sb.AppendLine($"    int skip)");
+                    using (sb.Block())
+                    {
+                        //sb.AppendLine("        {");
+                        sb.AppendLine("_monitor = monitor;");
+                        sb.AppendLine("_query = query;");
+                        sb.AppendLine("_meta = meta;");
+                        sb.AppendLine("_limit = limit;");
+                        sb.AppendLine("_skip = skip;");
+                    }
+                    sb.AppendLine();
+
+                    // WithLimit method
+                    sb.AppendLine($"public {model.Name}SearchBuilder WithLimit(int limit)");
+                    using (sb.Block())
+                    {
+                        sb.AppendLine("_limit = limit;");
+                        sb.AppendLine("return this;");
+                    }
+                    sb.AppendLine();
+
+                    // WithSkip method
+                    sb.AppendLine($"public {model.Name}SearchBuilder WithSkip(int skip)");
+                    using (sb.Block())
+                    {
+                        sb.AppendLine("_skip = skip;");
+                        sb.AppendLine("return this;");
+                    }
+                    sb.AppendLine();
+
+                    // WithQuery method
+                    sb.AppendLine($"public {model.Name}SearchBuilder WithQuery(global::System.Action<global::{model.Namespace}.{model.Name}Query> query)");
+                    using (sb.Block())
+                    {
+                        sb.AppendLine("_query = query;");
+                        sb.AppendLine("return this;");
+                    }
+                    sb.AppendLine();
+
+                    // WithMeta method
+                    sb.AppendLine($"        public {model.Name}SearchBuilder WithMeta(global::System.Action<global::{model.Namespace}.{model.Metadata.Name}Query> meta)");
+                    using (sb.Block())
+                    {
+                        sb.AppendLine("_meta = meta;");
+                        sb.AppendLine("return this;");
+                    }
+                    sb.AppendLine();
+
+                    // Projection methods
+                    foreach (var projection in model.Projections)
+                    {
+                        var projectionName = projection.Name + "Projection";
+                        if (projection.Properties.Any(x => x.EnumName == "Vector" || x.EnumName == "AutoVector"))
+                        {
+                            projectionName = projection.Name + "Vector";
+                        }
+                        ct.ThrowIfCancellationRequested();
+                        sb.AppendLine($"public {model.Name}{projection.Name}SearchBuilder With{projectionName}()");
+                        using (sb.Block())
+                        {
+                            sb.AppendLine($"return new {model.Name}{projection.Name}SearchBuilder(_monitor, _query, _meta, _limit, _skip);");
+                        }
+                        sb.AppendLine();
+                    }
+
+                    // GetAwaiter method
+                    sb.AppendLine($"public global::System.Runtime.CompilerServices.TaskAwaiter<global::System.Collections.Generic.IEnumerable<global::{model.Namespace}.{model.Name}>> GetAwaiter()");
+                    using (sb.Block())
+                    {
+                        sb.AppendLine("return ExecuteAsync().GetAwaiter();");
+                    }
+                    sb.AppendLine();
+
+                    // ExecuteAsync method
+                    sb.AppendLine($"private async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<global::{model.Namespace}.{model.Name}>> ExecuteAsync()");
+                    using (sb.Block())
+                    {
+                        sb.AppendLine($"if (_monitor is global::MongoObject.Core.Interfaces.IDocumentMonitorInternal<global::{model.Namespace}.{model.Name}> internalMonitor)");
+                        using (sb.Block())
+                        {
+                            sb.AppendLine($"return await internalMonitor.CombinedSearch<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query>(_query, _meta, _limit, _skip);");
+                        }
+                        sb.AppendLine($"return global::System.Array.Empty<global::{model.Namespace}.{model.Name}>();");
+                    }
                 }
-                ct.ThrowIfCancellationRequested();
-                sb.AppendLine($"        public {model.Name}{projection.Name}SearchBuilder With{projectionName}()");
-                sb.AppendLine("        {");
-                sb.AppendLine($"            return new {model.Name}{projection.Name}SearchBuilder(_monitor, _query, _meta, _limit, _skip);");
-                sb.AppendLine("        }");
-                sb.AppendLine();
             }
-
-            // GetAwaiter method
-            sb.AppendLine($"        public global::System.Runtime.CompilerServices.TaskAwaiter<global::System.Collections.Generic.IEnumerable<global::{model.Namespace}.{model.Name}>> GetAwaiter()");
-            sb.AppendLine("        {");
-            sb.AppendLine("            return ExecuteAsync().GetAwaiter();");
-            sb.AppendLine("        }");
-            sb.AppendLine();
-
-            // ExecuteAsync method
-            sb.AppendLine($"        private async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<global::{model.Namespace}.{model.Name}>> ExecuteAsync()");
-            sb.AppendLine("        {");
-            sb.AppendLine($"            if (_monitor is global::MongoObject.Core.Interfaces.IDocumentMonitorInternal<global::{model.Namespace}.{model.Name}> internalMonitor)");
-            sb.AppendLine("            {");
-            sb.AppendLine($"                return await internalMonitor.CombinedSearch<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query>(_query, _meta, _limit, _skip);");
-            sb.AppendLine("            }");
-            sb.AppendLine($"            return global::System.Array.Empty<global::{model.Namespace}.{model.Name}>();");
-            sb.AppendLine("        }");
-
-            sb.AppendLine("    }");
-            sb.AppendLine("}");
 
             context.AddSource($"{model.Namespace.Replace(".", "_")}_{model.Name}.SearchBuilder.g.cs", sb.ToString());
         }
@@ -258,16 +268,6 @@ namespace MongoObject.SourceGenerator.Modules
                 sb.AppendLine("             return this;");
                 sb.AppendLine("         }");
             }
-
-            //if (projection.Properties.Any(x => x.EnumName == "AutoVector"))
-            //{
-            //    // Embedded Search
-            //    sb.AppendLine($"        public {model.Name}SearchBuilder WithEmbedding()");
-            //    sb.AppendLine("         {");
-            //    sb.AppendLine("             _embedding = embedding;");
-            //    sb.AppendLine("             return this;");
-            //    sb.AppendLine("         }");
-            //}
 
             if (projection.Properties.Any(x => x.EnumName == "Vector" || x.EnumName == "AutoVector"))
             {

@@ -178,7 +178,7 @@ public class MongoDocument<T>
 
 ## Documentation
 
-Full documentation is available at **[https://tenowg.github.io/MongoObjects](https://tenowg.github.io/MongoObject)**
+Full documentation is available at **[https://tenowg.github.io/MongoObject](https://tenowg.github.io/MongoObject)**
 
 ### Articles
 

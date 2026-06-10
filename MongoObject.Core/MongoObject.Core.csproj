@@ -1,70 +1,35 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-	  <TargetFramework>net10.0</TargetFramework>
-	  <ImplicitUsings>enable</ImplicitUsings>
-	  <Nullable>enable</Nullable>
 	  <NoWarn>$(NoWarn);NU5128</NoWarn>
 	  <PackageId>Tenowg.MongoObjects</PackageId>
-	  <Authors>Craig Russell</Authors>
-	  <PackageProjectUrl>https://github.com/tenowg/MongoObject</PackageProjectUrl>
-	  <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
-	  <RepositoryUrl>https://github.com/tenowg/MongoObject</RepositoryUrl>
-	  <RepositoryType>git</RepositoryType>
-	  <Description>No Description Yet</Description>
-	  <PackageTags>mongodb;dotnet10;odm;csharp14</PackageTags>
+	  <Description>A modern AoT compatible MongoDB ODM for .NET 10 with source generation and automatic change tracking, encryption, and distributed locking.</Description>
 	  <PackageReadmeFile>README.md</PackageReadmeFile>
-	  <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-
-	  <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Release'">true</GeneratePackageOnBuild>
-	  <GeneratePackageOnBuild Condition="'$(Configuration)' == 'Debug'">false</GeneratePackageOnBuild>
-
-	  <PublishAot>false</PublishAot>
-	  <IsAotCompatible>true</IsAotCompatible>
 
 	  <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
-
-	  <Configurations>Debug;Release</Configurations>
-  </PropertyGroup>
-  <PropertyGroup>
-	<PublishRepositoryUrl>true</PublishRepositoryUrl>
-	<EmbedUntrackedSources>true</EmbedUntrackedSources>
-	<IncludeSymbols>true</IncludeSymbols>
-	<SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Docs\**" />
-    <EmbeddedResource Remove="Docs\**" />
-    <None Remove="Docs\**" />
+	<FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
-	<ItemGroup>
-		<None Include="CHANGELOG.md" Pack="true" PackagePath="\" />
-		<None Include="README.md" Pack="true" PackagePath="\" />
-		<None Include="LICENSE.txt" Pack="true" PackagePath="\" />
-	</ItemGroup>
-	<ItemGroup>
-		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-	</ItemGroup>
-	<ItemGroup>
-		<PackageReference Include="MinVer" Version="7.0.0">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-		<PackageReference Include="MongoDB.Driver" Version="3.8.0" />
-		<PackageReference Include="SharpCompress" Version="0.48.0" />
-		<PackageReference Include="Snappier" Version="1.3.1" />
-	</ItemGroup>
-	<ItemGroup>
-		<None Include="..\MongoObject.SourceGenerator\bin\$(Configuration)\netstandard2.0\MongoObject.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-	</ItemGroup>
-	<ItemGroup>
-		<ProjectReference Include="..\MongoObject.SourceGenerator\MongoObject.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-	</ItemGroup>
-	<ItemGroup>
-	  <Folder Include="Generator\" />
-	</ItemGroup>
-	<ItemGroup Condition="'$(Configuration)' == 'Debug'">
-		<InternalsVisibleTo Include="MongoObject.Tests" />
-	<InternalsVisibleTo Include="MongoObject.RedisDistributedLock" />
-	</ItemGroup>
+  <ItemGroup>
+	<PackageReference Include="MongoDB.Driver" Version="3.8.0" />
+	<PackageReference Include="SharpCompress" Version="0.48.0" />
+	<PackageReference Include="Snappier" Version="1.3.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<None Include="..\MongoObject.SourceGenerator\bin\$(Configuration)\netstandard2.0\MongoObject.SourceGenerator.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+  
+  <ItemGroup>
+	<ProjectReference Include="..\MongoObject.SourceGenerator\MongoObject.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Generator\" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+	<InternalsVisibleTo Include="MongoObject.Tests" />
+  </ItemGroup>
 </Project>

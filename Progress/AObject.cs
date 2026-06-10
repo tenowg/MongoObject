@@ -2,6 +2,7 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoObject.Core.Attributes;
+using MongoObject.PropertyEncryption.Attributes;
 using System.Collections.ObjectModel;
 
 namespace Progress.Test
@@ -17,7 +18,7 @@ namespace Progress.Test
     {
         [ProjectValue("Name", ProjectionType.Include)]
         [ProjectValue("Other", ProjectionType.Exclude)]
-        [ProjectValue("VectorTest", ProjectionType.AutoVector, Similarity = MongoDB.Driver.VectorSimilarity.DotProduct, Dimensions = 2048)]
+        [ProjectValue("VectorTest", ProjectionType.AutoVector)]
         [MongoIndex("NameIndex", Type = IndexType.Ascending, Unique = true)]
         //[BsonElement("name")]
         public partial string Name { get; set; }
@@ -40,11 +41,16 @@ namespace Progress.Test
     }
 
     [MongoObject(DatabaseName = "BObjectsDatabase")]
+    [MongoEncrypt]
     public partial class BObject
     {
         [MongoIndex("BNameIndex", Type = IndexType.Ascending, Unique = true)]
+        [BsonElement("user_name")]
+        [EncyptedField]
         public partial string Name { get; set; }
+        [EncyptedField]
         public partial int Age { get; set; }
+        public partial TestA Test { get; set; } = new();
     }
 
     //public class AObjectNameProjectionT : global::MongoObject.Core.Interfaces.IProjectionBase, global::MongoObject.Core.Interfaces.IProjectionBase<global::Progress.Test.AObject>, IAObjectNameProjectionT1<global::Progress.Test.AObject, AObjectNameProjectionT>

@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <PackageId>Tenowg.MongoObjects.PropertyEncryption</PackageId>
+	  <Description>Apply Encryption to MongoObject, a fluent codegenerated MongoDB ODM</Description>
+	  <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  
+  <Target Name="EnsureCorrectMongoEncryption" AfterTargets="Build;Publish" Condition="$([MSBuild]::IsOsPlatform('Linux'))">
+    <ItemGroup>
+      <_MongoLib Include="$(PkgMongoDB_Driver_Encryption)\runtimes\linux-x64\native\libmongocrypt.so" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_MongoLib)" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="MongoDB.Driver.Encryption" Version="3.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MongoObject.Core\MongoObject.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Interfaces\" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,11 @@
+<Project>
+  <!-- Force MSBuild to pass the full pre-release version string down to all sub-project references -->
+  <Target Name="_AddSetVersionToProjectReferences" 
+          BeforeTargets="_GetProjectReferenceTargetFrameworkProperties">
+    <ItemGroup>
+      <ProjectReference Update="@(ProjectReference)">
+        <AdditionalProperties>%(ProjectReference.AdditionalProperties);Version=$(Version)</AdditionalProperties>
+      </ProjectReference>
+    </ItemGroup>
+  </Target>
+</Project>

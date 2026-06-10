@@ -10,16 +10,16 @@
     {
         public bool SupportsWindowFunctions => MaxWireVersion >= 13; // MongoDB 5.0+
 
-        public static async Task<MongoServerCapabilities> ResolveAsync(IMongoClient client)
+        public static MongoServerCapabilities Resolve(IMongoClient client)
         {
             var adminDb = client.GetDatabase("admin");
 
             // 1. Get Wire Version
-            var helloCmd = await adminDb.RunCommandAsync<BsonDocument>(new BsonDocument("hello", 1));
+            var helloCmd = adminDb.RunCommand<BsonDocument>(new BsonDocument("hello", 1));
             int wireVersion = helloCmd.GetValue("maxWireVersion", 0).AsInt32;
 
             // 2. Get Edition (Community vs Enterprise)
-            var buildInfo = await adminDb.RunCommandAsync<BsonDocument>(new BsonDocument("buildInfo", 1));
+            var buildInfo = adminDb.RunCommand<BsonDocument>(new BsonDocument("buildInfo", 1));
             var modules = buildInfo.GetValue("modules", new BsonArray()).AsBsonArray.Select(x => x.AsString);
             bool isEnterprise = modules.Contains("enterprise");
 
@@ -27,12 +27,12 @@
             bool isAtlas = client.Settings.Servers.Any(s => s.Host.EndsWith(".mongodb.net"));
 
             // 4. Probe for Vector Search capability
-            bool supportsVectorSearch = await ProbeForPipelineStageAsync(adminDb, "$vectorSearch");
+            bool supportsVectorSearch = ProbeForPipelineStage(adminDb, "$vectorSearch");
 
             return new MongoServerCapabilities(wireVersion, isEnterprise, isAtlas, supportsVectorSearch);
         }
 
-        private static async Task<bool> ProbeForPipelineStageAsync(IMongoDatabase db, string stageName)
+        private static bool ProbeForPipelineStage(IMongoDatabase db, string stageName)
         {
             try
             {
@@ -45,7 +45,7 @@
                 }} 
             }}";
 
-                await db.RunCommandAsync<BsonDocument>(BsonDocument.Parse(command));
+                db.RunCommand<BsonDocument>(BsonDocument.Parse(command));
                 return true;
             }
             catch (MongoCommandException ex) when (ex.Code == 40324 || ex.ErrorMessage.Contains("Unrecognized pipeline stage"))

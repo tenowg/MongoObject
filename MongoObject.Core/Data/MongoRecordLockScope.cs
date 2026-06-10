@@ -14,7 +14,7 @@ namespace MongoObject.Core.Data
 
         public string HolderId { get { return _holderId; } }
 
-        internal MongoRecordLockScope(
+        public MongoRecordLockScope(
             IDistributedLockManager manager,
             ILogger<MongoRecordLockScope<T>>? logger,
             string recordKey,

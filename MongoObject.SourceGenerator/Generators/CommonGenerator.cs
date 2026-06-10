@@ -36,7 +36,7 @@ namespace MongoObject.SourceGenerator.Generators
             new AddBuilderModule(),
             new DeleteManyBuilderModule(),
             new BsonProjectionSerialilzerModule(),
-            
+            new EncrytionModule()
         ];
 
         private static readonly ICodeModuleMultiple[] _modulesMultiple =
@@ -107,6 +107,8 @@ namespace MongoObject.SourceGenerator.Generators
             var bsonElementAttrSymbol = compilation.GetTypeByMetadataName("MongoDB.Bson.Serialization.Attributes.BsonElementAttribute");
             var bsonIgnoreAttrSymbol = compilation.GetTypeByMetadataName("MongoDB.Bson.Serialization.Attributes.BsonIgnoreAttribute");
             var projectionAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.Core.Attributes.ProjectValue");
+            var encryptedAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.MongoEncryptAttribute");
+            var encryptedPropertyAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.EncyptedFieldAttribute");
 
             var databaseName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "DatabaseName").Value.Value?.ToString();
             var collectionName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "CollectionName").Value.Value?.ToString();
@@ -151,7 +153,7 @@ namespace MongoObject.SourceGenerator.Generators
             }
 
             // Process properties and validate non-partial properties
-            var (validProperties, invalidProperties) = ProcessAllProperties(namedTypeSymbol, trackingBaseSymbol, mongoObjectAttrSymbol, indexAttrSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol, projectionAttrSymbol);
+            var (validProperties, invalidProperties) = ProcessAllProperties(namedTypeSymbol, trackingBaseSymbol, mongoObjectAttrSymbol, indexAttrSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol, projectionAttrSymbol, encryptedPropertyAttrSymbol);
 
             Dictionary<string, List<PropertyModel>> indexes = [];
             foreach(var prop in validProperties)
@@ -183,7 +185,9 @@ namespace MongoObject.SourceGenerator.Generators
                 Properties = validProperties,
                 Projections = [.. ProcessProjections(namedTypeSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol, projectionAttrSymbol)],
                 Errors = errors,
-                Indexes = [.. indexes.Select(g => new IndexModel { Name = g.Key, Properties = [.. g.Value] })]
+                Indexes = [.. indexes.Select(g => new IndexModel { Name = g.Key, Properties = [.. g.Value] })],
+                IsEncryptedModel = symbol.GetAttributes().Any(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, encryptedAttrSymbol)),
+                EncryptedModels = new EncryptedModel { Properties = [.. validProperties.Where(x => x.isEncrypted)] }
             };
         }
 
@@ -198,7 +202,8 @@ namespace MongoObject.SourceGenerator.Generators
             INamedTypeSymbol? mongoIndexAttrSymbol,
             INamedTypeSymbol? bsonElementAttrSymbol,
             INamedTypeSymbol? bsonIgnoreAttrSymbol,
-            INamedTypeSymbol? projectionAttrSymbol)
+            INamedTypeSymbol? projectionAttrSymbol,
+            INamedTypeSymbol? encryptedAttrSymbol)
         {
             var validProperties = ImmutableArray.CreateBuilder<PropertyModel>();
             var invalidProperties = new List<IPropertySymbol>();
@@ -224,6 +229,7 @@ namespace MongoObject.SourceGenerator.Generators
                 var isMongoIndex = mongoIndexAttrSymbol != null && prop.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, mongoIndexAttrSymbol));
                 var isBsonElement = bsonElementAttrSymbol != null && prop.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonElementAttrSymbol));
                 var isBsonIgnore = bsonIgnoreAttrSymbol != null && prop.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonIgnoreAttrSymbol));
+                var isEncrypted = encryptedAttrSymbol != null && prop.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, encryptedAttrSymbol));
                 var isTrackable = trackingBaseSymbol != null && InheritsFrom(prop.Type, trackingBaseSymbol);
                 var isComplexUntracked = !isMongoObject && !isTrackable && IsComplexUntrackedClass(prop.Type);
 
@@ -257,7 +263,8 @@ namespace MongoObject.SourceGenerator.Generators
                     IsNullable = isNullable,
                     UnderlyingTypeName = underlyingTypeName,
                     IsMongoIndex = isMongoIndex,
-                    Indexes = indexName
+                    Indexes = indexName,
+                    isEncrypted = isEncrypted,
                 });
             }
 

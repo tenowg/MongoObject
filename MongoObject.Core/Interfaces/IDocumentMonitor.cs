@@ -1,10 +1,12 @@
-﻿using MongoObject.Core.Data;
+﻿using MongoDB.Driver;
+using MongoObject.Core.Data;
 using System.Linq.Expressions;
 
 namespace MongoObject.Core.Interfaces
 {
     public interface IDocumentMonitor<TDocument> where TDocument : class, IDocumentFile, new()
     {
+        IMongoCollection<MongoDocument<TDocument>> GetConnection();
         Task<IMongoLockScope> LockDocument(TDocument Document);
         internal Task<string> Add(TDocument document);
         void Change(TDocument doc);

@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MongoDB.Bson;
 using MongoDB.Driver;
+using MongoDB.Driver.Core.Configuration;
 using MongoDB.Driver.Core.Events;
 using MongoObject.Core.Extensions;
 using Progress;
@@ -52,6 +53,11 @@ using IHost host = Host.CreateDefaultBuilder(args)
             options.IsAtlasMongoDBInstance = true;
         })
         .AddWatchStream()
+        .AddMongoLockManager()
+        .AddMongoEncryption(options =>
+        {
+            options.ConnectionString = apiKey; 
+        })
         .RegisterDocumentsProgress();
         services.AddSingleton<App>();
     })

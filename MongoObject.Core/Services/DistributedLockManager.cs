@@ -240,7 +240,7 @@ namespace MongoObject.Core.Services
 
             var result = await LockDocumentAsync<T>(document, duration);
 
-            if (!result.SuccessResult)
+            if (result.SuccessResult != LockResult.Success)
             {
                 // General-purpose exception (not chat-specific)
                 throw new MongoLockAcquisitionException(

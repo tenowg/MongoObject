@@ -1,7 +1,9 @@
 using Microsoft.CodeAnalysis;
+using MongoObject.SourceGenerator.Helpers;
 using MongoObject.SourceGenerator.Interfaces;
 using MongoObject.SourceGenerator.Models;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Text;
 
 namespace MongoObject.SourceGenerator.Modules
@@ -14,32 +16,44 @@ namespace MongoObject.SourceGenerator.Modules
         public void Execute(SourceProductionContext context, (ImmutableArray<CommonModel?> models, string rootNamespace) args)
         {
             var (models, rootNamespace) = args;
+            var encryptedModels = models.Where(x  => (x != null && x.IsEncryptedModel)).ToList();
             if (models.Length == 0) return;
 
-            var sb = new StringBuilder(2048);
+            var sb = new IndentedStringBuilder();
 
             sb.AppendLine("// auto-generated");
+            sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
+            sb.AppendLine();
             sb.AppendLine($"namespace {rootNamespace}.Extensions");
-            sb.AppendLine("{");
-            sb.AppendLine("    internal static class ObjectDiscovery");
-            sb.AppendLine("    {");
-            sb.AppendLine("        extension(global::MongoObject.Core.Extensions.MongoObjectBuilder builder)");
-            sb.AppendLine("        {");
-            sb.AppendLine($"            public global::MongoObject.Core.Extensions.MongoObjectBuilder RegisterDocuments{SanitizeName(rootNamespace)}()");
-            sb.AppendLine("            {");
-            sb.AppendLine($"                builder.RegisterIndexBuilder<global::{args.rootNamespace}.{args.rootNamespace.Replace(".", "")}IndexBuilder>();");
-            foreach (var model in models)
+            using (sb.Block())
             {
-                if (model == null) continue;
+                sb.AppendLine("internal static class ObjectDiscovery");
+                using (sb.Block())
+                {
+                    sb.AppendLine("extension(global::MongoObject.Core.Extensions.MongoObjectBuilder builder)");
+                    using (sb.Block())
+                    {
+                        sb.AppendLine($"public global::MongoObject.Core.Extensions.MongoObjectBuilder RegisterDocuments{SanitizeName(rootNamespace)}()");
+                        using (sb.Block())
+                        {
+                            sb.AppendLine($"builder.RegisterIndexBuilder<global::{args.rootNamespace}.{args.rootNamespace.Replace(".", "")}IndexBuilder>();");
+                            foreach (var model in models)
+                            {
+                                if (model == null) continue;
 
-                sb.AppendLine($"                builder.RegisterDocument<global::{model.Namespace}.{model.Name}, global::{model.Namespace}.{model.Metadata.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Record>();");
+                                sb.AppendLine($"builder.RegisterDocument<global::{model.Namespace}.{model.Name}, global::{model.Namespace}.{model.Metadata.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Record>({model.IsEncryptedModel.ToString().ToLowerInvariant()});");
+                            }
+
+                            foreach(var model in encryptedModels)
+                            {
+                                sb.AppendLine($"builder.Services.AddSingleton<global::MongoObject.Core.Interfaces.IEncryptionBuilder, global::{model!.Namespace}.{model!.Name}EncryptionBuilder>();");
+                            }
+
+                            sb.AppendLine("return builder;");
+                        }
+                    }
+                }
             }
-
-            sb.AppendLine("                return builder;");
-            sb.AppendLine("            }");
-            sb.AppendLine("        }");
-            sb.AppendLine("    }");
-            sb.AppendLine("}");
 
             // Use a unique file name that won't conflict with ExtensionModule
             context.AddSource($"{rootNamespace.Replace(".", "_")}_ObjectDiscovery.g.cs", sb.ToString());

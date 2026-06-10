@@ -13,6 +13,8 @@
   </ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\MongoObject.Core\MongoObject.Core.csproj" />
+		<ProjectReference Include="..\MongoObject.MongoDistributedLock\MongoObject.MongoDistributedLock.csproj" />
+		<ProjectReference Include="..\MongoObject.PropertyEncryption\MongoObject.PropertyEncryption.csproj" />
 		<ProjectReference Include="..\MongoObject.SourceGenerator\MongoObject.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 	<PropertyGroup>
@@ -29,5 +31,17 @@
 		<!-- 2. Prevents compiler from hitting "Duplicate Type" errors from the local disk vs memory -->
 		<Compile Remove="$(CompilerGeneratedFilesOutputPath)/**/*.cs" />
 		<None Include="$(CompilerGeneratedFilesOutputPath)/**/*.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <None Update="crypt-master-key.txt">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	  <None Update="crypt-master.key.bin">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	  <None Update="mongo_crypt_v1.dll">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
 	</ItemGroup>
 </Project>
