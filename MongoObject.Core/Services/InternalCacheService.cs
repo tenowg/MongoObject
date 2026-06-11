@@ -6,7 +6,7 @@ using MongoObject.Core.Interfaces;
 
 namespace MongoOptions.Services
 {
-    internal class InternalCacheService(IMemoryCache cache, MongoObjectOptions options)
+    public class InternalCacheService(IMemoryCache cache, MongoObjectOptions options)
     {
         public void Remove<T>(string key)
         {

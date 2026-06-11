@@ -16,7 +16,6 @@ namespace MongoObject.SourceGenerator.Generators
         private SymbolDisplayFormat format = SymbolDisplayFormat.FullyQualifiedFormat
             .WithMemberOptions(
                 SymbolDisplayMemberOptions.IncludeContainingType |
-                //SymbolDisplayMemberOptions..IncludeNamespaces |
                 SymbolDisplayMemberOptions.IncludeType
             )
             .WithMiscellaneousOptions(

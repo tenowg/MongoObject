@@ -7,9 +7,9 @@ using MongoObject.Core.Extensions;
 
 namespace ConsoleSetup.Snippets
 {
-    internal class PolingSetup
+    internal class PollingSetup
     {
-        public PolingSetup()
+        public PollingSetup()
         {
             using IHost host = Host.CreateDefaultBuilder()
             .ConfigureServices((_, services) =>
@@ -27,15 +27,16 @@ namespace ConsoleSetup.Snippets
                 // You can configure the connection string and database name here, and you can also add other options if needed.
                 // The AddWatchStream method is optional,
                 // but it allows you to watch for changes in the database and automatically update your documents in memory.
-                services.AddMongoObject(options =>
+                services.AddMongoObject((builder, options) =>
                 {
                     options.DatabaseName = "mydatabase";
-                })
-                // The Polling MangoWatcher this is only for development and should never be used for production environments
-                .AddWatchPolling()
-                // This is the important part - this is where you register your documents.
-                // You can have multiple calls to RegisterDocument, or you can have extension methods like this one to group them together.
-                .RegisterDocumentsConsoleSetup();
+                
+                    // The Polling MangoWatcher this is only for development and should never be used for production environments
+                    builder.AddWatchPolling()
+                        // This is the important part - this is where you register your documents.
+                        // You can have multiple calls to RegisterDocument, or you can have extension methods like this one to group them together.
+                        .RegisterDocumentsConsoleSetup();
+                });
                 #endregion
                 services.AddSingleton<App>();
             })

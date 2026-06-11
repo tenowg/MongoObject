@@ -6,6 +6,7 @@
   <Project Path="MongoObject.MongoDistributedLock/MongoObject.MongoDistributedLock.csproj" Id="1db37441-9b7f-48c5-87ae-a12d3ce5839c" />
   <Project Path="MongoObject.PropertyEncryption/MongoObject.PropertyEncryption.csproj" Id="8de1c5e7-1990-4d6c-9d25-26edf6d1bbe0" />
   <Project Path="MongoObject.RedisDistributedLock/MongoObject.RedisDistributedLock.csproj" Id="91114b44-56bb-42a7-8c26-52693143bfed" />
+  <Project Path="MongoObject.SourceGenerator.Encryption/MongoObject.SourceGenerator.Encryption.csproj" Id="eef53e4d-bf06-4a20-9ecc-6c1c6cc69449" />
   <Project Path="MongoObject.SourceGenerator/MongoObject.SourceGenerator.csproj" />
   <Project Path="MongoObject.Tests/MongoObject.Tests.csproj" Id="c4b940ba-6b8f-4aaa-9fbf-fefaf486ca5d" />
   <Project Path="Progress/Progress.csproj" Id="4f88e210-ce1f-460a-bdc1-b8d265eb5345">

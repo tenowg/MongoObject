@@ -14,14 +14,15 @@ namespace MongoObject.Core.Extensions
     {
         extension(IServiceCollection services)
         {
-            public MongoObjectBuilder AddMongoObject(Action<MongoObjectOptions> options)
+            public IServiceCollection AddMongoObject(Action<MongoObjectBuilder, MongoObjectOptions> configure)
             {
                 var optionsInstance = new MongoObjectOptions();
-                options(optionsInstance);
+                var mongoBuilder = new MongoObjectBuilder(services);
+                configure(mongoBuilder, optionsInstance);
                 services.AddSingleton(optionsInstance);
+
                 services.AddSingleton<IDocumentKeyManager, MongoDocumentKeyManager>();
                 services.AddMemoryCache();
-                services.TryAddSingleton<IDistributedLockManager, NoOpLockManager>();
                 services.AddSingleton<InternalCacheService>();
                 services.AddHostedService<BuildIndexesHostService>();
                 services.AddSingleton<MongoServerCapabilities>(sp =>
@@ -33,7 +34,15 @@ namespace MongoObject.Core.Extensions
                 var objectSerializer = new ObjectSerializer(ObjectSerializer.AllAllowedTypes);
                 BsonSerializer.RegisterSerializer(objectSerializer);
 
-                return new MongoObjectBuilder(services);
+                // lets add the Hooks
+                foreach(var hook in MongoObjectsPluginRegistry.RegisterDocumentsHook)
+                {
+                    hook(services);
+                }
+
+                services.TryAddSingleton<IDistributedLockManager, NoOpLockManager>();
+
+                return services;
             }
         }
     }

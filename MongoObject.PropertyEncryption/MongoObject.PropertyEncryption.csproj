@@ -20,9 +20,13 @@
   <ItemGroup>
     <ProjectReference Include="..\MongoObject.Core\MongoObject.Core.csproj" />
   </ItemGroup>
-
+	
   <ItemGroup>
-    <Folder Include="Interfaces\" />
+	<None Include="..\MongoObject.SourceGenerator.Encryption\bin\$(Configuration)\netstandard2.0\MongoObject.SourceGenerator.Encryption.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+  
+  <ItemGroup>
+	<ProjectReference Include="..\MongoObject.SourceGenerator.Encryption\MongoObject.SourceGenerator.Encryption.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using MongoObject.Core.Interfaces;
-using MongoObject.RedisDistributedLock.Services;
+using MongoObject.MongoDistributedLock.Services;
 
 namespace MongoObject.Core.Extensions
 {

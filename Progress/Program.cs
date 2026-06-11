@@ -47,18 +47,20 @@ using IHost host = Host.CreateDefaultBuilder(args)
             return new MongoClient(mongoClientSettings);
         });
 
-        services.AddMongoObject(options =>
+        services.AddMongoObject((builder, options) =>
         {
             options.DatabaseName = "mydatabase";
             options.IsAtlasMongoDBInstance = true;
-        })
-        .AddWatchStream()
-        .AddMongoLockManager()
-        .AddMongoEncryption(options =>
-        {
-            options.ConnectionString = apiKey; 
-        })
-        .RegisterDocumentsProgress();
+
+            builder.AddWatchStream()
+                .AddMongoLockManager()
+                .AddMongoEncryption(options =>
+                {
+                    options.ConnectionString = apiKey;
+                })
+            .RegisterDocumentsProgress();
+        });
+
         services.AddSingleton<App>();
     })
     .Build();

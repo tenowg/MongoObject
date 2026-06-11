@@ -16,6 +16,7 @@
 		<ProjectReference Include="..\MongoObject.MongoDistributedLock\MongoObject.MongoDistributedLock.csproj" />
 		<ProjectReference Include="..\MongoObject.PropertyEncryption\MongoObject.PropertyEncryption.csproj" />
 		<ProjectReference Include="..\MongoObject.SourceGenerator\MongoObject.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+		<ProjectReference Include="..\MongoObject.SourceGenerator.Encryption\MongoObject.SourceGenerator.Encryption.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 	<PropertyGroup>
 		<IsPackable>false</IsPackable>

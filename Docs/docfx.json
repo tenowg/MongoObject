@@ -8,6 +8,24 @@
           "files": [
             "**/*.csproj"
           ]
+        },
+        {
+          "src": "../MongoObject.MongoDistributedLock",
+          "files": [
+            "**/*.csproj"
+          ]
+        },
+        {
+          "src": "../MongoObject.RedisDistributedLock",
+          "files": [
+            "**/*.csproj"
+          ]
+        },
+        {
+          "src": "../MongoObject.PropertyEncryption",
+          "files": [
+            "**/*.csproj"
+          ]
         }
       ],
       "output": "api",

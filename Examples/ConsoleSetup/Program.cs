@@ -22,14 +22,14 @@ using IHost host = Host.CreateDefaultBuilder(args)
         // You can configure the database name here, and you can also add other options if needed.
         // The AddWatchStream method is optional,
         // but it allows you to watch for changes in the database and automatically update your documents in memory.
-        services.AddMongoObject(options =>
+        services.AddMongoObject((builder, options) =>
         {
             options.DatabaseName = "mydatabase";
-        })
-        .AddWatchStream()
-        // This is the important part - this is where you register your documents.
-        // You can have multiple calls to RegisterDocument, or you can have extension methods like this one to group them together.
-        .RegisterDocumentsConsoleSetup();
+            builder.AddWatchStream()
+            // This is the important part - this is where you register your documents.
+            // You can have multiple calls to RegisterDocument, or you can use the provided extension method from source generation (highly recommended).
+            .RegisterDocumentsConsoleSetup();
+        });
         services.AddSingleton<App>();
     })
     .Build();

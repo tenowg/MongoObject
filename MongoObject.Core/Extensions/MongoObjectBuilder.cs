@@ -5,6 +5,11 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace MongoObject.Core.Extensions
 {
+    public static class MongoObjectsPluginRegistry
+    {
+        public static List<Action<IServiceCollection>> RegisterDocumentsHook { get; } = [];
+    }
+
     public class MongoObjectBuilder(IServiceCollection sp)
     {
         public IServiceCollection Services => sp;
@@ -14,8 +19,8 @@ namespace MongoObject.Core.Extensions
             where TMetaRecord : class, IMetadataBase, new()
         {
             sp.AddSingleton<IDocumentTokenChangeMonitor<TDocument>, DocumentChangeTokenMonitor<TDocument>>();
-            //sp.AddSingleton<IDocumentMonitor<TDocument, TMeta>, DocumentMonitor<TDocument, TMeta>>();
             sp.AddSingleton<IDocumentMonitor<TDocument>, DocumentMonitor<TDocument>>();
+            // this is what the code gened code needs to replace
             sp.AddSingleton<IMongoConnection<TDocument>, MongoConnection<TDocument>>();
             sp.AddSingleton<IMongoConnection, MongoConnection<TDocument>>();
             sp.AddSingleton<MongoDocumentManager<TDocument>>();

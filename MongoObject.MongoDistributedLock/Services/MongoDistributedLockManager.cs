@@ -5,7 +5,7 @@ using MongoObject.Core.Exceptions;
 using MongoObject.Core.Interfaces;
 using System.Diagnostics.CodeAnalysis;
 
-namespace MongoObject.RedisDistributedLock.Services
+namespace MongoObject.MongoDistributedLock.Services
 {
     public class MongoDistributedLockManager(IMongoClient client, MongoObjectOptions options, IDocumentKeyManager keys, ILogger<MongoDistributedLockManager> logger) : IDistributedLockManager
     {
