@@ -8,7 +8,7 @@ using Progress.Test;
 
 namespace Progress
 {
-    public class App(IDocumentMonitor<AObject> monitor, [FromKeyedServices("SecuredClient")] IMongoClient client) : IDisposable
+    public class App(IDocumentMonitor<AObject> monitor) : IDisposable
     {
         //IMongoLockScope? lockMeta;
 
@@ -23,33 +23,39 @@ namespace Progress
 
             //await monitor.Add(new AObject {Name = "Craig is a cat that likes to eat biskits in the morning, along with himself", Age = 4}, f => f.OwnerId = "123.abc");
 
-            var collection = client.GetDatabase("BObjectsDatabase").GetCollection<MongoDocument<BObject>>("BObject");
-            try
-            {
-                collection.InsertOne(new MongoDocument<BObject> { Document = new BObject { Name = "John " }, Metadata = new() });
-            } catch(Exception ex)
-            {
-                var t = 5;
-            }
+            //var collection = client.GetDatabase("BObjectsDatabase").GetCollection<MongoDocument<BObject>>("BObject");
+            //try
+            //{
+            //    collection.InsertOne(new MongoDocument<BObject> { Document = new BObject { Name = "John " }, Metadata = new() });
+            //} catch(Exception ex)
+            //{
+            //    var t = 5;
+            //}
             #region QueryExample
-            //var nameProjection = await monitor.Search()
-            //    //.WithQuery(f =>
-            //    //{
-            //    //    f.Name = "Craig";
-            //    //    f.Age = f.Age.And(
-            //    //        f.Age = f.Age.Lt(40000),
-            //    //        f.Age = f.Age.Gt(2)
-            //    //    );
-            //    //})
-            //    //.WithNameProjection();
-            //    .WithVectorTestVector()
-            //    .WithEmbedding("Craig is eating biskits in the morning, I wonder if he is a cat")
-            //    .WithMaxReturns(5);
+            var nameProjection = await monitor.Search()
+                .WithQuery(f =>
+                {
+                    f.Name = "Craig";
+                    f.Age = f.Age.And(
+                        f.Age = f.Age.Lt(40000),
+                        f.Age = f.Age.Gt(2)
+                    );
+                });
+            //.WithNameProjection();
+            //.WithVectorTestVector()
+            //.WithEmbedding("Craig is eating biskits in the morning, I wonder if he is a cat")
+            //.WithMaxReturns(5);
             //.WithListTestProjection()
             //.WithListTestSlice(5, 3)
             //.WithLimit(5);
             #endregion
-
+            var t = nameProjection.FirstOrDefault();
+            t.PropertyChanged += (sender, e) =>
+            {
+                Console.WriteLine($"{e.PropertyName}");
+            };
+            
+            t.Nothing = new BObject();
             //var vectorProjection = await monitor
             //    .Search()
             //    .WithVectorTestVector()

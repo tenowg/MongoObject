@@ -261,6 +261,7 @@ namespace MongoObject.Core.Data
         public void Dispose()
         {
             PropertyChanged -= Test_PropertyChanged;
+            PropertyChanged = null;
 
             GC.SuppressFinalize(this);
         }

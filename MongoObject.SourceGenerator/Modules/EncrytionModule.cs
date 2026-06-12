@@ -21,7 +21,7 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"namespace {model.Namespace}");
             using (sb.Block())
             {
-                sb.AppendLine($"public class {model.Name}EncryptionBuilder([global::Microsoft.Extensions.DependencyInjection.FromKeyedServices(\"SecuredClient\")] global::MongoDB.Driver.IMongoClient client, [global::Microsoft.Extensions.DependencyInjection.FromKeyedServices(\"KmsProviders\")] Dictionary<string, IReadOnlyDictionary<string, object>> providers, global::MongoObject.PropertyEncryption.Data.MongoEncryptionOptions encOptions) : global::MongoObject.Core.Interfaces.IEncryptionBuilder");
+                sb.AppendLine($"public class {model.Name}EncryptionBuilder(global::MongoObject.PropertyEncryption.Interfaces.IEncryptedClient client, [global::Microsoft.Extensions.DependencyInjection.FromKeyedServices(\"KmsProviders\")] global::MongoObject.PropertyEncryption.Data.KmsProvidersDictionary providers, global::MongoObject.PropertyEncryption.Data.MongoEncryptionOptions encOptions) : global::MongoObject.Core.Interfaces.IEncryptionBuilder");
                 using (sb.Block())
                 {
                     sb.AppendLine($"public async Task BuildCollection()");

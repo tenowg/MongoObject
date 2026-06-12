@@ -22,7 +22,6 @@ namespace ConsoleSetup.Models
         public partial string Description { get; set; }
         public partial int StockQuantity { get; set; }
         public partial List<string> Tags { get; set; }
-    }
-
-    #endregion
+    }    
 }
+#endregion

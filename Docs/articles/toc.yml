@@ -18,3 +18,6 @@ items:
     href: creating-indexes.md
   - name: Dependency Injection
     href: dependency-injection.md
+  - href: vectors.md
+    items:
+    - href: vector-search-types.md

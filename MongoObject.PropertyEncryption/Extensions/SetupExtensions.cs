@@ -43,7 +43,7 @@ namespace MongoObject.Core.Extensions
                 //});
 
                 // I don't think this needs to be code genned
-                builder.Services.AddKeyedSingleton<IEncryptedClient>("SecuredClient", (sp, _) =>
+                builder.Services.AddSingleton<IEncryptedClient>(sp =>
                 {
                     var extraOptions = new Dictionary<string, object>
                     {

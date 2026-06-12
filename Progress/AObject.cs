@@ -1,5 +1,6 @@
 ﻿using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver;
 using MongoObject.Core.Attributes;
 using MongoObject.PropertyEncryption.Attributes;
 using System.Collections.ObjectModel;
@@ -17,7 +18,7 @@ namespace Progress.Test
     {
         [ProjectValue("Name", ProjectionType.Include)]
         [ProjectValue("Other", ProjectionType.Exclude)]
-        [ProjectValue("VectorTest", ProjectionType.AutoVector)]
+        [ProjectValue("VectorTest", ProjectionType.AutoVector, Similarity = VectorSimilarity.Cosine)]
         [MongoIndex("NameIndex", Type = IndexType.Ascending, Unique = true)]
         //[BsonElement("name")]
         public partial string Name { get; set; }
@@ -43,7 +44,6 @@ namespace Progress.Test
     [MongoEncrypt]
     public partial class BObject
     {
-        [MongoIndex("BNameIndex", Type = IndexType.Ascending, Unique = true)]
         [BsonElement("user_name")]
         [EncyptedField]
         public partial string Name { get; set; }
