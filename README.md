@@ -7,6 +7,7 @@
 [![C# 14](https://img.shields.io/badge/C%23-14-239120)](https://learn.microsoft.com/en-us/dotnet/csharp/)
 [![Deploy Documentation](https://github.com/tenowg/MongoObject/actions/workflows/docs.yml/badge.svg)](https://github.com/tenowg/MongoObject/actions/workflows/docs.yml)
 [![Build](https://github.com/tenowg/MongoObject/actions/workflows/dotnet.yml/badge.svg)](https://github.com/tenowg/MongoObject/actions/workflows/dotnet.yml)
+[![NuGet Pre-release Version](https://shields.io/nuget/vpre/Tenowg.MongoObjects)](https://www.nuget.org/packages/Tenowg.MongoObjects)
 
 ---
 
@@ -32,7 +33,7 @@ MongoObject bridges the gap between MongoDB's document model and modern .NET dev
 > The `Tenowg.MongoObjects` package is currently in active development.
 
 ```
-dotnet add package Tenowg.MongoObjects --version 0.1.0-alpha
+dotnet add package Tenowg.MongoObjects --prerelease
 ```
 
 ```bash
