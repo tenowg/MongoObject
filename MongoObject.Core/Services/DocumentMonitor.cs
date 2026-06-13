@@ -19,9 +19,9 @@ namespace MongoObject.Core.Services
             return await lockManager.LockScopedAsync(Document);
         }
 
-        public Task Delete(TDocument document)
+        public Task<DeleteResult> Delete(TDocument document)
         {
-            throw new NotImplementedException();
+            return documentManager.DeleteDocument(document);
         }
 
         public async Task<TDocument> Get(string id)

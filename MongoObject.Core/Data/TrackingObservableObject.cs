@@ -90,37 +90,7 @@ namespace MongoObject.Core.Data
             Tracking = true;
         }
 
-        // this will be done with codegen eventually so everything here not going to be used, and this method will be abstract
         public abstract void TrackChanges(TrackingObservableObject observable, bool isTracking, string parentName);
-        //{
-        //    ParentName = parentName;
-        //    // this shouldn't required as this will only be called when a NEW trackable object is placed on a trackable property
-        //    PropertyChanged -= observable.Test_PropertyChanged;
-        //    PropertyChanged += observable.Test_PropertyChanged;
-
-        //    // tracking is only called after init, so any new objects will be need to be tracked
-        //    if (isTracking)
-        //    {
-        //        // this will be done with codegen eventually so everything here not going to be used
-        //        var properties = GetType().GetProperties().Where(x => x.PropertyType.IsPublic && x.Name != "ParentName");
-        //        Tracking = true;
-
-        //        foreach(var property in properties)
-        //        {
-        //            if (!typeof(TrackingObservableObject).IsAssignableFrom(property.PropertyType))
-        //            {
-        //                var value = property.GetValue(this);
-        //                if (value != null)
-        //                    OnPropertyChanged(value, $"{ParentName}.{property.Name}");
-        //            }
-        //            if (typeof(TrackingObservableObject).IsAssignableFrom(property.PropertyType))
-        //            {
-        //                var value = property.GetValue(this);
-        //                if (value is TrackingObservableObject tracker) tracker.TrackChanges(this, this.Tracking, property.Name);
-        //            }
-        //        }
-        //    }
-        //}
 
         public void ClearChanges()
         {
@@ -143,7 +113,7 @@ namespace MongoObject.Core.Data
                     if (_potentialChanges.TryGetValue(property.Name, out var value))
                     {
                         var field = property.GetValue(this);
-                        BsonDocument bson = new();
+                        BsonDocument bson = [];
                         if (field is IEnumerable enumerableValues && field is not IDictionary)
                         {
                             bson = bson.Add(property.Name, new BsonArray(enumerableValues));
@@ -209,26 +179,40 @@ namespace MongoObject.Core.Data
                 return false;
             }
 
-            setFields["Metadata.LastModifiedAt"] = "$$NOW";
-            setFields["Metadata.Version"] = new BsonDocument("$add", new BsonArray
-            {
-                new BsonDocument("$ifNull", new BsonArray { "$Metadata.Version", 0 }), 1
-            });
-
-            var stages = new List<BsonDocument>();
+            var stages = new List<IPipelineStageDefinition>();
 
             if (setFields.Any())
             {
-                stages.Add(new BsonDocument("$set", setFields));
+                stages.Add(new BsonDocumentPipelineStageDefinition<MongoDocument<T>, MongoDocument<T>>(
+                    new BsonDocument("$set", setFields)
+                ));
             }
 
             if (unsetFields.Count > 0)
             {
-                stages.Add(new BsonDocument("$unset", unsetFields));
+                stages.Add(new BsonDocumentPipelineStageDefinition<MongoDocument<T>, MongoDocument<T>>(
+                    new BsonDocument("$unset", unsetFields)
+                ));
             }
 
-            var pipeline = PipelineDefinition<MongoDocument<T>, MongoDocument<T>>.Create(stages);
-            update = Builders<MongoDocument<T>>.Update.Pipeline(pipeline);
+            var metadataStage = new BsonDocument("$set", new BsonDocument
+            {
+                { "Metadata.LastModifiedAt", "$$NOW" },
+                { "Metadata.Version", new BsonDocument("$add", new BsonArray
+                    {
+                        new BsonDocument("$ifNull", new BsonArray { "$Metadata.Version", 0 }),
+                        1
+                    })
+                }
+            });
+
+            stages.Add(new BsonDocumentPipelineStageDefinition<MongoDocument<T>, MongoDocument<T>>(metadataStage));
+
+            update = Builders<MongoDocument<T>>.Update.Pipeline(
+                new PipelineStagePipelineDefinition<MongoDocument<T>, MongoDocument<T>>(stages)
+    );
+
+
             return true;
         }
 
@@ -256,6 +240,39 @@ namespace MongoObject.Core.Data
 
                 return builder.Combine(updates);
             }
+        }
+
+        public bool TryGetPendingUpdates<T>(out UpdateDefinition<MongoDocument<T>>? update) where T : class, IDocumentFile, new()
+        {
+            ProcessPossibleChanges();
+
+            var builder = Builders<MongoDocument<T>>.Update;
+            var updates = new List<UpdateDefinition<MongoDocument<T>>>();
+
+            foreach (var change in _changes)
+            {
+                string targetPath = $"Document.{change.Key}";
+
+                if (change.Value is null)
+                {
+                    updates.Add(builder.Unset(targetPath));
+                    continue;
+                }
+
+                updates.Add(builder.Set(targetPath, change.Value));
+            }
+
+            if (!updates.Any())
+            {
+                update = null;
+                return false;
+            }
+            updates.Add(builder.Set("Metadata.LastModifiedAt", DateTime.UtcNow));
+
+            updates.Add(builder.Inc("Metadata.Version", 1));
+
+            update = builder.Combine(updates);
+            return true;
         }
 
         public void Dispose()

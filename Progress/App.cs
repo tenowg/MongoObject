@@ -8,7 +8,7 @@ using Progress.Test;
 
 namespace Progress
 {
-    public class App(IDocumentMonitor<AObject> monitor) : IDisposable
+    public class App(IDocumentMonitor<BObject> monitor) : IDisposable
     {
         //IMongoLockScope? lockMeta;
 
@@ -21,6 +21,14 @@ namespace Progress
         {
             Console.WriteLine("Hello, World!");
 
+            try
+            {
+                await monitor.AddBuilder(new BObject() { Name = "Andrew" });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
             //await monitor.Add(new AObject {Name = "Craig is a cat that likes to eat biskits in the morning, along with himself", Age = 4}, f => f.OwnerId = "123.abc");
 
             //var collection = client.GetDatabase("BObjectsDatabase").GetCollection<MongoDocument<BObject>>("BObject");
@@ -35,11 +43,11 @@ namespace Progress
             var nameProjection = await monitor.Search()
                 .WithQuery(f =>
                 {
-                    f.Name = "Craig";
-                    f.Age = f.Age.And(
-                        f.Age = f.Age.Lt(40000),
-                        f.Age = f.Age.Gt(2)
-                    );
+                    f.Name = "Andrew";
+                    //f.Age = f.Age.And(
+                    //    f.Age = f.Age.Lt(40000),
+                    //    f.Age = f.Age.Gt(2)
+                    //);
                 });
             //.WithNameProjection();
             //.WithVectorTestVector()
@@ -50,12 +58,20 @@ namespace Progress
             //.WithLimit(5);
             #endregion
             var t = nameProjection.FirstOrDefault();
-            t.PropertyChanged += (sender, e) =>
+            //t.PropertyChanged += (sender, e) =>
+            //{
+            //    Console.WriteLine($"{e.PropertyName}");
+            //};
+            t.Name = "John";
+
+            try
             {
-                Console.WriteLine($"{e.PropertyName}");
-            };
-            
-            t.Nothing = new BObject();
+                var result = await monitor.SaveChanges(t);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
             //var vectorProjection = await monitor
             //    .Search()
             //    .WithVectorTestVector()

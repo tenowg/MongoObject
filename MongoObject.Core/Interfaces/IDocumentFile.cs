@@ -30,5 +30,6 @@ namespace MongoObject.Core.Interfaces
             where T : class, IDocumentFile, new();
         void ClearChanges();
         public bool TryGetPendingUpdatesPipeline<T>(out UpdateDefinition<MongoDocument<T>>? update) where T : class, IDocumentFile, new();
+        public bool TryGetPendingUpdates<T>(out UpdateDefinition<MongoDocument<T>>? update) where T : class, IDocumentFile, new();
     }
 }

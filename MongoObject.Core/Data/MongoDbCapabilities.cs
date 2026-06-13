@@ -2,11 +2,11 @@
 {
     using MongoDB.Bson;
     using MongoDB.Driver;
+    using MongoDB.Driver.Core.Clusters;
     using System.Linq;
-    using System.Threading.Tasks;
 
     // Explicit Feature Flags
-    public record MongoServerCapabilities(int MaxWireVersion, bool IsEnterprise, bool IsAtlasEnvironment, bool SupportsVectorSearch)
+    public record MongoServerCapabilities(int MaxWireVersion, bool IsEnterprise, bool IsAtlasEnvironment, bool SupportsVectorSearch, ClusterType ClusterType)
     {
         public bool SupportsWindowFunctions => MaxWireVersion >= 13; // MongoDB 5.0+
 
@@ -29,7 +29,9 @@
             // 4. Probe for Vector Search capability
             bool supportsVectorSearch = ProbeForPipelineStage(adminDb, "$vectorSearch");
 
-            return new MongoServerCapabilities(wireVersion, isEnterprise, isAtlas, supportsVectorSearch);
+            var clusterType = client.Cluster.Description.Type;
+
+            return new MongoServerCapabilities(wireVersion, isEnterprise, isAtlas, supportsVectorSearch, clusterType);
         }
 
         private static bool ProbeForPipelineStage(IMongoDatabase db, string stageName)

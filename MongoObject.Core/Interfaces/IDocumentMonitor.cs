@@ -10,7 +10,7 @@ namespace MongoObject.Core.Interfaces
         Task<IMongoLockScope> LockDocument(TDocument Document);
         internal Task<string> Add(TDocument document);
         void Change(TDocument doc);
-        Task Delete(TDocument document);
+        Task<DeleteResult> Delete(TDocument document);
         Task<TDocument> Get(string id);
         string GetKey(TDocument document);
         IDisposable OnChange(TDocument document, Action action);
