@@ -1,11 +1,13 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using MongoDB.Driver.Core.Clusters;
 using MongoObject.Core.Data;
 using MongoObject.Core.Interfaces;
 using MongoOptions.Services;
 using System.Linq.Expressions;
+using System.Xml.Linq;
 
 namespace MongoObject.Core.Services
 {
@@ -23,6 +25,8 @@ namespace MongoObject.Core.Services
             AbsoluteExpirationRelativeToNow = options.CacheHardDuration,
             SlidingExpiration = options.CacheSoftDuration
         };
+        private bool isTrackable = typeof(IDocumentFileInternal).IsAssignableFrom(typeof(T));
+        private string cacheKeyBase = cache.PrebuildKey<T>();
 
         public async Task<string> AddDocument<TMetaBase>(T document, Action<TMetaBase>? action)
             where TMetaBase : class, IMetadataBase, new()
@@ -51,6 +55,7 @@ namespace MongoObject.Core.Services
                 throw;
             }
 
+            document.Version = meta.Version.Value;
             var key = keyManager.SetKey(mongoDocument);
             cache.Add(key, mongoDocument, cacheOptions);
 
@@ -140,23 +145,50 @@ namespace MongoObject.Core.Services
             var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
 
             var collection = connection.Collection;
-            var results = collection.Find(combinedFilter)
+            var results = await collection.Find(combinedFilter)
                 .Limit(limit)
-                .Skip(skip);
-            var items = await results.ToListAsync();
+                .Skip(skip)
+                .As<BsonDocument>()
+                .ToListAsync();
+            //var items = await results.ToListAsync();
+
+            //bool isTrackable = typeof(IDocumentFileInternal).IsAssignableFrom(typeof(T));
 
             List<T> result = [];
 
-            foreach (var item in items)
+            foreach (var item in results)
             {
-                if (item.Document == null) continue;
-                var key = keyManager.SetKey(item);
-                cache.Add(key, item, cacheOptions);
-                result.Add(item.Document);
-                if (item.Document is IDocumentFileInternal internalDocument)
+                long version = 0;
+                if (item.TryGetValue("Metadata", out var metadataNode) &&
+                    metadataNode.AsBsonDocument.TryGetValue("Version", out var versionNode))
                 {
-                    internalDocument.TrackChanges();
+                    version = versionNode.AsInt64;
                 }
+
+                var docId = item["_id"].ToString();
+                string cacheKey = cacheKeyBase + docId;
+
+                cache.Add(cacheKey, item, cacheOptions);
+
+                // for now throw an error, future log and continaue
+                var typedDocument = BsonSerializer.Deserialize<MongoDocument<T>>(item) ?? throw new Exception("Invalid item type returned");
+                typedDocument.Document?.Version = version;
+
+                //if (item.Document == null) continue;
+                //item.Document.Version = item.Metadata["Version"].AsInt64;
+                keyManager.SetKey(typedDocument);
+                //cache.Add(key, item, cacheOptions);
+                result.Add(typedDocument.Document!);
+
+                if (isTrackable)
+                {
+                    ((IDocumentFileInternal)typedDocument.Document!).TrackChanges();
+                }
+
+                //if (item.Document is IDocumentFileInternal internalDocument)
+                //{ 
+                //    internalDocument.TrackChanges();
+                //}
             }
 
             return result;
@@ -347,7 +379,11 @@ namespace MongoObject.Core.Services
                 throw new InvalidOperationException("Document is not being tracked. Cannot update.");
             }
 
-            var keyFilter = Builders<MongoDocument<T>>.Filter.Eq("_id", key);
+            var keyFilter = Builders<MongoDocument<T>>.Filter
+                .And(
+                    Builders<MongoDocument<T>>.Filter.Eq("_id", key),
+                    Builders<MongoDocument<T>>.Filter.Eq("Metadata.Version", document.Version
+                    ));
 
             switch (capabilities.ClusterType)
             {
@@ -412,7 +448,7 @@ namespace MongoObject.Core.Services
                     internalDocument.ClearChanges();
                     await trans.CommitTransactionAsync();
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     await trans.AbortTransactionAsync();
                     return (flowControl: false, value: SaveChangesResult.Failed($"Saves changes failed with a mongo Error"));
@@ -468,65 +504,34 @@ namespace MongoObject.Core.Services
         public async Task<SaveChangesResult> UpdateDocument<TMetaSearch>(T document, Action<TMetaSearch> metadata, IMongoLockScope? lockKey = null)
             where TMetaSearch : class, IMetadataSearchBase, new()
         {
-            //var lastUpdated = Builders<MongoDocument<T>>.Update.Set("Metadata.LastModifiedAt", DateTime.UtcNow);
-            //if (document is IDocumentFileInternal internalDocument)
-            //{
-                //if(!internalDocument.TryGetPendingUpdatesPipeline<T>(out var updates))
-                //{
-                //    return SaveChangesResult.Failed("Cannot update document when no changes are found");
-                //}
-                var queryMeta = new TMetaSearch();
-                metadata.Invoke(queryMeta);
-                var filter = queryMeta.ToMongoFilter<T>();
-                
-                //using var trans = await client.StartSessionAsync();
+            var queryMeta = new TMetaSearch();
+            metadata.Invoke(queryMeta);
 
-                switch (capabilities.ClusterType)
-                {
-                    case ClusterType.ReplicaSet:
-                    case ClusterType.LoadBalanced:
-                    case ClusterType.Sharded:
-                        (bool flowControl, SaveChangesResult? value) = await UpdateWithReplica(document, lockKey, filter, !IsCollectionEncrypted(connection.Collection));
-                        if (!flowControl && value != null)
-                        {
-                            return value;
-                        }
-                        break;
-                    case ClusterType.Unknown:
-                    case ClusterType.Standalone:
-                        (bool flowControl2, SaveChangesResult? value2) = await UpdateWithOutReplica(document, lockKey, filter, !IsCollectionEncrypted(connection.Collection));
-                        if (!flowControl2 && value2 != null)
-                        {
-                            return value2;
-                        }
-                        break;
-                    default: throw new InvalidOperationException("Unknown ClusterType please report for a fix");
-                }
+            // this should satisify OCC
+            queryMeta.Version = document.Version;
+            var filter = queryMeta.ToMongoFilter<T>();
 
-
-
-            //    trans.StartTransaction();
-            //    try
-            //    {
-            //        var lockData = await lockManager.IsLocked(lockKey, document);
-
-            //        if (lockData)
-            //        {
-            //            trans.AbortTransaction();
-            //            return SaveChangesResult.Failed($"Document is locked");
-            //        }                    
-
-            //        var updateResult = await connection.Collection.UpdateOneAsync(filter, updates);
-            //        internalDocument.ClearChanges();
-            //        await trans.CommitTransactionAsync();
-            //    }
-            //    catch
-            //    {
-            //        await trans.AbortTransactionAsync();
-            //        return SaveChangesResult.Failed($"Saves changes failed with a mongo Error");
-            //    }
-            //    return SaveChangesResult.Success;
-            //}
+            switch (capabilities.ClusterType)
+            {
+                case ClusterType.ReplicaSet:
+                case ClusterType.LoadBalanced:
+                case ClusterType.Sharded:
+                    (bool flowControl, SaveChangesResult? value) = await UpdateWithReplica(document, lockKey, filter, !IsCollectionEncrypted(connection.Collection));
+                    if (!flowControl && value != null)
+                    {
+                        return value;
+                    }
+                    break;
+                case ClusterType.Unknown:
+                case ClusterType.Standalone:
+                    (bool flowControl2, SaveChangesResult? value2) = await UpdateWithOutReplica(document, lockKey, filter, !IsCollectionEncrypted(connection.Collection));
+                    if (!flowControl2 && value2 != null)
+                    {
+                        return value2;
+                    }
+                    break;
+                default: throw new InvalidOperationException("Unknown ClusterType please report for a fix");
+            }
 
             throw new InvalidOperationException("Invalid metadata or Document was supplied for Update");
         }

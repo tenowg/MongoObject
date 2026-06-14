@@ -8,6 +8,7 @@ namespace MongoObject.Core.Interfaces
     {
         public QueryVal<DateTime>? CreatedAt { get; set; }
         public QueryVal<DateTime>? LastModifiedAt { get; set; }
+        public QueryVal<long>? Version { get; set; }
         public FilterDefinition<MongoDocument<T>> ToMongoFilter<T>() where T : class, IDocumentFile, new();
     }
 

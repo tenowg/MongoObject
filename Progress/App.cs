@@ -21,14 +21,14 @@ namespace Progress
         {
             Console.WriteLine("Hello, World!");
 
-            try
-            {
-                await monitor.AddBuilder(new BObject() { Name = "Andrew" });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
+            //try
+            //{
+            //    await monitor.AddBuilder(new BObject() { Name = "Andrew" });
+            //}
+            //catch (Exception ex)
+            //{
+            //    Console.WriteLine(ex.ToString());
+            //}
             //await monitor.Add(new AObject {Name = "Craig is a cat that likes to eat biskits in the morning, along with himself", Age = 4}, f => f.OwnerId = "123.abc");
 
             //var collection = client.GetDatabase("BObjectsDatabase").GetCollection<MongoDocument<BObject>>("BObject");
@@ -43,7 +43,7 @@ namespace Progress
             var nameProjection = await monitor.Search()
                 .WithQuery(f =>
                 {
-                    f.Name = "Andrew";
+                    f.Name = "John";
                     //f.Age = f.Age.And(
                     //    f.Age = f.Age.Lt(40000),
                     //    f.Age = f.Age.Gt(2)

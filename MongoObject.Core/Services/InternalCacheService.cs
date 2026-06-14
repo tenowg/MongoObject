@@ -22,6 +22,11 @@ namespace MongoOptions.Services
             cache.Set(BuildKey<T>(key), bson, options);
         }
 
+        public void Add(string key, BsonDocument value, MemoryCacheEntryOptions options)
+        {
+            cache.Set(key, value, options);
+        }
+
         public bool TryGet<T>(string key, out MongoDocument<T>? doc)
             where T : class, IDocumentFile, new()
         {
@@ -43,6 +48,11 @@ namespace MongoOptions.Services
         private string BuildKey<T>(string key)
         {
             return $"{options.CachePrefix}{typeof(T).Name}_{key}";
+        }
+
+        public string PrebuildKey<T>()
+        {
+            return $"{options.CachePrefix}{typeof(T).Name}_";
         }
     }
 }
