@@ -7,7 +7,7 @@ namespace MongoObject.Core.Interfaces
     {
         Task<LockMetadata?> GetLock(IMongoLockScope recordKey);
         Task<LockMetadata?> GetLock(string key);
-        Task<bool> IsLocked<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(IMongoLockScope? scope, T document) where T : class, IDocumentFile, new();
+        Task<bool> IsLockedByOther<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(IMongoLockScope? scope, T document) where T : class, IDocumentFile, new();
         Task<LockAcquisitionResult> LockDocumentAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(T document, TimeSpan? duration = null) where T : class, IDocumentFile, new();
         Task<LockAcquisitionResult> LockDocumentAsyncNew<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(T document, TimeSpan? duration = null) where T : class, IDocumentFile, new();
         Task<IMongoLockScope> LockScopedAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(T document, TimeSpan? duration = null) where T : class, IDocumentFile, new();

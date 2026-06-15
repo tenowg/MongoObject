@@ -12,6 +12,7 @@ namespace MongoObject.Core.Interfaces
         void OnChanged(BsonDocument document);
         void OnChanged(string id);
         Type DocumentType();
+        IMongoClient GetMongoClient();
     }
 
     public interface IMongoConnection<T> : IDisposable

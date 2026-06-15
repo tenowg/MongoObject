@@ -12,6 +12,7 @@ namespace MongoObject.SourceGenerator.Encryption.Modules
         {
             ((CommonModel model, EncryptedPropertyModel encrypted) allModels, Compilation comp) = provider;
             var model = allModels.model;
+            if (model == null) return;
 
             foreach (var error in model.Errors)
             {

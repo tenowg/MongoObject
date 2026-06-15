@@ -21,7 +21,7 @@ AppDomain.CurrentDomain.UnhandledException += (sender, e) =>
 };
 
 IConfiguration config = new ConfigurationBuilder()
-            //.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
             .AddUserSecrets<Program>() // This pulls keys from secrets.json
             .Build();
 

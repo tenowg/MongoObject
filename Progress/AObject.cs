@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using MongoObject.Core.Attributes;
 using MongoObject.PropertyEncryption.Attributes;
+using Progress.Kms;
 using System.Collections.ObjectModel;
 
 namespace Progress.Test
@@ -41,7 +42,7 @@ namespace Progress.Test
     }
 
     [MongoObject(DatabaseName = "BObjectsDatabase")]
-    [MongoEncrypt]
+    [MongoEncrypt(KmsDefinitions.LocalLocalDefinition)]
     public partial class BObject
     {
         [BsonElement("user_name")]

@@ -57,5 +57,10 @@ namespace MongoObject.Core.Services
         {
             return typeof(MongoDocument<T>);
         }
+
+        public IMongoClient GetMongoClient()
+        {
+            return Collection.Database.Client;
+        }
     }
 }

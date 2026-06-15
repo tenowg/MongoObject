@@ -26,7 +26,7 @@ namespace MongoObject.Core.Services
 
             var options = new ChangeStreamOptions
             {
-                FullDocument = ChangeStreamFullDocumentOption.UpdateLookup
+                //FullDocument = ChangeStreamFullDocumentOption.UpdateLookup
             };
 
             using var watcher = await mongoDatabase.WatchAsync(options, cancellationToken: cancellationToken);
@@ -37,11 +37,11 @@ namespace MongoObject.Core.Services
                 {
                     foreach (var change in watcher.Current)
                     {
-
                         var collectionName = change.CollectionNamespace.CollectionName;
                         if (connections.TryGetValue(collectionName, out IMongoConnection? connection))
                         {
-                            connection?.OnChanged(change.FullDocument);
+                            var id = change.DocumentKey["_id"].AsString;
+                            connection?.OnChanged(id);
                         }
                     }
                 }

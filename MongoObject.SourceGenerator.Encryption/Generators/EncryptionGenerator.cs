@@ -26,7 +26,8 @@ namespace MongoObject.SourceGenerator.Encryption.Generators
             );
         private static readonly ICodeModule[] _modules =
         [
-            
+            new AttributeModule(),
+            new ValidatorModule()
         ];
 
         private static readonly ICodeModuleMultiple[] _modulesMultiple =
@@ -86,6 +87,10 @@ namespace MongoObject.SourceGenerator.Encryption.Generators
             var kmsProvidersAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.KMSProvidersAttribute");
             var mongoEncryptAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.MongoEncryptAttribute");
 
+            var kmsLocalAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.KMSLocalAttribute");
+            var kmsAwsAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.KMSAwsAttribute");
+            var kmsAzureAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.KMSAzureAttribute");
+
             var kmsProviderAttr = symbol.GetAttributes()
                 .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, kmsProvidersAttrSymbol));
             var mongoEncryptAttr = symbol.GetAttributes()
@@ -96,23 +101,83 @@ namespace MongoObject.SourceGenerator.Encryption.Generators
 
             CommonModel? commonModel = null;
             EncryptedPropertyModel? encryptionModel = null;
-
+            var (valid, invalid) = ProcessProperty(namedTypeSymbol, kmsLocalAttrSymbol, kmsAwsAttrSymbol, kmsAzureAttrSymbol);
+            
             if (kmsProviderAttr != null)
             {
                 commonModel = new CommonModel
                 {
-                    FullQualifiedName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)
+                    Name = symbol.Name,
+                    FullQualifiedName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    Namespace = symbol.ContainingNamespace?.ToString() ?? "",
+                    Errors = invalid,
+                    Properties = valid
                 };
             }
 
             if (mongoEncryptAttr != null)
             {
-                encryptionModel = new EncryptedPropertyModel { 
-                    FullQualifiedName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) 
+                encryptionModel = new EncryptedPropertyModel
+                {
+                    FullQualifiedName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+                    Properties = valid
                 };
             }
 
             return (commonModel, encryptionModel);
+        }
+
+        public (List<PropertyModel> valid, List<ValidationResult> invalid) ProcessProperty(INamedTypeSymbol symbol, INamedTypeSymbol? kmsLocalAttr, INamedTypeSymbol? kmsAwsAttr, INamedTypeSymbol? kmsAzureAttr)
+        {
+            var valid = new List<PropertyModel>();
+            var invalid = new List<ValidationResult>();
+
+            var properties = symbol.GetMembers().OfType<IPropertySymbol>().Where(x => x.DeclaredAccessibility == Accessibility.Public
+                            && !x.IsStatic
+                            && x.SetMethod is not null
+                            && x.GetMethod is not null);
+
+            foreach (var property in properties)
+            {
+                var isLocal = property.GetAttributes().Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, kmsLocalAttr)).FirstOrDefault();
+                var isAws = property.GetAttributes().Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, kmsAwsAttr)).FirstOrDefault();
+                var isAzure = property.GetAttributes().Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, kmsAzureAttr)).FirstOrDefault();
+
+                if (new[] { isLocal is not null, isAws is not null, isAzure is not null }.Count(x => x) > 1)
+                { 
+                    invalid.Add(new ValidationResult(true, property.Locations.First(), [property.Name], DeclaredDiagnosticDescriptor.InvalidKmsDoubleAttributeDescriptor));
+                    continue;
+                }
+
+                if (new[] { isLocal is not null, isAws is not null, isAzure is not null }.Count(x => x) != 0)
+                {
+                    valid.Add(new PropertyModel
+                    {
+                        Name = property.Name,
+                        Local = isLocal is null ? null : new LocalModel
+                        {
+                            Key = isLocal.NamedArguments.FirstOrDefault(n => n.Key == "Key").Value.Value?.ToString() ?? property.Name.ToLowerInvariant(),
+                            BinFilePath = isLocal is null ? string.Empty : isLocal.ConstructorArguments[0].Value?.ToString() ?? string.Empty
+                        },
+                        Aws = isAws is null ? null : new AwsModel
+                        {
+                            Key = isAws.NamedArguments.FirstOrDefault(n => n.Key == "Key").Value.Value?.ToString() ?? property.Name.ToLowerInvariant(),
+                            SessionTokenPath = isAws.NamedArguments.FirstOrDefault(n => n.Key == "SessionTokenPath").Value.Value?.ToString(),
+                            SecretKeyPath = isAws.NamedArguments.FirstOrDefault(n => n.Key == "SecretKeyPath").Value.Value?.ToString(),
+                            AccessKeyPath = isAws.NamedArguments.FirstOrDefault(n => n.Key == "AccessKeyPath").Value.Value?.ToString()
+                        },
+                        Azure = isAzure is null ? null : new AzureModel
+                        {
+                            Key = isAzure.NamedArguments.FirstOrDefault(n => n.Key == "Key").Value.Value?.ToString() ?? property.Name.ToLowerInvariant(),
+                            TenantIdPath = isAzure.NamedArguments.FirstOrDefault(n => n.Key == "TenantIdPath").Value.Value?.ToString() ?? property.Name.ToLowerInvariant(),
+                            ClientIdPath = isAzure.NamedArguments.FirstOrDefault(n => n.Key == "ClientIdPath").Value.Value?.ToString() ?? property.Name.ToLowerInvariant(),
+                            ClientSecretPath = isAzure.NamedArguments.FirstOrDefault(n => n.Key == "ClientSecretPath").Value.Value?.ToString() ?? property.Name.ToLowerInvariant()
+                        }
+                    });
+                }
+            }
+
+            return (valid, invalid);
         }
     }
 }

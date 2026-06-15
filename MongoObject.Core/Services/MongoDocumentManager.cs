@@ -435,7 +435,7 @@ namespace MongoObject.Core.Services
                 trans.StartTransaction();
                 try
                 {
-                    var lockData = await lockManager.IsLocked(lockKey, document);
+                    var lockData = await lockManager.IsLockedByOther(lockKey, document);
 
                     if (lockData)
                     {
@@ -481,7 +481,7 @@ namespace MongoObject.Core.Services
 
                 try
                 {
-                    var lockData = await lockManager.IsLocked(lockKey, document);
+                    var lockData = await lockManager.IsLockedByOther(lockKey, document);
 
                     if (lockData)
                     {

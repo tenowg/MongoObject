@@ -131,7 +131,7 @@ namespace MongoObject.MongoDistributedLock.Services
             return LockAcquisitionResult.Failed("Failed to lock document");
         }
 
-        public async Task<bool> IsLocked<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(IMongoLockScope? scope, T document) where T : class, IDocumentFile, new()
+        public async Task<bool> IsLockedByOther<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(IMongoLockScope? scope, T document) where T : class, IDocumentFile, new()
         {
             if (!keys.TryGetKey(document, out var key))
             {

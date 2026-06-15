@@ -43,7 +43,7 @@ namespace Progress
             var nameProjection = await monitor.Search()
                 .WithQuery(f =>
                 {
-                    f.Name = "John";
+                    f.Name = "Case";
                     //f.Age = f.Age.And(
                     //    f.Age = f.Age.Lt(40000),
                     //    f.Age = f.Age.Gt(2)

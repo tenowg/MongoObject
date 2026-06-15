@@ -19,7 +19,7 @@ namespace MongoObject.Core.Services
             return LockAcquisitionResult.NoLock();
         }
 
-        public async Task<bool> IsLocked<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(IMongoLockScope? scope, T document) where T : class, IDocumentFile, new()
+        public async Task<bool> IsLockedByOther<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(IMongoLockScope? scope, T document) where T : class, IDocumentFile, new()
         {
             return false;
         }

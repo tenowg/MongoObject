@@ -15,57 +15,82 @@ namespace MongoObject.RedisDistributedLock.Services
     {
         private readonly IDatabase _db = redis.GetDatabase();
 
-        // Lua script for atomic lock acquisition (acquire if free or expired)
+        // Lua script for atomic lock acquisition with reverse index.
+        // KEYS[1] = lock key (mongolock:{documentKey})
+        // KEYS[2] = reverse index key (mongolock-holder:{holderId})
+        // ARGV[1] = now (Unix ms)
+        // ARGV[2] = holderId
+        // ARGV[3] = expiresAt (Unix ms)
+        // ARGV[4] = acquiredAt (Unix ms)
+        // ARGV[5] = ttlSeconds
+        // ARGV[6] = documentKey (stored in reverse index)
         private const string LockAcquireScript = """
-            local key = KEYS[1]
+            local lockKey = KEYS[1]
+            local indexKey = KEYS[2]
             local now = tonumber(ARGV[1])
             local holderId = ARGV[2]
             local expiresAt = ARGV[3]
             local acquiredAt = ARGV[4]
             local ttlSeconds = tonumber(ARGV[5])
+            local documentKey = ARGV[6]
 
-            local existing = redis.call('HGET', key, 'expiresAt')
+            local existing = redis.call('HGET', lockKey, 'expiresAt')
             if existing == false or tonumber(existing) < now then
-                redis.call('HSET', key, 'holderId', holderId, 'expiresAt', expiresAt, 'acquiredAt', acquiredAt)
-                redis.call('EXPIRE', key, ttlSeconds)
+                redis.call('HSET', lockKey, 'holderId', holderId, 'expiresAt', expiresAt, 'acquiredAt', acquiredAt)
+                redis.call('EXPIRE', lockKey, ttlSeconds)
+                redis.call('SET', indexKey, documentKey, 'EX', ttlSeconds)
                 return 1
             end
             return 0
             """;
 
-        // Lua script for atomic lock release (only release if we own it)
+        // Lua script for atomic lock release with reverse index cleanup.
+        // KEYS[1] = lock key (mongolock:{documentKey})
+        // KEYS[2] = reverse index key (mongolock-holder:{holderId})
+        // ARGV[1] = holderId
         private const string LockReleaseScript = """
-            local key = KEYS[1]
+            local lockKey = KEYS[1]
+            local indexKey = KEYS[2]
             local holderId = ARGV[1]
 
-            local current = redis.call('HGET', key, 'holderId')
+            local current = redis.call('HGET', lockKey, 'holderId')
             if current == holderId then
-                redis.call('DEL', key)
+                redis.call('DEL', lockKey)
+                redis.call('DEL', indexKey)
                 return 1
             end
             return 0
             """;
 
-        // Lua script for atomic lock renewal (only renew if we own it and it hasn't expired)
+        // Lua script for atomic lock renewal with reverse index TTL extension.
+        // KEYS[1] = lock key (mongolock:{documentKey})
+        // KEYS[2] = reverse index key (mongolock-holder:{holderId})
+        // ARGV[1] = now (Unix ms)
+        // ARGV[2] = holderId
+        // ARGV[3] = newExpiresAt (Unix ms)
+        // ARGV[4] = ttlSeconds
         private const string LockRenewScript = """
-            local key = KEYS[1]
+            local lockKey = KEYS[1]
+            local indexKey = KEYS[2]
             local now = tonumber(ARGV[1])
             local holderId = ARGV[2]
             local newExpiresAt = ARGV[3]
             local ttlSeconds = tonumber(ARGV[4])
 
-            local current = redis.call('HGET', key, 'holderId')
-            local expiresAt = tonumber(redis.call('HGET', key, 'expiresAt') or '0')
+            local current = redis.call('HGET', lockKey, 'holderId')
+            local expiresAt = tonumber(redis.call('HGET', lockKey, 'expiresAt') or '0')
 
             if current == holderId and expiresAt > now then
-                redis.call('HSET', key, 'expiresAt', newExpiresAt)
-                redis.call('EXPIRE', key, ttlSeconds)
+                redis.call('HSET', lockKey, 'expiresAt', newExpiresAt)
+                redis.call('EXPIRE', lockKey, ttlSeconds)
+                redis.call('EXPIRE', indexKey, ttlSeconds)
                 return 1
             end
             return 0
             """;
 
         private static string BuildLockKey(string documentKey) => $"mongolock:{documentKey}";
+        private static string BuildHolderIndexKey(string holderId) => $"mongolock-holder:{holderId}";
 
         public async Task<LockAcquisitionResult> LockDocumentAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(
             T document, TimeSpan? duration = null)
@@ -82,17 +107,17 @@ namespace MongoObject.RedisDistributedLock.Services
             var expiresAt = now.Add(lockDuration);
 
             var redisKey = BuildLockKey(key!);
+            var indexKey = BuildHolderIndexKey(holderId);
             var nowMs = now.ToUnixTimeMilliseconds();
             var expiresAtMs = expiresAt.ToUnixTimeMilliseconds();
-            var acquiredAtMs = nowMs;
             var ttlSeconds = (long)Math.Ceiling(lockDuration.TotalSeconds);
 
             try
             {
                 var result = (long)await _db.ScriptEvaluateAsync(
                     LockAcquireScript,
-                    new RedisKey[] { redisKey },
-                    new RedisValue[] { nowMs, holderId, expiresAtMs, acquiredAtMs, ttlSeconds });
+                    new RedisKey[] { redisKey, indexKey },
+                    new RedisValue[] { nowMs, holderId, expiresAtMs, nowMs, ttlSeconds, key! });
 
                 if (result == 1)
                 {
@@ -141,6 +166,7 @@ namespace MongoObject.RedisDistributedLock.Services
             // Either expired lock or no lock - take it over
             var holderId = GenerateHolderId(key!);
             var redisKey = BuildLockKey(key!);
+            var indexKey = BuildHolderIndexKey(holderId);
             var nowMs = now.ToUnixTimeMilliseconds();
             var expiresAtMs = expiresAt.ToUnixTimeMilliseconds();
             var ttlSeconds = (long)Math.Ceiling(lockDuration.TotalSeconds);
@@ -149,8 +175,8 @@ namespace MongoObject.RedisDistributedLock.Services
             {
                 var result = (long)await _db.ScriptEvaluateAsync(
                     LockAcquireScript,
-                    new RedisKey[] { redisKey },
-                    new RedisValue[] { nowMs, holderId, expiresAtMs, nowMs, ttlSeconds });
+                    new RedisKey[] { redisKey, indexKey },
+                    new RedisValue[] { nowMs, holderId, expiresAtMs, nowMs, ttlSeconds, key! });
 
                 if (result == 1)
                 {
@@ -167,7 +193,7 @@ namespace MongoObject.RedisDistributedLock.Services
             }
         }
 
-        public async Task<bool> IsLocked<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(
+        public async Task<bool> IsLockedByOther<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(
             IMongoLockScope? scope, T document)
             where T : class, IDocumentFile, new()
         {
@@ -213,49 +239,17 @@ namespace MongoObject.RedisDistributedLock.Services
 
         public async Task<LockMetadata?> GetLock(IMongoLockScope recordKey)
         {
-            // Redis doesn't support querying by value efficiently.
-            // We store the holderId in the hash, but we need to know the key to look it up.
-            // The scope's HolderId encodes the document key, so we can extract it.
-            // HolderId format: "{MachineName}-{ProcessId}-{documentKey}-{guid}"
-            // We'll scan for the lock by checking if the holderId matches.
-            // For production use, consider maintaining a reverse index.
+            // Use the reverse index for O(1) lookup: mongolock-holder:{holderId} → documentKey
             var holderId = recordKey.HolderId;
+            var indexKey = BuildHolderIndexKey(holderId);
 
-            // Extract the document key from the holderId
-            // Format: "{MachineName}-{ProcessId}-{documentKey}-{guid}"
-            var parts = holderId.Split('-');
-            if (parts.Length < 4)
+            var documentKey = await _db.StringGetAsync(indexKey);
+            if (documentKey.IsNullOrEmpty)
             {
                 return null;
             }
 
-            // The document key is everything between the ProcessId and the last guid segment
-            // MachineName may contain hyphens, ProcessId is numeric, guid is 32 hex chars
-            // Find the last 32-char hex segment (guid) and the numeric ProcessId
-            var guidPart = parts[^1]; // last segment
-            var processIdIndex = -1;
-            for (int i = parts.Length - 2; i >= 1; i--)
-            {
-                if (long.TryParse(parts[i], out _))
-                {
-                    processIdIndex = i;
-                    break;
-                }
-            }
-
-            if (processIdIndex < 0)
-            {
-                return null;
-            }
-
-            // documentKey is between processIdIndex+1 and parts.Length-2
-            var documentKey = string.Join("-", parts[(processIdIndex + 1)..(parts.Length - 1)]);
-            if (string.IsNullOrEmpty(documentKey))
-            {
-                return null;
-            }
-
-            var redisKey = BuildLockKey(documentKey);
+            var redisKey = BuildLockKey(documentKey!);
             var hashEntries = await _db.HashGetAllAsync(redisKey);
 
             if (hashEntries.Length == 0)
@@ -263,7 +257,7 @@ namespace MongoObject.RedisDistributedLock.Services
                 return null;
             }
 
-            var lockData = ParseLockMetadata(documentKey, hashEntries);
+            var lockData = ParseLockMetadata(documentKey!, hashEntries);
 
             // Verify this lock is actually held by the requested holder
             if (lockData.LockedBy != holderId)
@@ -291,12 +285,13 @@ namespace MongoObject.RedisDistributedLock.Services
             where T : class, IDocumentFile, new()
         {
             var redisKey = BuildLockKey(recordKey);
+            var indexKey = BuildHolderIndexKey(holderId);
 
             try
             {
                 var result = (long)await _db.ScriptEvaluateAsync(
                     LockReleaseScript,
-                    new RedisKey[] { redisKey },
+                    new RedisKey[] { redisKey, indexKey },
                     new RedisValue[] { holderId });
 
                 if (result == 1)
@@ -345,6 +340,7 @@ namespace MongoObject.RedisDistributedLock.Services
             var newExpiresAt = now.Add(extension);
 
             var redisKey = BuildLockKey(recordKey);
+            var indexKey = BuildHolderIndexKey(holderId);
             var nowMs = now.ToUnixTimeMilliseconds();
             var newExpiresAtMs = newExpiresAt.ToUnixTimeMilliseconds();
             var ttlSeconds = (long)Math.Ceiling(extension.TotalSeconds);
@@ -353,7 +349,7 @@ namespace MongoObject.RedisDistributedLock.Services
             {
                 var result = (long)await _db.ScriptEvaluateAsync(
                     LockRenewScript,
-                    new RedisKey[] { redisKey },
+                    new RedisKey[] { redisKey, indexKey },
                     new RedisValue[] { nowMs, holderId, newExpiresAtMs, ttlSeconds });
 
                 if (result == 1)
