@@ -35,8 +35,8 @@ If you're new to MongoObject, start here:
 | [Defining Documents](articles/defining-documents.md) | The `[MongoObject]` attribute and partial properties |
 | [Change Tracking](articles/change-tracking.md) | How automatic change tracking works |
 | [Metadata](articles/metadata.md) | Custom metadata types for versioning and timestamps |
-| [Searching](articles/searching.md) | Type-safe document and metadata queries |
-| [Projections](articles/projections.md) | Selective field retrieval with `[ProjectValue]` |
+| [Searching](articles/search/searching.md) | Type-safe document and metadata queries |
+| [Projections](articles/projection/projections.md) | Selective field retrieval with `[ProjectValue]` |
 | [Dependency Injection](articles/dependency-injection.md) | Configuring MongoObject in your application |
 
 ### API Reference

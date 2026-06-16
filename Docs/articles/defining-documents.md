@@ -258,4 +258,4 @@ public partial record DocumentMeta
 
 - **[Change Tracking](change-tracking.md)** - Learn how changes are detected and persisted
 - **[Metadata](metadata.md)** - Deep dive into metadata types and versioning
-- **[Searching](searching.md)** - Query documents using generated search classes
+- **[Searching](xref:searching)** - Query documents using generated search classes

@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\MongoObject.Core\MongoObject.Core.csproj" />
+    <ProjectReference Include="..\..\MongoObject.RedisDistributedLock\MongoObject.RedisDistributedLock.csproj" />
+	<ProjectReference Include="..\..\MongoObject.SourceGenerator\MongoObject.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	<ProjectReference Include="..\..\MongoObject.SourceGenerator.Encryption\MongoObject.SourceGenerator.Encryption.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+</Project>

@@ -35,5 +35,3 @@ IEnumerable results = await monitor.Search()
 ```
 
 These two queries are the same under the hood, they both look for any John that is between the ages of 15 and 20.
-
-[!code-csharp[ExampleQuery](../../Progress/App.cs#QueryExample)]

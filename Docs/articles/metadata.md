@@ -309,6 +309,6 @@ public class ArticleService
 
 ## Next Steps
 
-- **[Searching](searching.md)** - Learn about document and metadata search
+- **[Searching](xref:searching)** - Learn about document and metadata search
 - **[Change Tracking](change-tracking.md)** - Understand how metadata versioning works
 - **[Dependency Injection](dependency-injection.md)** - Configure metadata options

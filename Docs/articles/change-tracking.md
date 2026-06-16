@@ -135,30 +135,44 @@ Every update automatically includes:
 
 ## Tracking Lifecycle
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ 1. Document Retrieved (Get)                                  │
-│    - Document deserialized from MongoDB                      │
-│    - TrackChanges() called automatically                     │
-│    - PropertyChanged event handler attached                  │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 2. Properties Modified                                       │
-│    - SetField() called for each property                     │
-│    - Changes recorded in _changes dictionary                 │
-│    - Nested objects tracked recursively                      │
-└─────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 3. SaveChanges Called                                        │
-│    - ProcessPossibleChanges() evaluates complex types        │
-│    - TryGetPendingUpdatesPipeline() builds update            │
-│    - Update sent to MongoDB                                  │
-│    - ClearChanges() resets tracking                          │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+---
+config:
+  htmlLabels: false
+---
+flowchart TD
+    A1[Document Retrieved Get]
+    A2[Document deserialized from MongoDB]
+    A3[TrackChanges called automatically]
+    A4[PropertyChanged event handler attached]
+    B1[Properties Modified]
+    B2[SetField called for each property]
+    B3[Changes recorded in _changes dictionary]
+    B4[Nested objects tracked recursively]
+    C1[SaveChanges Called]
+    C2[ProcessPossibleChanges evaluates complex types]
+    C3[TryGetPendingUpdatesPipeline builds update]
+    C4[Update sent to MongoDB]
+    C5[ClearChanges resets tracking]
+    subgraph b1 [ ]
+      subgraph a1 [Document Retreived]
+        direction LR
+        A1 --> A2 --> A3 --> A4
+      end
+    end
+    subgraph b2 [ ]
+      subgraph a2 [Properties Modified]
+        direction LR
+        B1 --> B2 --> B3 --> B4
+      end
+    end
+    subgraph b3 [ ]
+      subgraph a3 [SaveChanges]
+        direction LR
+        C1 --> C2 --> C3 --> C4 --> C5
+      end
+    end
+    b1 --> b2 --> b3
 ```
 
 ---
@@ -252,5 +266,5 @@ await monitor.SaveChanges(user);
 ## Next Steps
 
 - **[Metadata](metadata.md)** - Learn about automatic versioning and timestamps
-- **[Searching](searching.md)** - Query documents efficiently
+- **[Searching](search/searching.md)** - Query documents efficiently
 - **[Dependency Injection](dependency-injection.md)** - Configure tracking options

@@ -7,17 +7,15 @@ items:
     href: change-tracking.md
   - name: Metadata
     href: metadata.md
-  - name: Searching
-    items:
-    - href: searching.md
-    - name: Fluent Queries
-      href: fluent-queries.md
+  - name: Object Queries
+    href: search/toc.yml
   - name: Projections
-    href: projections.md
+    href: projection/toc.yml
   - name: Creating Indexes
     href: creating-indexes.md
   - name: Dependency Injection
     href: dependency-injection.md
-  - href: vectors.md
-    items:
-    - href: vector-search-types.md
+  - name: Vectors
+    href: vector/toc.yml
+  - name: Encryption
+    href: encryption/toc.yml

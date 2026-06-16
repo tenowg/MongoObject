@@ -1,3 +1,7 @@
+---
+uid: projections
+---
+
 # Projections
 
 MongoObject supports selective field retrieval using the `[ProjectValue]` attribute, allowing you to retrieve only the fields you need.
@@ -299,6 +303,6 @@ public class BlogService
 
 ## Next Steps
 
-- **[Defining Documents](defining-documents.md)** - Learn more about document attributes
-- **[Searching](searching.md)** - Query documents efficiently
-- **[Change Tracking](change-tracking.md)** - Understand how projections interact with updates
+- **[Defining Documents](../defining-documents.md)** - Learn more about document attributes
+- **[Searching](xref:searching)** - Query documents efficiently
+- **[Change Tracking](../change-tracking.md)** - Understand how projections interact with updates

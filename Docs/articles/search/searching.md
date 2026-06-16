@@ -1,3 +1,7 @@
+---
+uid: searching
+---
+
 # Searching
 
 MongoObject provides type-safe search capabilities through auto-generated search classes. Query documents and metadata without writing raw MongoDB filters.
@@ -270,6 +274,6 @@ public async Task<IEnumerable<User>> GetActiveAdmins()
 
 ## Next Steps
 
-- **[Projections](projections.md)** - Learn about selective field retrieval
-- **[Metadata](metadata.md)** - Understand metadata search in depth
-- **[Change Tracking](change-tracking.md)** - Track changes to searched documents
+- **[Projections](xref:projections)** - Learn about selective field retrieval
+- **[Metadata](../metadata.md)** - Understand metadata search in depth
+- **[Change Tracking](../change-tracking.md)** - Track changes to searched documents

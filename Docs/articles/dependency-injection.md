@@ -207,7 +207,7 @@ await host.RunAsync();
 Then use configuration binding:
 
 ```csharp
-services.AddMongoObject(options =>
+services.AddMongoObject((builder, options) =>
 {
     options.ConnectionString = configuration.GetConnectionString("MongoDB");
     options.DatabaseName = configuration["MongoObject:DatabaseName"];
@@ -285,4 +285,4 @@ await monitor.SaveChanges(document, lockScope);
 
 - **[Getting Started](getting-started.md)** - Review the basics
 - **[Change Tracking](change-tracking.md)** - Understand how tracking works with DI
-- **[Searching](searching.md)** - Use search services effectively
+- **[Searching](xref:searching)** - Use search services effectively

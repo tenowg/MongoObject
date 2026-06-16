@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Craig Russell",
+  "classifications": [ "Common", "Code" ],
+  "identity": "MongoObject.Templates.MongoObjectBase",
+  "name": "MongoObject Base class",
+  "shortName": "mongoobjectbase",
+  "tags": {
+    "language": "C#",
+    "type": "item"
+  },
+  "sourceName": "MongoObjectBase",
+  "symbols": {
+    "DefaultNamespace": {
+      "type": "bind",
+      "binding": "msbuild:RootNamespace",
+      "replaces": "MongoObject.Template"
+    }
+  },
+  "postActions": [
+    {
+      "id": "openInEditor",
+      "condition": "(HostIdentifier != \"dotnetcli\" && HostIdentifier != \"dotnetcli-preview\")",
+      "description": "Opens generated files in the editor",
+      "manualInstructions": [],
+      "actionId": "84C0DA21-51C8-4541-9940-6CA19AF04EE6",
+      "args": {
+        "files": "0"
+      },
+      "continueOnError": true
+    }
+  ]
+}

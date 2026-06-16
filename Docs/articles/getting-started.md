@@ -139,7 +139,7 @@ Now that you have a basic document set up, explore these topics:
 - **[Defining Documents](defining-documents.md)** - Learn about all the options for the `[MongoObject]` attribute
 - **[Change Tracking](change-tracking.md)** - Understand how MongoObject tracks changes
 - **[Metadata](metadata.md)** - Add versioning and timestamps to your documents
-- **[Searching](searching.md)** - Query documents with type-safe search classes
+- **[Searching](xref:searching)** - Query documents with type-safe search classes
 
 ---
 
