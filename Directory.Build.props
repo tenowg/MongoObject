@@ -23,6 +23,7 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <Configurations>Debug;Release</Configurations>
     <VersionSuffixRequirement>Exact</VersionSuffixRequirement>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)/nupkg</PackageOutputPath>
   </PropertyGroup>
 
   <PropertyGroup>

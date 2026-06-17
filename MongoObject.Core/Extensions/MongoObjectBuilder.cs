@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using MongoDB.Bson;
 using MongoObject.Core.Interfaces;
 using MongoObject.Core.Services;
 using System.Diagnostics.CodeAnalysis;
@@ -7,7 +9,8 @@ namespace MongoObject.Core.Extensions
 {
     public static class MongoObjectsPluginRegistry
     {
-        public static List<Action<IServiceCollection>> RegisterDocumentsHook { get; } = [];
+        public static List<Action<IServiceCollection, IConfiguration>> RegisterDocumentsHook { get; } = [];
+        public static BsonDocument SchemaDocument { get; } = [];
     }
 
     public class MongoObjectBuilder(IServiceCollection sp)

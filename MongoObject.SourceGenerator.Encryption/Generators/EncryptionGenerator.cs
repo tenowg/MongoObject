@@ -169,9 +169,9 @@ namespace MongoObject.SourceGenerator.Encryption.Generators
                         Azure = isAzure is null ? null : new AzureModel
                         {
                             Key = isAzure.NamedArguments.FirstOrDefault(n => n.Key == "Key").Value.Value?.ToString() ?? property.Name.ToLowerInvariant(),
-                            TenantIdPath = isAzure.NamedArguments.FirstOrDefault(n => n.Key == "TenantIdPath").Value.Value?.ToString() ?? property.Name.ToLowerInvariant(),
-                            ClientIdPath = isAzure.NamedArguments.FirstOrDefault(n => n.Key == "ClientIdPath").Value.Value?.ToString() ?? property.Name.ToLowerInvariant(),
-                            ClientSecretPath = isAzure.NamedArguments.FirstOrDefault(n => n.Key == "ClientSecretPath").Value.Value?.ToString() ?? property.Name.ToLowerInvariant()
+                            TenantIdPath = isAzure.NamedArguments.FirstOrDefault(n => n.Key == "TenantIdPath").Value.Value?.ToString(),
+                            ClientIdPath = isAzure.NamedArguments.FirstOrDefault(n => n.Key == "ClientIdPath").Value.Value?.ToString(),
+                            ClientSecretPath = isAzure.NamedArguments.FirstOrDefault(n => n.Key == "ClientSecretPath").Value.Value?.ToString()
                         }
                     });
                 }

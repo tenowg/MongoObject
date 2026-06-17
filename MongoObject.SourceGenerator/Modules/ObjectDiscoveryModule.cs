@@ -44,13 +44,57 @@ namespace MongoObject.SourceGenerator.Modules
                                 sb.AppendLine($"builder.RegisterDocument<global::{model.Namespace}.{model.Name}, global::{model.Namespace}.{model.Metadata.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Record>({model.IsEncryptedModel.ToString().ToLowerInvariant()});");
                             }
 
-                            foreach(var model in encryptedModels)
+                            foreach (var model in encryptedModels)
                             {
                                 sb.AppendLine($"builder.Services.AddSingleton<global::MongoObject.Core.Interfaces.IEncryptionBuilder, global::{model!.Namespace}.{model!.Name}EncryptionBuilder>();");
                             }
 
                             sb.AppendLine("return builder;");
                         }
+                    }
+                    sb.AppendLine("[global::System.Runtime.CompilerServices.ModuleInitializer]");
+                    sb.AppendLine("public static void Initialize()");
+                    using (sb.Block())
+                    {
+                        //sb.AppendLine("var payload = global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument[\"documentSchema\"].AsBsonDocument;");
+                        sb.AppendLine("var payload = new global::MongoDB.Bson.BsonDocument();");
+                        sb.AppendLine("if (global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument.TryGetValue(\"documentSchema\", out var document))");
+                        using(sb.Block())
+                        {
+                            sb.AppendLine("payload = document.AsBsonDocument;");
+                            //sb.AppendLine("if (payload == null) payload = new BsonDocument();");
+                        }
+                        foreach (var model in encryptedModels)
+                        {
+                            //sb.AppendLine("global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.RegisterDocumentsHook.Add");
+                        }
+                        foreach (var model in models)
+                        {
+                            sb.AppendLine($"var {model!.Name}Document = new global::MongoDB.Bson.BsonDocument");
+                            using (sb.Block(closer: ";"))
+                            {
+                                using (sb.Block(closer: ","))
+                                {
+                                    sb.AppendLine("\"properties\", new global::MongoDB.Bson.BsonArray");
+                                    using (sb.Block())
+                                        foreach (var prop in model.Properties)
+                                        {
+                                            sb.AppendLine($"new global::MongoDB.Bson.BsonDocument");
+                                            using (sb.Block(closer: ","))
+                                            {
+                                                sb.AppendLine($"{{\"name\", \"{prop.Name}\"}},");
+                                                sb.AppendLine($"{{\"queryName\", \"{prop.QueryName}\"}},");
+                                                sb.AppendLine($"{{\"isEncrypted\", {prop.isEncrypted.ToString().ToLowerInvariant()}}}");
+                                            }
+                                        }
+                                }
+                                sb.AppendLine($"{{\"is_encrypted\", {model.IsEncryptedModel.ToString().ToLowerInvariant()}}},");
+                                sb.AppendLine($"{{\"collection_name\", \"{model.CollectionName}\"}},");
+                                sb.AppendLine($"{{\"database_name\", \"{model.DatabaseName}\"}},");
+                            }
+                            sb.AppendLine($"payload.Add(\"{model.Name}\", {model.Name}Document);");
+                        }
+                        sb.AppendLine($"global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument[\"documentSchema\"] = payload;");
                     }
                 }
             }

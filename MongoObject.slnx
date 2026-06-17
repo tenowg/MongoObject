@@ -5,6 +5,7 @@
   <Project Path="Examples/ExampleWebApi/ExampleWebApi.csproj" Id="0085e86d-d5e3-483a-92ae-3cd93f229ed0">
     <Build Solution="Release|*" Project="false" />
   </Project>
+  <Project Path="MongoObject.CliTool/MongoObject.CliTool.csproj" />
   <Project Path="MongoObject.Core/MongoObject.Core.csproj" />
   <Project Path="MongoObject.MongoDistributedLock/MongoObject.MongoDistributedLock.csproj" Id="1db37441-9b7f-48c5-87ae-a12d3ce5839c" />
   <Project Path="MongoObject.PropertyEncryption/MongoObject.PropertyEncryption.csproj" Id="8de1c5e7-1990-4d6c-9d25-26edf6d1bbe0" />

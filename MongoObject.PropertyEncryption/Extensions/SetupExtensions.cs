@@ -17,31 +17,6 @@ namespace MongoObject.Core.Extensions
                 builder.Services.AddSingleton(encryptOptions);
                 MongoClientSettings.Extensions.AddAutoEncryption();
 
-                // this need to be codegenned
-                //builder.Services.AddKeyedSingleton<KmsProvidersDictionary>("KmsProviders", (sp, _) =>
-                //{
-                //    var kmsProviderCredentials = new KmsProvidersDictionary();
-                //    try
-                //    {
-                //        var localCustomerMasterKeyBytes = File.ReadAllBytes("crypt-master.key.bin");
-                //        if (localCustomerMasterKeyBytes.Length != 96)
-                //        {
-                //            throw new Exception("Expected the customer master key file to be 96 bytes.");
-                //        }
-                //        var localOptions = new Dictionary<string, object>
-                //        {
-                //            { "key", localCustomerMasterKeyBytes }
-                //        };
-                //        kmsProviderCredentials.Add("local", localOptions);
-                //    }
-                //    catch
-                //    {
-                //        throw;
-                //    }
-
-                //    return kmsProviderCredentials;
-                //});
-
                 // I don't think this needs to be code genned
                 builder.Services.AddSingleton<IEncryptedClient>(sp =>
                 {

@@ -42,7 +42,7 @@ namespace Progress.Test
     }
 
     [MongoObject(DatabaseName = "BObjectsDatabase")]
-    [MongoEncrypt(KmsDefinitions.LocalLocalDefinition)]
+    [MongoEncrypt("local")]
     public partial class BObject
     {
         [BsonElement("user_name")]

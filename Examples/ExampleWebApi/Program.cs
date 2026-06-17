@@ -17,7 +17,7 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
     return new MongoClient(mongoClientSettings);
 });
 
-builder.Services.AddMongoObject((builder, options) =>
+builder.Services.AddMongoObject(builder.Configuration, (builder, options) =>
 {
     options.DatabaseName = "MongoObjectDatabase";
 

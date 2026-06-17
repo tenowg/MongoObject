@@ -1,9 +1,15 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using ConsoleSetup;
+using ConsoleSetup.Extensions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using MongoDB.Driver;
 using MongoObject.Core.Extensions;
-using ConsoleSetup.Extensions;
-using ConsoleSetup;
+
+IConfiguration config = new ConfigurationBuilder()
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+            .AddUserSecrets<Program>() // This pulls keys from secrets.json
+            .Build();
 
 #region ConfigureMongoObject
 using IHost host = Host.CreateDefaultBuilder(args)
@@ -22,7 +28,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
         // You can configure the database name here, and you can also add other options if needed.
         // The AddWatchStream method is optional,
         // but it allows you to watch for changes in the database and automatically update your documents in memory.
-        services.AddMongoObject((builder, options) =>
+        services.AddMongoObject(config, (builder, options) =>
         {
             options.DatabaseName = "mydatabase";
             builder.AddWatchStream()

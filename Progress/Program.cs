@@ -47,7 +47,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
             return new MongoClient(mongoClientSettings);
         });
 
-        services.AddMongoObject((builder, options) =>
+        services.AddMongoObject(config, (builder, options) =>
         {
             options.DatabaseName = "mydatabase";
             options.IsAtlasMongoDBInstance = true;

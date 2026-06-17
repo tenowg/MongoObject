@@ -30,7 +30,7 @@
   </ItemGroup>
 
   <ItemGroup>
-	<InternalsVisibleTo Include="MongoObject.PropertyEncryption"/>	
+	<InternalsVisibleTo Include="MongoObject.PropertyEncryption" />	
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' == 'Debug'">
 	<InternalsVisibleTo Include="MongoObject.Tests" />

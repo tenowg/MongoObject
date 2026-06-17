@@ -1,5 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
@@ -14,8 +16,10 @@ namespace MongoObject.Core.Extensions
     {
         extension(IServiceCollection services)
         {
-            public IServiceCollection AddMongoObject(Action<MongoObjectBuilder, MongoObjectOptions> configure)
+            public IServiceCollection AddMongoObject(IConfiguration config, Action<MongoObjectBuilder, MongoObjectOptions> configure)
             {
+                var args = Environment.GetCommandLineArgs();
+                
                 var optionsInstance = new MongoObjectOptions();
                 var mongoBuilder = new MongoObjectBuilder(services);
                 configure(mongoBuilder, optionsInstance);
@@ -37,11 +41,17 @@ namespace MongoObject.Core.Extensions
                 // lets add the Hooks
                 foreach(var hook in MongoObjectsPluginRegistry.RegisterDocumentsHook)
                 {
-                    hook(services);
+                    hook(services, config);
                 }
 
                 services.TryAddSingleton<IDistributedLockManager, NoOpLockManager>();
 
+                if (args.Contains("--mongoobject-dump-schema"))
+                {
+                    var bson = MongoObjectsPluginRegistry.SchemaDocument;
+                    Console.WriteLine($"cli-data: {bson}");
+                    Environment.Exit(0);
+                }
                 return services;
             }
         }
