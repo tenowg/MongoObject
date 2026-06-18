@@ -49,6 +49,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
 
         services.AddMongoObject(config, (builder, options) =>
         {
+            options.ConnectionString = apiKey;
             options.DatabaseName = "mydatabase";
             options.IsAtlasMongoDBInstance = true;
 

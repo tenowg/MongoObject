@@ -10,6 +10,9 @@ using MongoObject.Core.Interfaces;
 using MongoObject.Core.Services;
 using MongoOptions.Services;
 
+using System.Security.Cryptography;
+using System.Text;
+
 namespace MongoObject.Core.Extensions
 {
     public static class ConfigureExtensions
@@ -48,8 +51,28 @@ namespace MongoObject.Core.Extensions
 
                 if (args.Contains("--mongoobject-dump-schema"))
                 {
+                    string? envKey = Environment.GetEnvironmentVariable("IPC_AES_KEY");
+                    string? envIV = Environment.GetEnvironmentVariable("IPC_AES_IV");
+                    if (string.IsNullOrEmpty(envKey) || string.IsNullOrEmpty(envIV))
+                    {
+                        Console.WriteLine("Keys not found");
+                        Environment.Exit(1);
+                    }
+
+                    using var aes = Aes.Create();
+                    aes.Key = Convert.FromBase64String(envKey);
+                    aes.IV = Convert.FromBase64String(envIV);
+
                     var bson = MongoObjectsPluginRegistry.SchemaDocument;
-                    Console.WriteLine($"cli-data: {bson}");
+                    bson.Add("connection_string", optionsInstance.ConnectionString ?? "");
+
+                    using var encryptor = aes.CreateEncryptor();
+                    byte[] plainTextBytes = Encoding.UTF8.GetBytes(bson.ToString());
+                    byte[] encryptedBytes = encryptor.TransformFinalBlock(plainTextBytes, 0, plainTextBytes.Length);
+                    
+                    var outputString = Convert.ToBase64String(encryptedBytes);
+
+                    Console.WriteLine($"cli-data: {outputString}");
                     Environment.Exit(0);
                 }
                 return services;

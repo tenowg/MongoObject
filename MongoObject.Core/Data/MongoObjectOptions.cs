@@ -6,6 +6,11 @@ namespace MongoObject.Core.Data
 {
     public class MongoObjectOptions
     {
+        /// <summary>
+        /// The MongoDB connection string used to create your client,
+        /// this is optional, and only needed for use with the cli client.
+        /// </summary>
+        public string? ConnectionString { get; set; }
         public string DatabaseName { get; set; } = string.Empty;
 
         /// <summary>

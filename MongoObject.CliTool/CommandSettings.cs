@@ -2,11 +2,18 @@ using System.ComponentModel;
 using Spectre.Console.Cli;
 
 namespace CliTool {
-internal class Settings : CommandSettings
+
+    public enum MigrationOptions
+    {
+        None,
+        Migrate
+    }
+
+    internal class Settings : CommandSettings
     {
         [CommandArgument(0, "<action>")]
         [Description("MongoObject Migration builder and runner")]
-        public string Action { get; init; } = string.Empty;
+        public MigrationOptions Action { get; init; } = MigrationOptions.None;
 
         [CommandOption("-b|--build")]
         [Description("Overwrite existing files without prompting")]
