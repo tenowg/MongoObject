@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MongoObject.CliTool.Data
@@ -8,12 +7,16 @@ namespace MongoObject.CliTool.Data
     {
         [BsonElement("connection_string")]
         public string? ConnectionString { get; set; }
-
         [BsonElement("documentSchema")]
         public Dictionary<string, SchemaObject>? DocumentSchema { get; set; }
-
         [BsonElement("kmsProviders")]
         public KmsProvidersDictionary? KmsProviders { get; set; }
+        [BsonElement("key_vault_database")]
+        public string? KeyVaultDatabaseName { get; set; }
+        [BsonElement("key-vault-collection")]
+        public string? KeyVaultCollectionName { get; set; }
+        [BsonElement("mongo-crypt-path")]
+        public string? MongoCryptPath { get; set; }
     }
 
     public class SchemaObject

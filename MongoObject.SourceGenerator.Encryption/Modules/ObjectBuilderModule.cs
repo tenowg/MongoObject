@@ -40,13 +40,13 @@ namespace MongoObject.SourceGenerator.Encryption.Modules
                         foreach (var model in models)
                         {
                             sb.AppendLine($"if(payload.TryGetValue(\"{model!.Name}\", out var {model.Name}ValueDocument))");
-                            
+
                             using (sb.Block())
                             {
                                 sb.AppendLine($"var {model.Name}Document = {model.Name}ValueDocument.AsBsonDocument;");
                                 sb.AppendLine($"{model.Name}Document[\"encryption_key\"] = \"{model.ProviderKey}\";");
                                 sb.AppendLine($"if({model.Name}Document.TryGetValue(\"properties\", out var propertiesValue))");
-                                
+
                                 using (sb.Block())
                                 {
                                     sb.AppendLine($"var properties = propertiesValue.AsBsonArray;");
@@ -72,7 +72,7 @@ namespace MongoObject.SourceGenerator.Encryption.Modules
                                     sb.AppendLine($"{{\"is_encrypted\", true}},");
                                     sb.AppendLine($"{{\"encryption_key\", \"{model.ProviderKey}\"}},");
                                     using (sb.Block(closer: ","))
-                                    {    
+                                    {
                                         sb.AppendLine("\"properties\", new global::MongoDB.Bson.BsonArray");
                                         using (sb.Block())
                                         {
@@ -87,7 +87,7 @@ namespace MongoObject.SourceGenerator.Encryption.Modules
                                             }
                                         }
                                     }
-                                    
+
                                 }
                                 sb.AppendLine($"payload.Add(\"{model.Name}\", {model.Name}AddDocument);");
                             }

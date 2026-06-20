@@ -4,18 +4,34 @@ using MongoDB.Bson.Serialization;
 using MongoObject.CliTool.Data;
 using System.Security.Cryptography;
 using System.Text;
+using MongoDB.Driver;
 
 namespace MongoObject.CliTool.Processors
 {
     internal class MigrationProcessor : IProcessor
     {
+        private IMongoClient _client;
+        private IMongoClient _encryptedClient;
+        private string _projectFullPath;
+
         public void Execute(Settings settings)
         {
             if (settings.Action == MigrationOptions.Migrate)
             {
                 if (settings.Build)
                 {
-                    GatherResources(settings);
+                    var documents = GatherResources(settings);
+                    if (documents == null)
+                    {
+                        Console.WriteLine("There was an error retrieving the Document Schema");
+                        return;
+                    }
+                    if (documents.ConnectionString == null)
+                    {
+                        Console.WriteLine("Please be sure to provide a connection String in you package configuation.");
+                        return;
+                    }
+                    CreateClients(settings, documents);
                 }
                 else if (settings.Migrate)
                 {
@@ -24,9 +40,34 @@ namespace MongoObject.CliTool.Processors
             }
         }
 
-        private void GatherResources(Settings settings)
+        private void CreateClients(Settings settings, DocumentConfiguration documents)
         {
-            string projectFullPath = Path.GetFullPath(settings.Project);
+            var clientSettings = MongoClientSettings.FromUrl(new MongoUrl(documents.ConnectionString));
+            _client = new MongoClient(clientSettings);
+
+            if (documents.KmsProviders != null)
+            {
+                var extraOptions = new Dictionary<string, object>
+                {
+                    { "cryptSharedLibPath", documents.MongoCryptPath ?? "" } // Path to your Automatic Encryption Shared Library
+                };
+
+                var autoEncryptionOptions = new AutoEncryptionOptions(
+                    new CollectionNamespace(documents.KeyVaultDatabaseName, documents.KeyVaultCollectionName),
+                    documents.KmsProviders,
+                    extraOptions: extraOptions);
+
+                var autoClientSettings = MongoClientSettings.FromUrl(new MongoUrl(documents.ConnectionString));
+                autoClientSettings.AutoEncryptionOptions = autoEncryptionOptions;
+
+                _encryptedClient = new MongoClient(autoClientSettings);
+            }
+        }
+
+        private DocumentConfiguration? GatherResources(Settings settings)
+        {
+            DocumentConfiguration? documents = null;
+            _projectFullPath = Path.GetFullPath(settings.Project);
 
             var build = new Process
             {
@@ -43,7 +84,7 @@ namespace MongoObject.CliTool.Processors
 
             if (code != 0)
             {
-                return;
+                return documents;
             }
 
             var startInfo = new ProcessStartInfo
@@ -53,7 +94,7 @@ namespace MongoObject.CliTool.Processors
                 RedirectStandardOutput = true,
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                WorkingDirectory = projectFullPath
+                WorkingDirectory = _projectFullPath
             };
 
             using var aes = Aes.Create();
@@ -70,7 +111,7 @@ namespace MongoObject.CliTool.Processors
 
             while (!process.StandardOutput.EndOfStream)
             {
-                DocumentConfiguration? documents = null;
+                
                 string? line = process.StandardOutput.ReadLine();
                 Console.WriteLine(line);
                 if (line != null && line.StartsWith("cli-data: "))
@@ -86,6 +127,7 @@ namespace MongoObject.CliTool.Processors
                 }
             }
             process.WaitForExit();
+            return documents;
         }
     }
 }

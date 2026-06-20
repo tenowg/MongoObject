@@ -42,6 +42,12 @@ namespace MongoObject.Core.Extensions
                     return new EncryptedMongoClient(new MongoClient(securedSettings));
                 });
 
+                var document = MongoObjectsPluginRegistry.SchemaDocument;
+
+                document.Add("key_vault_database", encryptOptions.KeyVaultDatabaseName);
+                document.Add("key-vault-collection", encryptOptions.KeyVaultCollectionName);
+                document.Add("mongo-crypt-path", encryptOptions.MongoCryptDll);
+
                 return builder;
             }
         }
