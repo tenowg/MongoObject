@@ -7,17 +7,17 @@ namespace MongoObject.SourceGenerator.Encryption.Interfaces
 {
     internal interface ICodeModule
     {
-        void Execute(SourceProductionContext context, ((CommonModel model, EncryptedPropertyModel encrypted) models, Compilation comp) provider);
+        void Execute(SourceProductionContext context, ((CommonModel model, EncryptedClassModel encrypted) models, Compilation comp) provider);
     }
 
     internal interface ICodeModuleMultiple
     {
-        void Execute(SourceProductionContext context, (ImmutableArray<(CommonModel?, EncryptedPropertyModel?)> models, string rootNamespace) args);
+        void Execute(SourceProductionContext context, (ImmutableArray<(CommonModel?, EncryptedClassModel?)> models, string rootNamespace) args);
     }
 
     internal abstract class CodeModule : ICodeModule
     {
-        public abstract void Execute(SourceProductionContext context, ((CommonModel model, EncryptedPropertyModel encrypted) models, Compilation comp) provider);
+        public abstract void Execute(SourceProductionContext context, ((CommonModel model, EncryptedClassModel encrypted) models, Compilation comp) provider);
 
         protected static bool IsTypeEqual(ITypeSymbol source, INamedTypeSymbol target)
         {

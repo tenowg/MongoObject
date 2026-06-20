@@ -19,27 +19,32 @@ namespace MongoObject.CliTool.Data
     public class SchemaObject
     {
         [BsonElement("properties")]
-        public List<SchemaProperty> Properties { get; set; }
+        public List<SchemaProperty> Properties { get; set; } = [];
 
         [BsonElement("is_encrypted")]
         public bool IsEncrypted { get; set; }
 
+        [BsonElement("encryption_key")]
+        public string? EncryptionKey { get; set; }
+
         [BsonElement("collection_name")]
-        public string CollectionName { get; set; }
+        public string? CollectionName { get; set; }
 
         [BsonElement("database_name")]
-        public string DatabaseName { get; set; }
+        public string? DatabaseName { get; set; }
     }
 
     public class SchemaProperty
     {
         [BsonElement("name")]
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
         [BsonElement("queryName")]
-        public string QueryName { get; set; }
+        public string? QueryName { get; set; }
 
         [BsonElement("isEncrypted")]
         public bool IsEncrypted { get; set; }
+
+        // I need a list of queryable types for this property
     }
 }

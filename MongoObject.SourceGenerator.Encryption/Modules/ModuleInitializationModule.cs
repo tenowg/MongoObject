@@ -11,7 +11,7 @@ namespace MongoObject.SourceGenerator.Encryption.Modules
 {
     internal class ModuleInitializationModule : ICodeModuleMultiple
     {
-        public void Execute(SourceProductionContext context, (ImmutableArray<(CommonModel?, EncryptedPropertyModel?)> models, string rootNamespace) args)
+        public void Execute(SourceProductionContext context, (ImmutableArray<(CommonModel?, EncryptedClassModel?)> models, string rootNamespace) args)
         {
             var models = args.models.Where(x => x.Item1 != null).Select(x => x.Item1);
             var encryptedModels = args.models.Where(x => x.Item2 != null).Select(x => x.Item2);

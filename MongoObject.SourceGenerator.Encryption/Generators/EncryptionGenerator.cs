@@ -5,6 +5,7 @@ using MongoObject.SourceGenerator.Encryption.Models;
 using MongoObject.SourceGenerator.Encryption.Modules;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -32,7 +33,8 @@ namespace MongoObject.SourceGenerator.Encryption.Generators
 
         private static readonly ICodeModuleMultiple[] _modulesMultiple =
         [
-            new ModuleInitializationModule()
+            new ModuleInitializationModule(),
+            new ObjectBuilderModule()
         ];
 
         public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -73,7 +75,7 @@ namespace MongoObject.SourceGenerator.Encryption.Generators
             });
         }
 
-        private (CommonModel?, EncryptedPropertyModel?) BuildCommonModel(GeneratorSyntaxContext ctx, CancellationToken ct)
+        private (CommonModel?, EncryptedClassModel?) BuildCommonModel(GeneratorSyntaxContext ctx, CancellationToken ct)
         {
             ct.ThrowIfCancellationRequested();
 
@@ -90,6 +92,7 @@ namespace MongoObject.SourceGenerator.Encryption.Generators
             var kmsLocalAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.KMSLocalAttribute");
             var kmsAwsAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.KMSAwsAttribute");
             var kmsAzureAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.KMSAzureAttribute");
+            var encryptedFieldAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.EncyptedFieldAttribute");
 
             var kmsProviderAttr = symbol.GetAttributes()
                 .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, kmsProvidersAttrSymbol));
@@ -100,8 +103,8 @@ namespace MongoObject.SourceGenerator.Encryption.Generators
                 return (null, null);
 
             CommonModel? commonModel = null;
-            EncryptedPropertyModel? encryptionModel = null;
-            var (valid, invalid) = ProcessProperty(namedTypeSymbol, kmsLocalAttrSymbol, kmsAwsAttrSymbol, kmsAzureAttrSymbol);
+            EncryptedClassModel? encryptionModel = null;
+            var (valid, invalid) = ProcessProperty(namedTypeSymbol, kmsLocalAttrSymbol, kmsAwsAttrSymbol, kmsAzureAttrSymbol, encryptedFieldAttrSymbol);
             
             if (kmsProviderAttr != null)
             {
@@ -111,25 +114,32 @@ namespace MongoObject.SourceGenerator.Encryption.Generators
                     FullQualifiedName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
                     Namespace = symbol.ContainingNamespace?.ToString() ?? "",
                     Errors = invalid,
-                    Properties = valid
+                    Properties = [.. valid.OfType<PropertyModel>()]
                 };
             }
 
             if (mongoEncryptAttr != null)
             {
-                encryptionModel = new EncryptedPropertyModel
+                encryptionModel = new EncryptedClassModel
                 {
+                    Name = symbol.Name,
                     FullQualifiedName = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-                    Properties = valid
+                    Properties = [.. valid.OfType<EncryptedPropertyModel>()],
+                    ProviderKey = mongoEncryptAttr.ConstructorArguments.FirstOrDefault().Value?.ToString()
                 };
             }
 
             return (commonModel, encryptionModel);
         }
 
-        public (List<PropertyModel> valid, List<ValidationResult> invalid) ProcessProperty(INamedTypeSymbol symbol, INamedTypeSymbol? kmsLocalAttr, INamedTypeSymbol? kmsAwsAttr, INamedTypeSymbol? kmsAzureAttr)
+        public (List<IPropertyModel> valid, List<ValidationResult> invalid) ProcessProperty(
+            INamedTypeSymbol symbol, 
+            INamedTypeSymbol? kmsLocalAttr, 
+            INamedTypeSymbol? kmsAwsAttr, 
+            INamedTypeSymbol? kmsAzureAttr,
+            INamedTypeSymbol? encryptedFieldAttr)
         {
-            var valid = new List<PropertyModel>();
+            var valid = new List<IPropertyModel>();
             var invalid = new List<ValidationResult>();
 
             var properties = symbol.GetMembers().OfType<IPropertySymbol>().Where(x => x.DeclaredAccessibility == Accessibility.Public
@@ -139,9 +149,11 @@ namespace MongoObject.SourceGenerator.Encryption.Generators
 
             foreach (var property in properties)
             {
+                // processing a kmsprovider class
                 var isLocal = property.GetAttributes().Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, kmsLocalAttr)).FirstOrDefault();
                 var isAws = property.GetAttributes().Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, kmsAwsAttr)).FirstOrDefault();
                 var isAzure = property.GetAttributes().Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, kmsAzureAttr)).FirstOrDefault();
+                var isEncryptedProperty = property.GetAttributes().Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, encryptedFieldAttr)).FirstOrDefault();
 
                 if (new[] { isLocal is not null, isAws is not null, isAzure is not null }.Count(x => x) > 1)
                 { 
@@ -175,6 +187,17 @@ namespace MongoObject.SourceGenerator.Encryption.Generators
                         }
                     });
                 }
+
+                // Processing a Encrypted class property
+                if (isEncryptedProperty is not null)
+                {
+                    valid.Add(new EncryptedPropertyModel
+                    {
+                        Name = property.Name,
+                        IsEncrypted = true
+                    });
+                }
+
             }
 
             return (valid, invalid);

@@ -72,6 +72,7 @@ namespace MongoObject.CliTool.Processors
             {
                 DocumentConfiguration? documents = null;
                 string? line = process.StandardOutput.ReadLine();
+                Console.WriteLine(line);
                 if (line != null && line.StartsWith("cli-data: "))
                 {
                     var base64EncryptedData = line["cli-data:".Length..];
@@ -80,7 +81,7 @@ namespace MongoObject.CliTool.Processors
                     using var decryptor = aes.CreateDecryptor();
                     byte[] plainTextBytes = decryptor.TransformFinalBlock(encryptedBytes, 0, encryptedBytes.Length);
                     string decryptedString = Encoding.UTF8.GetString(plainTextBytes);
-
+                    Console.WriteLine(decryptedString);
                     documents = BsonSerializer.Deserialize<DocumentConfiguration>(decryptedString);
                 }
             }

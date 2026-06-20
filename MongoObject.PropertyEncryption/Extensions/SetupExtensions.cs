@@ -17,7 +17,6 @@ namespace MongoObject.Core.Extensions
                 builder.Services.AddSingleton(encryptOptions);
                 MongoClientSettings.Extensions.AddAutoEncryption();
 
-                // I don't think this needs to be code genned
                 builder.Services.AddSingleton<IEncryptedClient>(sp =>
                 {
                     var extraOptions = new Dictionary<string, object>
@@ -38,7 +37,6 @@ namespace MongoObject.Core.Extensions
                         kmsProviderCredentials,
                         extraOptions: extraOptions);
                     
-                    //var clientSettings = MongoClientSettings.FromConnectionString(encryptOptions.ConnectionString);
                     securedSettings.AutoEncryptionOptions = autoEncryptionOptions;
 
                     return new EncryptedMongoClient(new MongoClient(securedSettings));

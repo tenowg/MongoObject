@@ -47,13 +47,6 @@ namespace MongoObject.SourceGenerator.Modules
                                             sb.AppendLine("{ \"queries\", new global::MongoDB.Bson.BsonDocument(\"queryType\", \"equality\") }");
                                         }
                                     }
-                                    //sb.AppendLine("new global::MongoDB.Bson.BsonDocument");
-                                    //using (sb.Block())
-                                    //{
-                                    //    sb.AppendLine("{ \"keyId\", global::MongoDB.Bson.BsonNull.Value },");
-                                    //    sb.AppendLine("{ \"path\", \"patientRecord.billing\" },");
-                                    //    sb.AppendLine("{ \"bsonType\", \"object\" }");
-                                    //}
                                 }
                             }
                         }
