@@ -6,7 +6,7 @@
     using System.Linq;
 
     // Explicit Feature Flags
-    public record MongoServerCapabilities(int MaxWireVersion, bool IsEnterprise, bool IsAtlasEnvironment, bool SupportsVectorSearch, ClusterType ClusterType)
+    internal sealed record MongoServerCapabilities(int MaxWireVersion, bool IsEnterprise, bool IsAtlasEnvironment, bool SupportsVectorSearch, ClusterType ClusterType)
     {
         public bool SupportsWindowFunctions => MaxWireVersion >= 13; // MongoDB 5.0+
 

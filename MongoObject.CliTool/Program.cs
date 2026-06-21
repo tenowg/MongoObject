@@ -1,23 +1,16 @@
-﻿using CliTool;
-using Spectre.Console.Cli;
+﻿using Spectre.Console.Cli;
 using MongoObject.CliTool.Processors;
 
-var app = new CommandApp<MigrateCommand>();
-return app.Run(args);
-
-internal class MigrateCommand : Command<Settings>
+var app = new CommandApp();
+app.Configure(config =>
 {
-    private List<IProcessor> processors =
-        [
-            new MigrationProcessor()
-        ];
-
-    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellation)
+    config.AddBranch("migrate", add =>
     {
-        foreach(var process in processors)
-        {
-            process.Execute(settings);
-        }
-        return 0;
-    }
-}
+        add.SetDescription("Build and Run Migrations for MongoObjects");
+        add.AddCommand<BuildCommand>("build")
+            .WithDescription("Build the migration operation class, this is your first step"); ;
+        add.AddCommand<MigrateCommand>("run")
+            .WithDescription("Run the migration operation class, this is your second step");
+    });
+});
+return app.Run(args);
