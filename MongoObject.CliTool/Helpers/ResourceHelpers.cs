@@ -21,12 +21,11 @@ namespace MongoObject.CliTool.Helpers
                 return null;
             }
 
-            string execPath = string.Empty;
-
-            GetExecPath(projectPath, environment, out execPath);
+            GetExecPath(projectPath, environment, out string execPath);
 
             if (string.IsNullOrEmpty(execPath))
             {
+                Console.WriteLine("ExecutionPath cannot be determined from Project path, ensure the path is correct and try again");
                 return null;
             }
 
@@ -34,6 +33,11 @@ namespace MongoObject.CliTool.Helpers
                 ? Path.GetDirectoryName(projectPath)
                 : projectPath;
 
+            if (workingDir == null)
+            {
+                Console.WriteLine("WorkingDirectory cannot be determined from Project path");
+                return null;
+            }
             
             GatherDocument(out documents, execPath, workingDir);
 
@@ -42,7 +46,7 @@ namespace MongoObject.CliTool.Helpers
 
         private static void GatherDocument(out DocumentConfiguration? documents, string execPath, string? workingDir)
         {   
-            Aes aes = Aes.Create();
+            using Aes aes = Aes.Create();
             aes.GenerateKey();
             aes.GenerateIV();
             string base64Key = Convert.ToBase64String(aes.Key);
@@ -51,7 +55,8 @@ namespace MongoObject.CliTool.Helpers
             var startInfo = new ProcessStartInfo
             {
                 FileName = "dotnet",
-                Arguments = $"exec \"{execPath}\" --mongoobject-dump-schema",
+                //Arguments = $"exec \"{execPath}\" --mongoobject-dump-schema",
+                ArgumentList = {"exec", execPath, "--mongoobject-dump-schema"},
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -61,7 +66,8 @@ namespace MongoObject.CliTool.Helpers
 
             startInfo.EnvironmentVariables["IPC_AES_KEY"] = base64Key;
             startInfo.EnvironmentVariables["IPC_AES_IV"] = base64IV;
-            Process process = new() { StartInfo = startInfo };
+
+            using Process process = new() { StartInfo = startInfo };
             process.ErrorDataReceived += (sender, args) =>
             {
                 if (!string.IsNullOrWhiteSpace(args.Data))
@@ -70,7 +76,7 @@ namespace MongoObject.CliTool.Helpers
                 }
             };
 
-            string base64EncryptedData = "";
+            string? base64EncryptedData = null;
             process.OutputDataReceived += (sender, args) =>
             {
                 if (!string.IsNullOrWhiteSpace(args.Data))
@@ -87,6 +93,13 @@ namespace MongoObject.CliTool.Helpers
             process.BeginErrorReadLine();
             process.BeginOutputReadLine();
             process.WaitForExit();
+
+            if (string.IsNullOrEmpty(base64EncryptedData))
+            {
+                Console.WriteLine("[REASPONSE ERROR] Process failed to respond with documents. Return value is null");
+                documents = null;
+                return;
+            }
 
             using var decryptor = aes.CreateDecryptor();
             try
@@ -106,32 +119,31 @@ namespace MongoObject.CliTool.Helpers
 
         private static void GetExecPath(string projectPath, string environment, out string execPath)
         {
-            using (var targetPath = new Process
+            using var targetPath = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    Arguments = $"build \"{projectPath}\" -c {environment} --getProperty:TargetPath",
+                    //Arguments = $"build \"{projectPath}\" -c {environment} --getProperty:TargetPath",
+                    ArgumentList = {"build", projectPath, "-c", environment, "--getProperty:TargetPath"},
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
                 }
-            })
+            };
+
+            targetPath.Start();
+
+            // TODO: Fix this using async methods
+            execPath = targetPath.StandardOutput.ReadToEnd().Trim();
+            string errorOut = targetPath.StandardError.ReadToEnd().Trim();
+
+            targetPath.WaitForExit();
+
+            if (targetPath.ExitCode != 0 || string.IsNullOrEmpty(execPath))
             {
-
-                targetPath.Start();
-
-                // FIX: Synchronous read prevents race conditions with WaitForExit()
-                execPath = targetPath.StandardOutput.ReadToEnd().Trim();
-                string errorOut = targetPath.StandardError.ReadToEnd().Trim();
-
-                targetPath.WaitForExit();
-
-                if (targetPath.ExitCode != 0 || string.IsNullOrEmpty(execPath))
-                {
-                    if (!string.IsNullOrEmpty(errorOut))
-                        Console.WriteLine($"[SUBPROCESS ERROR]: {errorOut}");
-                    return;
-                }
+                if (!string.IsNullOrEmpty(errorOut))
+                    Console.WriteLine($"[SUBPROCESS ERROR]: {errorOut}");
+                return;
             }
 
             return;
@@ -139,31 +151,31 @@ namespace MongoObject.CliTool.Helpers
 
         private static bool BuildProject(string projectPath, string environment)
         {
-            using (var build = new Process
+            using var build = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    Arguments = $"build \"{projectPath}\" -c {environment} /p:GeneratePackageOnBuild=false /p:IsPackable=false",
+                    //Arguments = $"build \"{projectPath}\" -c {environment} /p:GeneratePackageOnBuild=false /p:IsPackable=false",
+                    ArgumentList = {"build", projectPath, "-c", environment, "/p:GeneratePackageOnBuild=false", "/p:IsPackable=false"},
                     RedirectStandardError = true
                 }
-            })
+            };
+            build.ErrorDataReceived += (sender, args) =>
             {
-                build.ErrorDataReceived += (sender, args) =>
+                if (!string.IsNullOrWhiteSpace(args.Data))
                 {
-                    if (!string.IsNullOrWhiteSpace(args.Data))
-                    {
-                        Console.WriteLine($"[SUBPROCESS ERROR]: {args.Data}");
-                    }
-                };
-
-                build.Start();
-                build.WaitForExit();
-                if (build.ExitCode != 0)
-                {
-                    Console.WriteLine($"[BUILD ERROR]: The source Project ({projectPath}) build failed, please fix any issues and run again.");
-                    return false;
+                    Console.WriteLine($"[SUBPROCESS ERROR]: {args.Data}");
                 }
+            };
+
+            build.Start();
+            build.BeginErrorReadLine();
+            build.WaitForExit();
+            if (build.ExitCode != 0)
+            {
+                Console.WriteLine($"[BUILD ERROR]: The source Project ({projectPath}) build failed, please fix any issues and run again.");
+                return false;
             }
 
             return true;
