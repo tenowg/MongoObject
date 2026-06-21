@@ -11,6 +11,10 @@ namespace CliTool {
         [CommandOption("-f|--framework")]
         [Description("The target framework to execute (required if the project multi-targets)")]
         public string? Framework { get; set; }
+
+        [CommandOption("-e|--environment")]
+        [Description("The target framework to execute (required if the project multi-targets)")]
+        public string Environment { get; set; } = "Debug";
     }
 
     internal class MigrateSettings : CommandSettings

@@ -16,7 +16,7 @@ namespace MongoObject.CliTool.Processors
         protected override int Execute(CommandContext context, BuildSettings settings, CancellationToken cancellationToken)
         {
             var projectPath = Path.GetFullPath(settings.Project);
-            var documents = ResourceHelpers.BuildAndGatherResources(projectPath);
+            var documents = ResourceHelpers.BuildAndGatherResources(projectPath, settings.Environment);
             if (documents == null)
             {
                 Console.WriteLine("There was an error retrieving the Document Schema");

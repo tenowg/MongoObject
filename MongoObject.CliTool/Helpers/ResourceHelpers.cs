@@ -11,65 +11,46 @@ namespace MongoObject.CliTool.Helpers
 {
     internal static class ResourceHelpers
     {
-        public static DocumentConfiguration? BuildAndGatherResources(string projectPath)
+        public const string CliPrefix = "cli-data: ";
+        public static DocumentConfiguration? BuildAndGatherResources(string projectPath, string environment)
         {
             DocumentConfiguration? documents = null;
-
-            var build = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "dotnet",
-                    Arguments = $"build {projectPath} -c Debug /p:GeneratePackageOnBuild=false /p:IsPackable=false"
-                }
-            };
-
-            build.Start();
-            build.WaitForExit();
-            var code = build.ExitCode;
-
-            if (code != 0)
+            var flowControl = BuildProject(projectPath, environment);
+            if (!flowControl)
             {
                 return null;
             }
 
             string execPath = string.Empty;
-            
-            using (var targetPath = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = "dotnet",
-                    Arguments = $"build \"{projectPath}\" --getProperty:TargetPath",
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true
-                }
-            })
-            {
-                targetPath.Start();
-                
-                // FIX: Synchronous read prevents race conditions with WaitForExit()
-                execPath = targetPath.StandardOutput.ReadToEnd().Trim();
-                string errorOut = targetPath.StandardError.ReadToEnd().Trim();
-                
-                targetPath.WaitForExit();
 
-                if (targetPath.ExitCode != 0 || string.IsNullOrEmpty(execPath))
-                {
-                    if (!string.IsNullOrEmpty(errorOut))
-                        Console.WriteLine($"[SUBPROCESS ERROR]: {errorOut}");
-                    return null;
-                }
+            GetExecPath(projectPath, environment, out execPath);
+
+            if (string.IsNullOrEmpty(execPath))
+            {
+                return null;
             }
 
-            string? workingDir = projectPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase) 
-                ? Path.GetDirectoryName(projectPath) 
+            string? workingDir = projectPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
+                ? Path.GetDirectoryName(projectPath)
                 : projectPath;
+
+            
+            GatherDocument(out documents, execPath, workingDir);
+
+            return documents;
+        }
+
+        private static void GatherDocument(out DocumentConfiguration? documents, string execPath, string? workingDir)
+        {   
+            Aes aes = Aes.Create();
+            aes.GenerateKey();
+            aes.GenerateIV();
+            string base64Key = Convert.ToBase64String(aes.Key);
+            string base64IV = Convert.ToBase64String(aes.IV);
 
             var startInfo = new ProcessStartInfo
             {
                 FileName = "dotnet",
-                //Arguments = $"run --project {projectPath} --no-build -- --mongoobject-dump-schema",
                 Arguments = $"exec \"{execPath}\" --mongoobject-dump-schema",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -78,17 +59,9 @@ namespace MongoObject.CliTool.Helpers
                 WorkingDirectory = workingDir
             };
 
-            using var aes = Aes.Create();
-            aes.GenerateKey();
-            aes.GenerateIV();
-            string base64Key = Convert.ToBase64String(aes.Key);
-            string base64IV = Convert.ToBase64String(aes.IV);
-
             startInfo.EnvironmentVariables["IPC_AES_KEY"] = base64Key;
             startInfo.EnvironmentVariables["IPC_AES_IV"] = base64IV;
-
-            using var process = new Process { StartInfo = startInfo };
-
+            Process process = new() { StartInfo = startInfo };
             process.ErrorDataReceived += (sender, args) =>
             {
                 if (!string.IsNullOrWhiteSpace(args.Data))
@@ -97,21 +70,15 @@ namespace MongoObject.CliTool.Helpers
                 }
             };
 
+            string base64EncryptedData = "";
             process.OutputDataReceived += (sender, args) =>
             {
                 if (!string.IsNullOrWhiteSpace(args.Data))
                 {
                     var line = args.Data;
-                    if (line != null && line.StartsWith("cli-data: "))
+                    if (line.StartsWith(CliPrefix))
                     {
-                        var base64EncryptedData = line["cli-data:".Length..];
-
-                        byte[] encryptedBytes = Convert.FromBase64String(base64EncryptedData);
-                        using var decryptor = aes.CreateDecryptor();
-                        byte[] plainTextBytes = decryptor.TransformFinalBlock(encryptedBytes, 0, encryptedBytes.Length);
-                        string decryptedString = Encoding.UTF8.GetString(plainTextBytes);
-                        Console.WriteLine(decryptedString); // <------- Debug purposes only REMOVE THIS
-                        documents = BsonSerializer.Deserialize<DocumentConfiguration>(decryptedString);
+                        base64EncryptedData = line[CliPrefix.Length..];
                     }
                 }
             };
@@ -121,7 +88,85 @@ namespace MongoObject.CliTool.Helpers
             process.BeginOutputReadLine();
             process.WaitForExit();
 
-            return documents;
+            using var decryptor = aes.CreateDecryptor();
+            try
+            {
+                byte[] encryptedBytes = Convert.FromBase64String(base64EncryptedData);
+                byte[] plainTextBytes = decryptor.TransformFinalBlock(encryptedBytes, 0, encryptedBytes.Length);
+                string decryptedString = Encoding.UTF8.GetString(plainTextBytes);
+            
+                documents = BsonSerializer.Deserialize<DocumentConfiguration>(decryptedString);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                documents = null;
+            }
+        }
+
+        private static void GetExecPath(string projectPath, string environment, out string execPath)
+        {
+            using (var targetPath = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "dotnet",
+                    Arguments = $"build \"{projectPath}\" -c {environment} --getProperty:TargetPath",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                }
+            })
+            {
+
+                targetPath.Start();
+
+                // FIX: Synchronous read prevents race conditions with WaitForExit()
+                execPath = targetPath.StandardOutput.ReadToEnd().Trim();
+                string errorOut = targetPath.StandardError.ReadToEnd().Trim();
+
+                targetPath.WaitForExit();
+
+                if (targetPath.ExitCode != 0 || string.IsNullOrEmpty(execPath))
+                {
+                    if (!string.IsNullOrEmpty(errorOut))
+                        Console.WriteLine($"[SUBPROCESS ERROR]: {errorOut}");
+                    return;
+                }
+            }
+
+            return;
+        }
+
+        private static bool BuildProject(string projectPath, string environment)
+        {
+            using (var build = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = "dotnet",
+                    Arguments = $"build \"{projectPath}\" -c {environment} /p:GeneratePackageOnBuild=false /p:IsPackable=false",
+                    RedirectStandardError = true
+                }
+            })
+            {
+                build.ErrorDataReceived += (sender, args) =>
+                {
+                    if (!string.IsNullOrWhiteSpace(args.Data))
+                    {
+                        Console.WriteLine($"[SUBPROCESS ERROR]: {args.Data}");
+                    }
+                };
+
+                build.Start();
+                build.WaitForExit();
+                if (build.ExitCode != 0)
+                {
+                    Console.WriteLine($"[BUILD ERROR]: The source Project ({projectPath}) build failed, please fix any issues and run again.");
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public static (IMongoClient standard, IMongoClient? encrypted) CreateClients(DocumentConfiguration documents)
