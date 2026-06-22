@@ -88,6 +88,7 @@ namespace MongoObject.SourceGenerator.Modules
                                             }
                                         }
                                 }
+                                sb.AppendLine($"{{\"name\", \"{model.Name}\"}},");
                                 sb.AppendLine($"{{\"is_encrypted\", {model.IsEncryptedModel.ToString().ToLowerInvariant()}}},");
                                 sb.AppendLine($"{{\"collection_name\", \"{model.CollectionName}\"}},");
                                 sb.AppendLine($"{{\"database_name\", \"{model.DatabaseName}\"}},");

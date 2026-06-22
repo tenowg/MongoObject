@@ -5,8 +5,11 @@ namespace MongoObject.CliTool.Data
     [BsonIgnoreExtraElements]
     public class DocumentConfiguration
     {
+        
         [BsonElement("connection_string")]
         public string? ConnectionString { get; set; }
+        [BsonElement("default_database")]
+        public string? DefaultDatabase { get; set; }
         [BsonElement("documentSchema")]
         public Dictionary<string, SchemaObject>? DocumentSchema { get; set; }
         [BsonElement("kmsProviders")]
@@ -21,6 +24,8 @@ namespace MongoObject.CliTool.Data
 
     public class SchemaObject
     {
+        [BsonElement("name")]
+        public string Name { get; set; } = string.Empty;
         [BsonElement("properties")]
         public List<SchemaProperty> Properties { get; set; } = [];
 

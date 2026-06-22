@@ -52,4 +52,10 @@ namespace Progress.Test
         public partial int Age { get; set; }
         public partial TestA Test { get; set; } = new();
     }
+
+    [MongoObject]
+    public partial class CObject
+    {
+        public partial string Name { get; set; } = string.Empty;
+    }
 }

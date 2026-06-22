@@ -44,7 +44,7 @@ namespace MongoObject.CliTool.Helpers
             return documents;
         }
 
-        private static void GatherDocument(out DocumentConfiguration? documents, string execPath, string? workingDir)
+        private static void GatherDocument(out DocumentConfiguration? documents, string execPath, string workingDir)
         {   
             using Aes aes = Aes.Create();
             aes.GenerateKey();
@@ -55,7 +55,6 @@ namespace MongoObject.CliTool.Helpers
             var startInfo = new ProcessStartInfo
             {
                 FileName = "dotnet",
-                //Arguments = $"exec \"{execPath}\" --mongoobject-dump-schema",
                 ArgumentList = {"exec", execPath, "--mongoobject-dump-schema"},
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -94,9 +93,16 @@ namespace MongoObject.CliTool.Helpers
             process.BeginOutputReadLine();
             process.WaitForExit();
 
+            if (process.ExitCode != 0)
+            {
+                Console.WriteLine("[RESPONSE ERROR] Project failed to run during Information gathering stage");
+                documents = null;
+                return;
+            }
+
             if (string.IsNullOrEmpty(base64EncryptedData))
             {
-                Console.WriteLine("[REASPONSE ERROR] Process failed to respond with documents. Return value is null");
+                Console.WriteLine("[RESPONSE ERROR] Process failed to respond with documents. Return value is null");
                 documents = null;
                 return;
             }
@@ -124,7 +130,6 @@ namespace MongoObject.CliTool.Helpers
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    //Arguments = $"build \"{projectPath}\" -c {environment} --getProperty:TargetPath",
                     ArgumentList = {"build", projectPath, "-c", environment, "--getProperty:TargetPath"},
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
@@ -156,7 +161,6 @@ namespace MongoObject.CliTool.Helpers
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    //Arguments = $"build \"{projectPath}\" -c {environment} /p:GeneratePackageOnBuild=false /p:IsPackable=false",
                     ArgumentList = {"build", projectPath, "-c", environment, "/p:GeneratePackageOnBuild=false", "/p:IsPackable=false"},
                     RedirectStandardError = true
                 }
@@ -179,37 +183,6 @@ namespace MongoObject.CliTool.Helpers
             }
 
             return true;
-        }
-
-        public static (IMongoClient standard, IMongoClient? encrypted) CreateClients(DocumentConfiguration documents)
-        {
-            var clientSettings = MongoClientSettings.FromUrl(new MongoUrl(documents.ConnectionString));
-            var client = new MongoClient(clientSettings);
-            IMongoClient? encryptedClient = null;
-
-            if (documents.KmsProviders != null)
-            {
-                MongoClientSettings.Extensions.AddAutoEncryption();
-                var extraOptions = new Dictionary<string, object>
-                {
-                    { "cryptSharedLibPath", documents.MongoCryptPath ?? "" } // Path to your Automatic Encryption Shared Library
-                };
-
-                var autoEncryptionOptions = new AutoEncryptionOptions(
-                    new CollectionNamespace(documents.KeyVaultDatabaseName, documents.KeyVaultCollectionName),
-                    documents.KmsProviders,
-                    extraOptions: extraOptions);
-
-                var autoClientSettings = MongoClientSettings.FromUrl(new MongoUrl(documents.ConnectionString));
-                autoClientSettings.AutoEncryptionOptions = autoEncryptionOptions;
-
-                encryptedClient = new MongoClient(autoClientSettings);
-            }
-
-            // Lets test the clients
-            var capabilities = MongoServerCapabilities.Resolve(client);
-
-            return (client, encryptedClient);
         }
     }
 }
