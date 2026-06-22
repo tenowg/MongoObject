@@ -6,12 +6,13 @@ using MongoDB.Driver;
 using MongoDB.Driver.Encryption;
 using MongoObject.CliTool.Data;
 using MongoObject.Core.Data;
+using Spectre.Console;
 
 namespace MongoObject.CliTool.Helpers
 {
     public static class ClientOperations
     {
-        public static (IMongoClient standard, IMongoClient? encrypted) CreateClients(DocumentConfiguration documents)
+        public async static Task<(IMongoClient standard, IMongoClient? encrypted)> CreateClients(DocumentConfiguration documents)
         {
             var clientSettings = MongoClientSettings.FromUrl(new MongoUrl(documents.ConnectionString));
             var client = new MongoClient(clientSettings);
@@ -42,68 +43,70 @@ namespace MongoObject.CliTool.Helpers
             return (client, encryptedClient);
         }
 
-        public static void GetDifferencesByObject(IMongoClient client,
-                                                  DocumentConfiguration documents,
-                                                  out ILookup<string, KeyValuePair<string, SchemaObject>>? databases,
-                                                  out Dictionary<string, SchemaObject> existingCollections,
-                                                  out Dictionary<string, SchemaObject> newCollections)
+        public static async Task<CollectionDifferences?> GetDifferencesByObject(IMongoClient client, DocumentConfiguration documents)
         {
-            existingCollections = [];
-            newCollections = [];
-            databases = null;
+            Dictionary<string, SchemaObject> existingCollections = [];
+            Dictionary<string, SchemaObject> newCollections = [];
+            List<string> databaseNames = [];
 
             if (documents.DocumentSchema == null) 
             {    
-                return;
+                return null;
             }
 
-            //databases = documents.DocumentSchema.Select(x => x.Value.DatabaseName ?? documents.DefaultDatabase)
-            //    .Where(x => !string.IsNullOrWhiteSpace(x)).DistinctBy(x => x).ToList();
-            //    databases.Add(documents.DefaultDatabase);
-            databases = documents.DocumentSchema.ToLookup(
-                x => string.IsNullOrEmpty(x.Value.DatabaseName) ? documents.DefaultDatabase ?? "" : x.Value.DatabaseName,
+            var databases = documents.DocumentSchema
+            .Select(x => new 
+            {
+                x.Key,
+                x.Value,
+                DatabaseName = string.IsNullOrWhiteSpace(x.Value.DatabaseName)
+                    ? documents.DefaultDatabase
+                    : x.Value.DatabaseName,
+                x.Value.CollectionName
+            })
+            .Where(x => !string.IsNullOrWhiteSpace(x.DatabaseName))
+            .Where(x => !string.IsNullOrWhiteSpace(x.CollectionName))
+            .ToLookup(
+                x => x.DatabaseName,
                 x => x
-                );
+            );
 
             foreach(var databaseName in databases)
             {
-                Console.WriteLine($"|{databaseName.Key}|");
+                databaseNames.Add(databaseName.Key!);
                 var database = client.GetDatabase(databaseName.Key);
                 var collectionList = database.ListCollectionNames().ToList();
                 var collectionSet = new HashSet<string>(collectionList);
 
-                existingCollections = databaseName
-                    .Where(x => x.Value.CollectionName != null)
-                    // null indicates that the databasename == using the default databasename and not a custom databasename
-                    .Where(x => x.Value.DatabaseName == databaseName.Key || (string.IsNullOrEmpty(x.Value.DatabaseName) && databaseName.Key == documents.DefaultDatabase))
-                    .Where(x => 
-                    {
-                        x.Value.DatabaseName = string.IsNullOrWhiteSpace(x.Value.DatabaseName) ? databaseName.Key : x.Value.DatabaseName;
-                        return collectionSet.Contains(x.Value.CollectionName!);
-                    }).Concat(existingCollections).ToDictionary();
+                foreach (var schema in databaseName)
+                {
+                    schema.Value.DatabaseName = databaseName.Key;
 
-                newCollections = databaseName
-                    .Where(x => x.Value.DatabaseName == databaseName.Key || (string.IsNullOrEmpty(x.Value.DatabaseName) && databaseName.Key == documents.DefaultDatabase))
-                    .Where(x => 
-                    { 
-                        // this has to be done, because when the data from the main process arrives it doesn't have the opurtunity to add the the default
-                        // database to the individual objects.
-                        x.Value.DatabaseName = string.IsNullOrWhiteSpace(x.Value.DatabaseName) ? databaseName.Key : x.Value.DatabaseName;
-                        return !collectionSet.Contains(x.Value.CollectionName!); 
-                    }).Concat(newCollections).ToDictionary();
+                    if (collectionSet.Contains(schema.Value.CollectionName!))
+                    {
+                        existingCollections[schema.Key] = schema.Value;
+                    }
+                    else
+                    {
+                        newCollections[schema.Key] = schema.Value;
+                    }
+                }
             }
 
+            AnsiConsole.MarkupLine($"[green]Found [/][yellow]{databaseNames.Count}[/] [green]databases: [/][yellow]{string.Join(", ", databaseNames)}[/]");
             // everything below is just debug output to test my information gathering
-            Console.WriteLine("Existing Databases we will check properties next");
+            AnsiConsole.MarkupLine($"[green]Found [/][yellow]{existingCollections.Count}[/] [green]existing collections[/]");
             foreach(var existing in existingCollections)
             {
-                Console.WriteLine(existing.Value.CollectionName + " -- " + existing.Value.DatabaseName);
+                AnsiConsole.MarkupLine($"    [cyan]{existing.Value.DatabaseName}.{existing.Value.CollectionName}[/]");
             }
-            Console.WriteLine("New Collections, we will do nothing with them, jsut list them");
+            AnsiConsole.MarkupLine($"[green]Found [/][yellow]{newCollections.Count}[/] [green]new collections[/]");
             foreach(var newCollection in newCollections)
             {
-                Console.WriteLine(newCollection.Value.CollectionName + " -- " + newCollection.Value.DatabaseName);
+                AnsiConsole.MarkupLine($"    [cyan]{newCollection.Value.DatabaseName}.{newCollection.Value.CollectionName}[/]");
             }
+
+            return new CollectionDifferences(existingCollections, newCollections);
         }
     }
 }

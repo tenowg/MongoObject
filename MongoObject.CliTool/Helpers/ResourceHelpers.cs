@@ -3,6 +3,7 @@ using MongoDB.Driver;
 using MongoDB.Driver.Encryption;
 using MongoObject.CliTool.Data;
 using MongoObject.Core.Data;
+using Spectre.Console;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,16 +13,15 @@ namespace MongoObject.CliTool.Helpers
     internal static class ResourceHelpers
     {
         public const string CliPrefix = "cli-data: ";
-        public static DocumentConfiguration? BuildAndGatherResources(string projectPath, string environment)
+        public static async Task<DocumentConfiguration?> BuildAndGatherResources(string projectPath, string environment, CancellationToken cancellationToken = default)
         {
-            DocumentConfiguration? documents = null;
-            var flowControl = BuildProject(projectPath, environment);
+            var flowControl = await BuildProject(projectPath, environment, cancellationToken);
             if (!flowControl)
             {
                 return null;
             }
 
-            GetExecPath(projectPath, environment, out string execPath);
+            var execPath = await GetExecPath(projectPath, environment);
 
             if (string.IsNullOrEmpty(execPath))
             {
@@ -39,12 +39,10 @@ namespace MongoObject.CliTool.Helpers
                 return null;
             }
             
-            GatherDocument(out documents, execPath, workingDir);
-
-            return documents;
+            return await GatherDocument(execPath, workingDir, cancellationToken);
         }
 
-        private static void GatherDocument(out DocumentConfiguration? documents, string execPath, string workingDir)
+        private static async Task<DocumentConfiguration?> GatherDocument(string execPath, string workingDir, CancellationToken cancellationToken = default)
         {   
             using Aes aes = Aes.Create();
             aes.GenerateKey();
@@ -85,26 +83,29 @@ namespace MongoObject.CliTool.Helpers
                     {
                         base64EncryptedData = line[CliPrefix.Length..];
                     }
+                    else
+                    {
+                        AnsiConsole.WriteLine(line);
+                    }
+                    
                 }
             };
 
             process.Start();
             process.BeginErrorReadLine();
             process.BeginOutputReadLine();
-            process.WaitForExit();
+            await process.WaitForExitAsync(cancellationToken);
 
             if (process.ExitCode != 0)
             {
                 Console.WriteLine("[RESPONSE ERROR] Project failed to run during Information gathering stage");
-                documents = null;
-                return;
+                return null;
             }
 
             if (string.IsNullOrEmpty(base64EncryptedData))
             {
                 Console.WriteLine("[RESPONSE ERROR] Process failed to respond with documents. Return value is null");
-                documents = null;
-                return;
+                return null;
             }
 
             using var decryptor = aes.CreateDecryptor();
@@ -114,16 +115,16 @@ namespace MongoObject.CliTool.Helpers
                 byte[] plainTextBytes = decryptor.TransformFinalBlock(encryptedBytes, 0, encryptedBytes.Length);
                 string decryptedString = Encoding.UTF8.GetString(plainTextBytes);
             
-                documents = BsonSerializer.Deserialize<DocumentConfiguration>(decryptedString);
+                return BsonSerializer.Deserialize<DocumentConfiguration>(decryptedString);
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-                documents = null;
+                return null;
             }
         }
 
-        private static void GetExecPath(string projectPath, string environment, out string execPath)
+        private static async Task<string> GetExecPath(string projectPath, string environment)
         {
             using var targetPath = new Process
             {
@@ -139,30 +140,31 @@ namespace MongoObject.CliTool.Helpers
             targetPath.Start();
 
             // TODO: Fix this using async methods
-            execPath = targetPath.StandardOutput.ReadToEnd().Trim();
-            string errorOut = targetPath.StandardError.ReadToEnd().Trim();
+            string execPath = (await targetPath.StandardOutput.ReadToEndAsync()).Trim();
+            string errorOut = (await targetPath.StandardError.ReadToEndAsync()).Trim();
 
-            targetPath.WaitForExit();
+            await targetPath.WaitForExitAsync();
 
             if (targetPath.ExitCode != 0 || string.IsNullOrEmpty(execPath))
             {
                 if (!string.IsNullOrEmpty(errorOut))
                     Console.WriteLine($"[SUBPROCESS ERROR]: {errorOut}");
-                return;
+                return string.Empty;
             }
 
-            return;
+            return execPath;
         }
 
-        private static bool BuildProject(string projectPath, string environment)
+        private static async Task<bool> BuildProject(string projectPath, string environment, CancellationToken cancellationToken = default)
         {
             using var build = new Process
             {
                 StartInfo = new ProcessStartInfo
                 {
                     FileName = "dotnet",
-                    ArgumentList = {"build", projectPath, "-c", environment, "/p:GeneratePackageOnBuild=false", "/p:IsPackable=false"},
-                    RedirectStandardError = true
+                    ArgumentList = {"build", projectPath, "-c", environment, "/p:GeneratePackageOnBuild=false", "/p:IsPackable=false", "/nodeReuse:false"},
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true
                 }
             };
             build.ErrorDataReceived += (sender, args) =>
@@ -172,13 +174,21 @@ namespace MongoObject.CliTool.Helpers
                     Console.WriteLine($"[SUBPROCESS ERROR]: {args.Data}");
                 }
             };
+            build.OutputDataReceived += (sender, args) =>
+            {
+                if (!string.IsNullOrWhiteSpace(args.Data))
+                {
+                    AnsiConsole.MarkupLine(Markup.Escape(args.Data));
+                }
+            };
 
             build.Start();
             build.BeginErrorReadLine();
-            build.WaitForExit();
+            build.BeginOutputReadLine();
+            await build.WaitForExitAsync(cancellationToken);
             if (build.ExitCode != 0)
             {
-                Console.WriteLine($"[BUILD ERROR]: The source Project ({projectPath}) build failed, please fix any issues and run again.");
+                AnsiConsole.WriteLine($"[BUILD ERROR]: The source Project ({projectPath}) build failed, please fix any issues and run again.");
                 return false;
             }
 

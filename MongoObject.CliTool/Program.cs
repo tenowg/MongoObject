@@ -1,6 +1,15 @@
 ﻿using Spectre.Console.Cli;
 using MongoObject.CliTool.Processors;
 
+var cancellationTokenSource = new CancellationTokenSource();
+  
+System.Console.CancelKeyPress += (_, e) =>
+{
+    e.Cancel = true;
+    cancellationTokenSource.Cancel();
+    System.Console.WriteLine("Cancellation requested...");
+};
+
 var app = new CommandApp();
 app.Configure(config =>
 {
@@ -13,4 +22,4 @@ app.Configure(config =>
             .WithDescription("Run the migration operation class, this is your second step");
     });
 });
-return app.Run(args);
+return await app.RunAsync(args, cancellationTokenSource.Token);

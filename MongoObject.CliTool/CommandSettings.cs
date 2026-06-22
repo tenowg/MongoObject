@@ -2,7 +2,14 @@ using System.ComponentModel;
 using Spectre.Console.Cli;
 
 namespace CliTool {
-    internal class BuildSettings : CommandSettings
+    internal abstract class GlobalSettings : CommandSettings
+    {
+        [CommandOption("-v|--verbose")]
+        [Description("Display detailed logs for Debugging")]
+        public bool Verbose { get; init; } = false;
+    }
+
+    internal class BuildSettings : GlobalSettings
     {
         [CommandOption("-p|--project")]
         [Description("Overwrite existing files without prompting")]
@@ -13,11 +20,11 @@ namespace CliTool {
         public string? Framework { get; set; }
 
         [CommandOption("-e|--environment")]
-        [Description("The target framework to execute (required if the project multi-targets)")]
+        [Description("The target environment to use")]
         public string Environment { get; set; } = "Debug";
     }
 
-    internal class MigrateSettings : CommandSettings
+    internal class MigrateSettings : GlobalSettings
     {
         [CommandOption("-f|--force")]
         [Description("Overwrite existing files without prompting")]
