@@ -40,15 +40,19 @@ namespace MongoObject.CliTool.Helpers
                 jsonSchema["properties"] = properties;
             }
 
-            // this is debug only...
+            if (verbose)
+            {
             var test = new JsonText(jsonBuilder.ToString());
-            AnsiConsole.Write(test);
-            AnsiConsole.WriteLine();
-            AnsiConsole.WriteLine();
+                AnsiConsole.Write(test);
+                AnsiConsole.WriteLine();
+                AnsiConsole.WriteLine();
+            }
 
             foreach (var diff in diffs.ExistingCollections)
             {
-                
+                // TODO, we will need to get the current jsonSchema from mongoDB if this is possible, and diff that then using
+                // interactive console requests, and build the new schema, another method will generate the methods to rename
+                // properties    
             }
             return jsonBuilder.ToString();
         }
