@@ -24,7 +24,7 @@ namespace MongoObject.CliTool.Processors
                 .StartAsync("Building Project...", async ctx =>
                 {
                     var projectPath = Path.GetFullPath(settings.Project);
-                    _documents = await ResourceHelpers.BuildAndGatherResources(projectPath, settings.Environment, cancellationToken);
+                    _documents = await ResourceHelpers.BuildAndGatherResources(projectPath, settings.Environment, settings.Verbose, cancellationToken);
                     if (_documents == null)
                     {
                         Console.WriteLine("There was an error retrieving the Document Schema");
@@ -54,7 +54,7 @@ namespace MongoObject.CliTool.Processors
                     }
 
                     ctx.Status("Checking for initial Changes...");
-                    var differences = await ClientOperations.GetDifferencesByObject(_client, _documents);
+                    var differences = await ClientOperations.GetDifferencesByObject(_client, _documents, settings.Verbose);
 
                     if (differences == null)
                     {
@@ -64,7 +64,13 @@ namespace MongoObject.CliTool.Processors
                     if (differences.ExistingCollections.Count == 0 && differences.NewCollections.Count == 0)
                     {
                         Console.WriteLine("No Collections Found to process");
+                        return 0;
                     }
+
+                    var sb = new IndentedStringBuilder();
+                    sb.Append(BuilderHelpers.BuildSchema(differences, _client, settings.Verbose, cancellationToken));
+
+
                     return 0;
                 }
             );

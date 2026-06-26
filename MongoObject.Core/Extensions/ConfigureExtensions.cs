@@ -67,6 +67,7 @@ namespace MongoObject.Core.Extensions
                     var bson = MongoObjectsPluginRegistry.SchemaDocument;
                     bson.Add("connection_string", optionsInstance.ConnectionString ?? "");
                     bson.Add("default_database", optionsInstance.DatabaseName);
+                    bson.Add("migration_folder", optionsInstance.MigrationFolder);
 
                     using var encryptor = aes.CreateEncryptor();
                     byte[] plainTextBytes = Encoding.UTF8.GetBytes(bson.ToString());

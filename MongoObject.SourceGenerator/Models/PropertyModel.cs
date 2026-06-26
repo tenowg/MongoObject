@@ -40,7 +40,9 @@ namespace MongoObject.SourceGenerator.Models
         /// Indicates if the property type is nullable (Nullable<T> or T?).
         /// </summary>
         public bool IsNullable { get; init; }
-        
+
+        public bool IsRequired { get; set; }
+
         /// <summary>
         /// For nullable types, the underlying type name (e.g., "int" for "int?").
         /// </summary>
@@ -53,6 +55,7 @@ namespace MongoObject.SourceGenerator.Models
         public string SimilarityType { get; set; } = "Cosine";
         public string VectorModel { get; set; } = string.Empty;
         public bool isEncrypted { get; set; } = false;
+        public string BsonType { get; set; } = "object";
     }
 
     internal sealed record MongoIndexPropertyModel

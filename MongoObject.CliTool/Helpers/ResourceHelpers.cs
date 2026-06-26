@@ -4,6 +4,7 @@ using MongoDB.Driver.Encryption;
 using MongoObject.CliTool.Data;
 using MongoObject.Core.Data;
 using Spectre.Console;
+using Spectre.Console.Json;
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
@@ -13,7 +14,7 @@ namespace MongoObject.CliTool.Helpers
     internal static class ResourceHelpers
     {
         public const string CliPrefix = "cli-data: ";
-        public static async Task<DocumentConfiguration?> BuildAndGatherResources(string projectPath, string environment, CancellationToken cancellationToken = default)
+        public static async Task<DocumentConfiguration?> BuildAndGatherResources(string projectPath, string environment, bool verbose, CancellationToken cancellationToken = default)
         {
             var flowControl = await BuildProject(projectPath, environment, cancellationToken);
             if (!flowControl)
@@ -39,10 +40,10 @@ namespace MongoObject.CliTool.Helpers
                 return null;
             }
             
-            return await GatherDocument(execPath, workingDir, cancellationToken);
+            return await GatherDocument(execPath, workingDir, verbose, cancellationToken);
         }
 
-        private static async Task<DocumentConfiguration?> GatherDocument(string execPath, string workingDir, CancellationToken cancellationToken = default)
+        private static async Task<DocumentConfiguration?> GatherDocument(string execPath, string workingDir, bool Verbose, CancellationToken cancellationToken = default)
         {   
             using Aes aes = Aes.Create();
             aes.GenerateKey();
@@ -114,7 +115,12 @@ namespace MongoObject.CliTool.Helpers
                 byte[] encryptedBytes = Convert.FromBase64String(base64EncryptedData);
                 byte[] plainTextBytes = decryptor.TransformFinalBlock(encryptedBytes, 0, encryptedBytes.Length);
                 string decryptedString = Encoding.UTF8.GetString(plainTextBytes);
-            
+                
+                if (Verbose)
+                {
+                    var jsonWidget = new JsonText(decryptedString);
+                    AnsiConsole.Write(jsonWidget);
+                }
                 return BsonSerializer.Deserialize<DocumentConfiguration>(decryptedString);
             }
             catch (Exception ex)

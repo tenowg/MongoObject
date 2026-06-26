@@ -10,6 +10,7 @@ namespace MongoObject.SourceGenerator.Modules
 {
     /// <summary>
     /// Generates the DI registration extension method that registers all discovered document types.
+    /// And builds the BsonDocument used to build the schema in the Cli Tool
     /// </summary>
     internal class ObjectDiscoveryModule : ICodeModuleMultiple
     {
@@ -56,17 +57,11 @@ namespace MongoObject.SourceGenerator.Modules
                     sb.AppendLine("public static void Initialize()");
                     using (sb.Block())
                     {
-                        //sb.AppendLine("var payload = global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument[\"documentSchema\"].AsBsonDocument;");
                         sb.AppendLine("var payload = new global::MongoDB.Bson.BsonDocument();");
                         sb.AppendLine("if (global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument.TryGetValue(\"documentSchema\", out var document))");
                         using(sb.Block())
                         {
                             sb.AppendLine("payload = document.AsBsonDocument;");
-                            //sb.AppendLine("if (payload == null) payload = new BsonDocument();");
-                        }
-                        foreach (var model in encryptedModels)
-                        {
-                            //sb.AppendLine("global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.RegisterDocumentsHook.Add");
                         }
                         foreach (var model in models)
                         {
@@ -77,6 +72,7 @@ namespace MongoObject.SourceGenerator.Modules
                                 {
                                     sb.AppendLine("\"properties\", new global::MongoDB.Bson.BsonArray");
                                     using (sb.Block())
+                                    {
                                         foreach (var prop in model.Properties)
                                         {
                                             sb.AppendLine($"new global::MongoDB.Bson.BsonDocument");
@@ -84,14 +80,18 @@ namespace MongoObject.SourceGenerator.Modules
                                             {
                                                 sb.AppendLine($"{{\"name\", \"{prop.Name}\"}},");
                                                 sb.AppendLine($"{{\"queryName\", \"{prop.QueryName}\"}},");
-                                                sb.AppendLine($"{{\"isEncrypted\", {prop.isEncrypted.ToString().ToLowerInvariant()}}}");
+                                                sb.AppendLine($"{{\"isEncrypted\", {prop.isEncrypted.ToString().ToLowerInvariant()}}},");
+                                                sb.AppendLine($"{{\"bson_type\", \"{prop.BsonType}\"}},");
+                                                sb.AppendLine($"{{\"is_required\", {prop.IsRequired.ToString().ToLowerInvariant()}}}");
                                             }
                                         }
+                                    }
                                 }
                                 sb.AppendLine($"{{\"name\", \"{model.Name}\"}},");
                                 sb.AppendLine($"{{\"is_encrypted\", {model.IsEncryptedModel.ToString().ToLowerInvariant()}}},");
                                 sb.AppendLine($"{{\"collection_name\", \"{model.CollectionName}\"}},");
                                 sb.AppendLine($"{{\"database_name\", \"{model.DatabaseName}\"}},");
+                                sb.AppendLine($"{{\"bson_type\", \"object\"}}");
                             }
                             sb.AppendLine($"payload.Add(\"{model.Name}\", {model.Name}Document);");
                         }

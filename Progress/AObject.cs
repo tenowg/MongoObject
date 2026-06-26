@@ -5,6 +5,7 @@ using MongoObject.Core.Attributes;
 using MongoObject.PropertyEncryption.Attributes;
 using Progress.Kms;
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace Progress.Test
 {
@@ -57,5 +58,6 @@ namespace Progress.Test
     public partial class CObject
     {
         public partial string Name { get; set; } = string.Empty;
+        public partial int Last { get; set; }
     }
 }

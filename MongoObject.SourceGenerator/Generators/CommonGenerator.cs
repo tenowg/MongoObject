@@ -1,11 +1,13 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using MongoObject.SourceGenerator.Helpers;
 using MongoObject.SourceGenerator.Interfaces;
 using MongoObject.SourceGenerator.Models;
 using MongoObject.SourceGenerator.Modules;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.IO.Compression;
 using System.Linq;
 
 namespace MongoObject.SourceGenerator.Generators
@@ -108,6 +110,7 @@ namespace MongoObject.SourceGenerator.Generators
             var projectionAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.Core.Attributes.ProjectValue");
             var encryptedAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.MongoEncryptAttribute");
             var encryptedPropertyAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.EncyptedFieldAttribute");
+            var requiredAttrSymbol = compilation.GetTypeByMetadataName("System.ComponentModel.DataAnnotations.RequiredAttribute");
 
             var databaseName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "DatabaseName").Value.Value?.ToString();
             var collectionName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "CollectionName").Value.Value?.ToString();
@@ -152,7 +155,7 @@ namespace MongoObject.SourceGenerator.Generators
             }
 
             // Process properties and validate non-partial properties
-            var (validProperties, invalidProperties) = ProcessAllProperties(namedTypeSymbol, trackingBaseSymbol, mongoObjectAttrSymbol, indexAttrSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol, projectionAttrSymbol, encryptedPropertyAttrSymbol);
+            var (validProperties, invalidProperties) = ProcessAllProperties(namedTypeSymbol, trackingBaseSymbol, mongoObjectAttrSymbol, indexAttrSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol, projectionAttrSymbol, encryptedPropertyAttrSymbol, requiredAttrSymbol);
 
             Dictionary<string, List<PropertyModel>> indexes = [];
             foreach(var prop in validProperties)
@@ -202,7 +205,8 @@ namespace MongoObject.SourceGenerator.Generators
             INamedTypeSymbol? bsonElementAttrSymbol,
             INamedTypeSymbol? bsonIgnoreAttrSymbol,
             INamedTypeSymbol? projectionAttrSymbol,
-            INamedTypeSymbol? encryptedAttrSymbol)
+            INamedTypeSymbol? encryptedAttrSymbol,
+            INamedTypeSymbol? requiredAttrSymbol)
         {
             var validProperties = ImmutableArray.CreateBuilder<PropertyModel>();
             var invalidProperties = new List<IPropertySymbol>();
@@ -264,6 +268,8 @@ namespace MongoObject.SourceGenerator.Generators
                     IsMongoIndex = isMongoIndex,
                     Indexes = indexName,
                     isEncrypted = isEncrypted,
+                    BsonType = BsonHelpers.GetBsonTypeString(prop.Type),
+                    IsRequired = prop.GetAttributes().Any(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, requiredAttrSymbol))
                 });
             }
 
@@ -340,7 +346,7 @@ namespace MongoObject.SourceGenerator.Generators
                             Name = target.Property.Name,
                             EnumName = EnumToString(target.Attribute),
                             VectorDimensions = dimensions,
-                            SimilarityType = GetSimilarityTypeName(target.Property.GetAttributes().FirstOrDefault(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, projectionAttrSymbol) && x.NamedArguments.Any(x => (x.Key != null && x.Key == "Similarity")))) ?? "Cosine", //.NamedArguments.FirstOrDefault(x => x.Key == "Similarity").Value.Value as string ?? "Cosine",
+                            SimilarityType = GetSimilarityTypeName(target.Property.GetAttributes().FirstOrDefault(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, projectionAttrSymbol) && x.NamedArguments.Any(x => x.Key != null && x.Key == "Similarity"))) ?? "Cosine", //.NamedArguments.FirstOrDefault(x => x.Key == "Similarity").Value.Value as string ?? "Cosine",
                             VectorModel = target.Property.GetAttributes().First(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, projectionAttrSymbol)).NamedArguments.FirstOrDefault(x => x.Key == "VectorModel").Value.Value as string ?? "voyage-4"
                         }
                     };

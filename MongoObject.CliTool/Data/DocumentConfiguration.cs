@@ -1,3 +1,4 @@
+using System.Data.SqlTypes;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MongoObject.CliTool.Data
@@ -20,6 +21,8 @@ namespace MongoObject.CliTool.Data
         public string? KeyVaultCollectionName { get; set; }
         [BsonElement("mongo-crypt-path")]
         public string? MongoCryptPath { get; set; }
+        [BsonElement("migration_folder")]
+        public string? MingrationFolder { get; set; }
     }
 
     public class SchemaObject
@@ -28,31 +31,30 @@ namespace MongoObject.CliTool.Data
         public string Name { get; set; } = string.Empty;
         [BsonElement("properties")]
         public List<SchemaProperty> Properties { get; set; } = [];
-
         [BsonElement("is_encrypted")]
         public bool IsEncrypted { get; set; }
-
         [BsonElement("encryption_key")]
         public string? EncryptionKey { get; set; }
-
         [BsonElement("collection_name")]
         public string? CollectionName { get; set; }
-
         [BsonElement("database_name")]
         public string? DatabaseName { get; set; }
+        [BsonElement("bson_type")]
+        public string BsonType { get; set; } = "object";
     }
 
     public class SchemaProperty
     {
         [BsonElement("name")]
         public string? Name { get; set; }
-
         [BsonElement("queryName")]
         public string? QueryName { get; set; }
-
         [BsonElement("isEncrypted")]
         public bool IsEncrypted { get; set; }
-
+        [BsonElement("bson_type")]
+        public string BsonType { get; set; } = "object";
+        [BsonElement("is_required")]
+        public bool IsRequired { get; set; }
         // I need a list of queryable types for this property
     }
 }

@@ -43,7 +43,7 @@ namespace MongoObject.CliTool.Helpers
             return (client, encryptedClient);
         }
 
-        public static async Task<CollectionDifferences?> GetDifferencesByObject(IMongoClient client, DocumentConfiguration documents)
+        public static async Task<CollectionDifferences?> GetDifferencesByObject(IMongoClient client, DocumentConfiguration documents, bool verbose)
         {
             Dictionary<string, SchemaObject> existingCollections = [];
             Dictionary<string, SchemaObject> newCollections = [];
@@ -92,21 +92,35 @@ namespace MongoObject.CliTool.Helpers
                     }
                 }
             }
-
-            AnsiConsole.MarkupLine($"[green]Found [/][yellow]{databaseNames.Count}[/] [green]databases: [/][yellow]{string.Join(", ", databaseNames)}[/]");
-            // everything below is just debug output to test my information gathering
-            AnsiConsole.MarkupLine($"[green]Found [/][yellow]{existingCollections.Count}[/] [green]existing collections[/]");
-            foreach(var existing in existingCollections)
+            if (verbose)
             {
-                AnsiConsole.MarkupLine($"    [cyan]{existing.Value.DatabaseName}.{existing.Value.CollectionName}[/]");
-            }
-            AnsiConsole.MarkupLine($"[green]Found [/][yellow]{newCollections.Count}[/] [green]new collections[/]");
-            foreach(var newCollection in newCollections)
-            {
-                AnsiConsole.MarkupLine($"    [cyan]{newCollection.Value.DatabaseName}.{newCollection.Value.CollectionName}[/]");
+                AnsiConsole.MarkupLine($"[green]Found [/][yellow]{databaseNames.Count}[/] [green]databases: [/][yellow]{string.Join(", ", databaseNames)}[/]");
+            
+                AnsiConsole.MarkupLine($"[green]Found [/][yellow]{existingCollections.Count}[/] [green]existing collections[/]");
+                foreach(var existing in existingCollections)
+                {
+                    AnsiConsole.MarkupLine($"    [cyan]{existing.Value.DatabaseName}.{existing.Value.CollectionName}[/]");
+                }
+                AnsiConsole.MarkupLine($"[green]Found [/][yellow]{newCollections.Count}[/] [green]new collections[/]");
+                foreach(var newCollection in newCollections)
+                {
+                    AnsiConsole.MarkupLine($"    [cyan]{newCollection.Value.DatabaseName}.{newCollection.Value.CollectionName}[/]");
+                }
             }
 
             return new CollectionDifferences(existingCollections, newCollections);
+        }
+
+        public static async Task ProcessDifferences(IMongoClient standardClient, IMongoClient encryptedClient, CollectionDifferences diffs, CancellationToken cancellationToken = default)
+        {
+            // var options = new CreateCollectionOptions<object>
+            // {
+            //     Validator = "",
+            //     ValidationAction = DocumentValidationAction.Error,
+            //     ValidationLevel = DocumentValidationLevel.Strict
+            // };
+
+            // standardClient.GetDatabase("test").CreateCollection("hello", options, cancellationToken);
         }
     }
 }
