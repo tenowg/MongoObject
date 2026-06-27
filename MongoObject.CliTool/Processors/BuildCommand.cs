@@ -67,9 +67,7 @@ namespace MongoObject.CliTool.Processors
                         return 0;
                     }
 
-                    var sb = new IndentedStringBuilder();
-                    sb.Append(BuilderHelpers.BuildSchema(differences, _client, settings.Verbose, cancellationToken));
-
+                    var schema = BuilderHelpers.BuildSchema(differences, _client, settings.Verbose, cancellationToken);
 
                     return 0;
                 }

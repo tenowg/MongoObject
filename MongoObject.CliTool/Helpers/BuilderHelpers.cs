@@ -1,61 +1,85 @@
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Json.Nodes;
 using MongoDB.Driver;
 using MongoObject.CliTool.Data;
 using Spectre.Console;
 using Spectre.Console.Json;
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
+
 namespace MongoObject.CliTool.Helpers
 {
     public static class BuilderHelpers
     {
-        public static string BuildSchema(CollectionDifferences diffs, IMongoClient standardClient, bool verbose, CancellationToken cancellationToken = default)
+        public static JsonObject BuildSchema(CollectionDifferences diffs, IMongoClient standardClient, bool verbose, CancellationToken cancellationToken = default)
         {
-            
             var jsonBuilder = new JsonObject();
+
             foreach (var diff in diffs.NewCollections)
             {
-                
-                var jsonSchema = jsonBuilder["$jsonSchema"] = new JsonObject();
-
-                jsonSchema["bsonType"] = "object";
-                jsonSchema["title"] = "Student Object Validation";
-                if (diff.Value.Properties.Any(x => x.IsRequired))
-                {
-                    jsonSchema["required"]= new JsonArray(string.Join(", ", diff.Value.Properties.Where(x => x.IsRequired).Select(x => x.QueryName).ToList()));
-                }
-                var properties = new JsonArray();
-                foreach(var prop in diff.Value.Properties)
-                {
-                    var propObject = new JsonObject
-                    {
-                        [prop.QueryName!] = new JsonObject
-                        {
-                            ["bsonType"] = prop.BsonType,
-                            ["description"] = $"{prop.QueryName} must be a ({prop.BsonType}){(prop.IsRequired ? " and is required." : ".")}"
-                        }
-                    };
-                    properties.Add(propObject);
-                }
-                jsonSchema["properties"] = properties;
-            }
-
-            if (verbose)
-            {
-            var test = new JsonText(jsonBuilder.ToString());
-                AnsiConsole.Write(test);
-                AnsiConsole.WriteLine();
-                AnsiConsole.WriteLine();
+                jsonBuilder[diff.Value.CollectionName ?? diff.Key] = BuildCollectionValidator(diff.Value);
             }
 
             foreach (var diff in diffs.ExistingCollections)
             {
-                // TODO, we will need to get the current jsonSchema from mongoDB if this is possible, and diff that then using
-                // interactive console requests, and build the new schema, another method will generate the methods to rename
-                // properties    
+                jsonBuilder[diff.Value.CollectionName ?? diff.Key] = BuildCollectionValidator(diff.Value);
             }
-            return jsonBuilder.ToString();
+ 
+            if (verbose)
+            {
+                var test = new JsonText(jsonBuilder.ToString());
+                AnsiConsole.Write(test);
+                AnsiConsole.WriteLine();
+            }
+
+            return jsonBuilder;
+        }
+
+        private static JsonObject BuildCollectionValidator(SchemaObject schema)
+        {
+            var jsonSchema = new JsonObject
+            {
+                ["bsonType"] = schema.BsonType,
+                ["title"] = $"{schema.Name} Object Validation",
+                ["properties"] = BuildProperties(schema.Properties)
+            };
+
+            var required = BuildRequired(schema.Properties);
+            if (required.Count > 0)
+            {
+                jsonSchema["required"] = required;
+            }
+
+            return new JsonObject
+            {
+                ["$jsonSchema"] = jsonSchema,
+                ["database"] = schema.DatabaseName
+            };
+        }
+
+        private static JsonArray BuildRequired(IEnumerable<SchemaProperty> properties)
+        {
+            var required = new JsonArray();
+
+            foreach (var property in properties.Where(x => x.IsRequired && !string.IsNullOrWhiteSpace(x.QueryName)))
+            {
+                required.Add(property.QueryName);
+            }
+
+            return required;
+        }
+
+        private static JsonObject BuildProperties(IEnumerable<SchemaProperty> properties)
+        {
+            var jsonProperties = new JsonObject();
+
+            foreach (var property in properties.Where(x => !string.IsNullOrWhiteSpace(x.QueryName)))
+            {
+                jsonProperties[$"Document.{property.QueryName!}"] = new JsonObject
+                {
+                    ["bsonType"] = property.BsonType,
+                    ["description"] = $"{property.QueryName} must be a ({property.BsonType}){(property.IsRequired ? " and is required." : ".")}"
+                };
+            }
+
+            return jsonProperties;
         }
     }
 }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.

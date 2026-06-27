@@ -96,6 +96,7 @@ namespace MongoObject.SourceGenerator.Modules
                             sb.AppendLine($"payload.Add(\"{model.Name}\", {model.Name}Document);");
                         }
                         sb.AppendLine($"global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument[\"documentSchema\"] = payload;");
+                        sb.AppendLine($"global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument[\"base_namespace\"] = \"{rootNamespace}\";");
                     }
                 }
             }

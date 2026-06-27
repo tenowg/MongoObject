@@ -29,35 +29,24 @@ namespace MongoObject.CliTool.Helpers
         public void AppendLine() => _sb.AppendLine();
 
         // Opens a block, writes the opening character, and bumps indentation
-        public IndentScope Block(string opener = "{", string closer = "", int indentLevel = 0)
+        public IndentScope Block(string opener = "{", string closer = "}")
         {
             AppendLine(opener);
-            _indentLevel += indentLevel;
-            return new IndentScope(this, closer, _indentLevel);
+            _indentLevel++;
+            return new IndentScope(this, closer);
         }
 
         public override string ToString() => _sb.ToString();
 
         // High-performance struct to handle the closing brace and dedent
-        public readonly struct IndentScope : IDisposable
+        public readonly struct IndentScope(IndentedStringBuilder builder, string closer = "") : IDisposable
         {
-            private readonly IndentedStringBuilder _builder;
-            private readonly string _closer = "";
-            private readonly int _indentLevel = 0;
-
-            public IndentScope(IndentedStringBuilder builder, string closer = "", int indentLevel = 0)
-            {
-                _builder = builder;
-                _closer = closer;
-                _indentLevel = indentLevel;
-            }
-
             public void Dispose()
             {
-                if (_builder != null)
+                if (builder != null)
                 {
-                    _builder._indentLevel -= _indentLevel;
-                    _builder.AppendLine($"}}{_closer}");
+                    builder._indentLevel--;
+                    builder.AppendLine(closer);
                 }
             }
         }

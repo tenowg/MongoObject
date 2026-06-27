@@ -6,6 +6,7 @@ using MongoObject.Core.Data;
 using Spectre.Console;
 using Spectre.Console.Json;
 using System.Diagnostics;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -121,6 +122,7 @@ namespace MongoObject.CliTool.Helpers
                     var jsonWidget = new JsonText(decryptedString);
                     AnsiConsole.Write(jsonWidget);
                 }
+
                 return BsonSerializer.Deserialize<DocumentConfiguration>(decryptedString);
             }
             catch (Exception ex)

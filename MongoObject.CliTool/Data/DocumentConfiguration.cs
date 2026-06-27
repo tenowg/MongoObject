@@ -1,4 +1,3 @@
-using System.Data.SqlTypes;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MongoObject.CliTool.Data
@@ -23,6 +22,8 @@ namespace MongoObject.CliTool.Data
         public string? MongoCryptPath { get; set; }
         [BsonElement("migration_folder")]
         public string? MingrationFolder { get; set; }
+        [BsonElement("base_namespace")]
+        public string? BasNamespace { get; set; }
     }
 
     public class SchemaObject
