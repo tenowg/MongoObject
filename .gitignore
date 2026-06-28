@@ -150,3 +150,5 @@ node_modules/
 /Progress/crypt-master.key.bin
 /Progress/file.bin
 /nupkg
+/Progress/Migrations
+/Progress/Migration.cs
