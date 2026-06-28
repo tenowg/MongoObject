@@ -5,7 +5,7 @@ namespace MongoObject.CliTool.Helpers
     public class IndentedStringBuilder
     {
         private readonly StringBuilder _sb = new();
-        private int _indentLevel = 1;
+        private int _indentLevel = 0;
         private const string IndentString = "    "; // 4 spaces
 
         public void Append(string text)

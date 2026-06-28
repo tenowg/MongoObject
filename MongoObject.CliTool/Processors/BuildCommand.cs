@@ -7,6 +7,9 @@ using System.Reflection.Metadata;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Mvc;
 using Spectre.Console;
+using System.Collections.ObjectModel;
+using System.Text.Json.Nodes;
+using MongoDB.Bson;
 
 namespace MongoObject.CliTool.Processors
 {
@@ -18,12 +21,15 @@ namespace MongoObject.CliTool.Processors
 
         protected override async Task<int> ExecuteAsync(CommandContext context, BuildSettings settings, CancellationToken cancellationToken)
         {
-            return await AnsiConsole.Status()
+            var projectPath = Path.GetFullPath(settings.Project);
+            CollectionDifferences? differences = null;
+            JsonObject? schemas = null;
+            
+            var result = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.BouncingBar)
                 .SpinnerStyle(Style.Parse("green"))
                 .StartAsync("Building Project...", async ctx =>
-                {
-                    var projectPath = Path.GetFullPath(settings.Project);
+                {        
                     _documents = await ResourceHelpers.BuildAndGatherResources(projectPath, settings.Environment, settings.Verbose, cancellationToken);
                     if (_documents == null)
                     {
@@ -54,7 +60,7 @@ namespace MongoObject.CliTool.Processors
                     }
 
                     ctx.Status("Checking for initial Changes...");
-                    var differences = await ClientOperations.GetDifferencesByObject(_client, _documents, settings.Verbose);
+                    differences = await ClientOperations.GetDifferencesByObject(_client, _documents, settings.Verbose);
 
                     if (differences == null)
                     {
@@ -67,11 +73,13 @@ namespace MongoObject.CliTool.Processors
                         return 0;
                     }
 
-                    var schema = BuilderHelpers.BuildSchema(differences, _client, settings.Verbose, cancellationToken);
-
+                    schemas = BuilderHelpers.BuildSchema(differences, _client, settings.Verbose, cancellationToken);
                     return 0;
-                }
-            );
+                });
+            var operations = await ClientOperations.ProcessDifferences(_client, _encryptedClient, schemas, differences, cancellationToken);
+            var fileBuilder = new FileBuilder(projectPath, _documents!, operations, settings, _documents.BasNamespace!);
+            fileBuilder.BuildHeaders();
+            return result;
         }
     }
 }

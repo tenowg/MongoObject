@@ -1,1 +1,1 @@
-internal interface IMigration {}
+public interface IMigration {}

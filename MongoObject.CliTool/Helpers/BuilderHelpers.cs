@@ -50,7 +50,7 @@ namespace MongoObject.CliTool.Helpers
             return new JsonObject
             {
                 ["$jsonSchema"] = jsonSchema,
-                ["database"] = schema.DatabaseName
+                //["database"] = schema.DatabaseName
             };
         }
 

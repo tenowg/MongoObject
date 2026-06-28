@@ -1,13 +1,14 @@
 ﻿using Spectre.Console.Cli;
 using MongoObject.CliTool.Processors;
+using Spectre.Console;
 
 var cancellationTokenSource = new CancellationTokenSource();
   
-System.Console.CancelKeyPress += (_, e) =>
+Console.CancelKeyPress += (_, e) =>
 {
     e.Cancel = true;
     cancellationTokenSource.Cancel();
-    System.Console.WriteLine("Cancellation requested...");
+    AnsiConsole.WriteLine("Cancellation requested...");
 };
 
 var app = new CommandApp();

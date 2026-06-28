@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
+using MongoDB.Driver;
+using MongoObject.Core.Data;
 using MongoObject.Core.Interfaces;
 using MongoObject.Core.Services;
 using System.Diagnostics.CodeAnalysis;
@@ -11,6 +13,21 @@ namespace MongoObject.Core.Extensions
     {
         public static List<Action<IServiceCollection, IConfiguration>> RegisterDocumentsHook { get; } = [];
         public static BsonDocument SchemaDocument { get; } = [];
+        private static readonly Dictionary<Type, Func<IMongoDatabase, string, MigrationOperation, Task>> _handlers = new();
+
+        public static void RegisterHandler<TOp>(Func<IMongoDatabase, string, TOp, Task> handler) 
+        where TOp : MigrationOperation
+        {
+            _handlers[typeof(TOp)] = (db, coll, op) => handler(db, coll, (TOp)op);
+        }
+
+        public static Task ExecuteAsync(Type opType, IMongoDatabase db, string coll, MigrationOperation op)
+        {
+            if (!_handlers.TryGetValue(opType, out var handler))
+                throw new NotSupportedException($"No handler registered for {opType.Name}. Is the extension package missing?");
+            
+            return handler(db, coll, op);
+        }
     }
 
     public class MongoObjectBuilder(IServiceCollection sp)
