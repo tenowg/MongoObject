@@ -22,12 +22,13 @@ namespace CliTool {
         [CommandOption("-e|--environment")]
         [Description("The target environment to use")]
         public string Environment { get; set; } = "Debug";
+
+        [CommandOption("-c|--ci-deploy")]
+        [Description("This will launch a non-interactive version that validates the current migration against the live database")]
+        public bool CIDeploy { get; set; }
     }
 
     internal class MigrateSettings : GlobalSettings
     {
-        [CommandOption("-f|--force")]
-        [Description("Overwrite existing files without prompting")]
-        public bool Force { get; init; }
     }
 }

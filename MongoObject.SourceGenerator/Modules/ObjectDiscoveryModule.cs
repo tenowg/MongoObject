@@ -79,6 +79,7 @@ namespace MongoObject.SourceGenerator.Modules
                                             using (sb.Block(closer: ","))
                                             {
                                                 sb.AppendLine($"{{\"name\", \"{prop.Name}\"}},");
+                                                sb.AppendLine($"{{\"type_name\", \"{(prop.FullName.StartsWith("global::") ? prop.FullName.Substring("global::".Length) : prop.FullName)}\"}},");
                                                 sb.AppendLine($"{{\"queryName\", \"{prop.QueryName}\"}},");
                                                 sb.AppendLine($"{{\"isEncrypted\", {prop.isEncrypted.ToString().ToLowerInvariant()}}},");
                                                 sb.AppendLine($"{{\"bson_type\", \"{prop.BsonType}\"}},");
@@ -91,7 +92,8 @@ namespace MongoObject.SourceGenerator.Modules
                                 sb.AppendLine($"{{\"is_encrypted\", {model.IsEncryptedModel.ToString().ToLowerInvariant()}}},");
                                 sb.AppendLine($"{{\"collection_name\", \"{model.CollectionName}\"}},");
                                 sb.AppendLine($"{{\"database_name\", \"{model.DatabaseName}\"}},");
-                                sb.AppendLine($"{{\"bson_type\", \"object\"}}");
+                                sb.AppendLine($"{{\"bson_type\", \"object\"}},");
+                                sb.AppendLine($"{{\"type_name\", \"{model.Namespace}.{model.Name}\"}},");
                             }
                             sb.AppendLine($"payload.Add(\"{model.Name}\", {model.Name}Document);");
                         }

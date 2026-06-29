@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using MongoDB.Driver;
 using MongoObject.CliTool.Data;
@@ -6,25 +8,26 @@ using Spectre.Console.Json;
 
 namespace MongoObject.CliTool.Helpers
 {
-    public static class BuilderHelpers
+    internal static class BuilderHelpers
     {
-        public static JsonObject BuildSchema(CollectionDifferences diffs, IMongoClient standardClient, bool verbose, CancellationToken cancellationToken = default)
+        public static JsonSchemas BuildSchema(CollectionDifferences diffs, IMongoClient standardClient, bool verbose, CancellationToken cancellationToken = default)
         {
-            var jsonBuilder = new JsonObject();
+            var jsonBuilder = new JsonSchemas();
 
             foreach (var diff in diffs.NewCollections)
             {
-                jsonBuilder[diff.Value.CollectionName ?? diff.Key] = BuildCollectionValidator(diff.Value);
+                jsonBuilder[diff.Value.CollectionName ?? diff.Key] = BuildCollectionValidator(diff.Value, diffs);
             }
 
             foreach (var diff in diffs.ExistingCollections)
             {
-                jsonBuilder[diff.Value.CollectionName ?? diff.Key] = BuildCollectionValidator(diff.Value);
+                jsonBuilder[diff.Value.CollectionName ?? diff.Key] = BuildCollectionValidator(diff.Value, diffs);
             }
  
             if (verbose)
             {
-                var test = new JsonText(jsonBuilder.ToString());
+                var json = JsonSerializer.Serialize(jsonBuilder);
+                var test = new JsonText(json);
                 AnsiConsole.Write(test);
                 AnsiConsole.WriteLine();
             }
@@ -32,54 +35,87 @@ namespace MongoObject.CliTool.Helpers
             return jsonBuilder;
         }
 
-        private static JsonObject BuildCollectionValidator(SchemaObject schema)
+        private static JsonSchemaHeader BuildCollectionValidator(SchemaObject schema, CollectionDifferences diffs)
         {
-            var jsonSchema = new JsonObject
+            var jsonSchema = new JsonSchema
             {
-                ["bsonType"] = schema.BsonType,
-                ["title"] = $"{schema.Name} Object Validation",
-                ["properties"] = BuildProperties(schema.Properties)
+                BsonType = schema.BsonType,
+                Title = $"{schema.Name} Object Validation",
+                Properties = new Dictionary<string, JsonProperty>{
+                    {
+                        "Document", new JsonProperty
+                        {
+                            BsonType = "object",
+                            Description = "Default document inside wrapper"
+                        }
+                    }
+                },
+                Required = ["Document"]
             };
 
-            var required = BuildRequired(schema.Properties);
-            if (required.Count > 0)
-            {
-                jsonSchema["required"] = required;
-            }
-
-            return new JsonObject
-            {
-                ["$jsonSchema"] = jsonSchema,
-                //["database"] = schema.DatabaseName
-            };
+            BuildProperties(diffs, schema.Properties, jsonSchema.Properties, "Document");
+            return new JsonSchemaHeader { JsonSchema = jsonSchema};
         }
 
-        private static JsonArray BuildRequired(IEnumerable<SchemaProperty> properties)
+        private static void BuildRequired(IEnumerable<SchemaProperty> properties, JsonProperty jsonSchema)
         {
-            var required = new JsonArray();
+            var required = properties.Where(x => x.IsRequired && !string.IsNullOrWhiteSpace(x.QueryName)).Select(x => x.QueryName).ToList();
 
-            foreach (var property in properties.Where(x => x.IsRequired && !string.IsNullOrWhiteSpace(x.QueryName)))
+            if (required != null && required.Count > 0)
             {
-                required.Add(property.QueryName);
+                jsonSchema.Required ??= [];
+                jsonSchema.Required.AddRange(required!);
             }
-
-            return required;
         }
 
-        private static JsonObject BuildProperties(IEnumerable<SchemaProperty> properties)
+        private static void BuildProperties(CollectionDifferences diffs, IEnumerable<SchemaProperty> properties, Dictionary<string, JsonProperty> jsonProperties, string key, HashSet<string>? recursionCheck = null, Stack<string>? path = null, int recursions = 0)
         {
-            var jsonProperties = new JsonObject();
-
-            foreach (var property in properties.Where(x => !string.IsNullOrWhiteSpace(x.QueryName)))
+            if (recursions == 0)
             {
-                jsonProperties[$"Document.{property.QueryName!}"] = new JsonObject
-                {
-                    ["bsonType"] = property.BsonType,
-                    ["description"] = $"{property.QueryName} must be a ({property.BsonType}){(property.IsRequired ? " and is required." : ".")}"
-                };
+                recursionCheck = [];
+                path = [];
             }
 
-            return jsonProperties;
+
+            if (recursions > 5)
+            {
+                AnsiConsole.WriteLine("Max number of recursions met, Fix the circlular dependencies to continue.");
+                Environment.Exit(1);    
+            }
+
+            if (jsonProperties.TryGetValue(key, out var jsonProperty))
+            {
+                var schemaProperties = properties.Where(x => !string.IsNullOrWhiteSpace(x.QueryName));
+                BuildRequired(schemaProperties, jsonProperty);
+                foreach (var property in schemaProperties)
+                {   
+                    if (!recursionCheck!.Add(property.TypeName!))
+                    {
+                        throw new InvalidOperationException(
+                            $"Circular MongoObject dependency detected: {string.Join(" -> ", recursionCheck)} -> {property.TypeName}");
+                    }
+
+                    jsonProperty.Properties ??= new();
+                    jsonProperty.Properties[$"{property.QueryName!}"] = new JsonProperty
+                    {
+                        BsonType = property.BsonType,
+                        Description = $"{property.QueryName} must be a ({property.BsonType}){(property.IsRequired ? " and is required." : ".")}"
+                    };
+                    
+                    if (property.BsonType == "object")
+                    {
+                        List<SchemaObject> nested = diffs.ExistingCollections.Where(x => x.Value.TypeName == property.TypeName).Select(x => x.Value).ToList();
+                        List<SchemaObject> newNested = diffs.ExistingCollections.Where(x => x.Value.TypeName == property.TypeName).Select(x => x.Value).ToList();
+                        nested.AddRange(newNested);
+
+                        if (nested.Count > 0)
+                        {
+                            BuildProperties(diffs, nested[0].Properties, jsonProperty.Properties, property.QueryName!, recursionCheck, path, recursions++);
+                        }
+                    }
+                    recursionCheck.Remove(property.TypeName!);
+                }
+            }
         }
     }
 }

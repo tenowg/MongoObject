@@ -1,20 +1,13 @@
-using System.Collections.ObjectModel;
-using System.Security.Cryptography.X509Certificates;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using DnsClient.Protocol;
-using Microsoft.AspNetCore.Mvc;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using MongoDB.Driver.Encryption;
 using MongoObject.CliTool.Data;
 using MongoObject.Core.Data;
 using Spectre.Console;
-using Spectre.Console.Json;
 
 namespace MongoObject.CliTool.Helpers
 {
-    public static class ClientOperations
+    internal static class ClientOperations
     {
         public async static Task<(IMongoClient standard, IMongoClient? encrypted)> CreateClients(DocumentConfiguration documents)
         {
@@ -115,7 +108,7 @@ namespace MongoObject.CliTool.Helpers
             return new CollectionDifferences(existingCollections, newCollections);
         }
 
-        public static async Task<OperationDictionary> ProcessDifferences(IMongoClient standardClient, IMongoClient? encryptedClient, JsonObject schemas, CollectionDifferences diffs, CancellationToken cancellationToken = default)
+        public static async Task<OperationDictionary> ProcessDifferences(IMongoClient standardClient, IMongoClient? encryptedClient, JsonSchemas schemas, CollectionDifferences diffs, CancellationToken cancellationToken = default)
         {
             // var options = new CreateCollectionOptions<object>
             // {

@@ -23,7 +23,7 @@ namespace MongoObject.CliTool.Processors
         {
             var projectPath = Path.GetFullPath(settings.Project);
             CollectionDifferences? differences = null;
-            JsonObject? schemas = null;
+            JsonSchemas? schemas = null;
             
             var result = await AnsiConsole.Status()
                 .Spinner(Spinner.Known.BouncingBar)

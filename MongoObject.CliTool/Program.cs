@@ -18,7 +18,7 @@ app.Configure(config =>
     {
         add.SetDescription("Build and Run Migrations for MongoObjects");
         add.AddCommand<BuildCommand>("build")
-            .WithDescription("Build the migration operation class, this is your first step"); ;
+            .WithDescription("Build the migration operation class, this is your first step");
         add.AddCommand<MigrateCommand>("run")
             .WithDescription("Run the migration operation class, this is your second step");
     });

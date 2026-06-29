@@ -42,6 +42,8 @@ namespace MongoObject.CliTool.Data
         public string? DatabaseName { get; set; }
         [BsonElement("bson_type")]
         public string BsonType { get; set; } = "object";
+        [BsonElement("type_name")]
+        public string? TypeName { get; set; }
     }
 
     public class SchemaProperty
@@ -56,6 +58,8 @@ namespace MongoObject.CliTool.Data
         public string BsonType { get; set; } = "object";
         [BsonElement("is_required")]
         public bool IsRequired { get; set; }
+        [BsonElement("type_name")]
+        public string? TypeName { get; set; }
         // I need a list of queryable types for this property
     }
 }

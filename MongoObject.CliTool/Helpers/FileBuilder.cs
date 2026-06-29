@@ -17,6 +17,8 @@ namespace MongoObject.CliTool.Helpers
             _sb.AppendLine("using MongoDB.Driver;");
             _sb.AppendLine("using MongoDB.Bson;");
             _sb.AppendLine("using MongoDB.Driver.Encryption;");
+            _sb.AppendLine("using MongoDB.Bson.Serialization;");
+            _sb.AppendLine("using MongoObject.Core.Data;");
             _sb.AppendLine();
             _sb.AppendLine($"namespace {projectNamespace}.Migration");
             using (_sb.Block())
@@ -32,14 +34,17 @@ namespace MongoObject.CliTool.Helpers
                     _sb.AppendLine("public MigrationBuilder()");
                     using(_sb.Block())
                     {
+                        _sb.AppendLine("var operations = BsonSerializer.Deserialize<Dictionary<string, MigrationOperation>>(Operations);");
+                        _sb.AppendLine();
                         _sb.AppendLine("var kmsData = MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument.GetValue(\"kmsProviders\", null);");
                         _sb.AppendLine("kmsProviders = kmsData != null ? MongoDB.Bson.Serialization.BsonSerializer.Deserialize<Dictionary<string, IReadOnlyDictionary<string, object>>>(");
                         _sb.AppendLine("    kmsData.AsBsonDocument");
                         _sb.AppendLine(") : null;");
-
+                        _sb.AppendLine();
                         _sb.AppendLine("var connection_string = MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument[\"connection_string\"].AsString;");
                         _sb.AppendLine("var clientSettings = MongoClientSettings.FromUrl(new MongoUrl(connection_string));");
                         _sb.AppendLine("_client = new MongoClient(clientSettings);");
+                        _sb.AppendLine();
                         _sb.AppendLine("if (kmsProviders != null)");
                         using (_sb.Block())
                         {
@@ -84,7 +89,8 @@ namespace MongoObject.CliTool.Helpers
                 using (_opSb.Block())
                 {
                 _opSb.AppendLine("public static string Operations = \"\"\"");
-                _opSb.AppendLine(operationString);
+                _opSb.Append(operationString);
+                _opSb.AppendLine();
                 _opSb.Append("\"\"\";");
                 _opSb.AppendLine();
                 }

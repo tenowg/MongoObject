@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoObject.Core.Extensions;
 
 namespace MongoObject.Core.Data
 {
@@ -11,10 +12,7 @@ namespace MongoObject.Core.Data
         typeof(DeleteCollectionOperation),
         typeof(RenameCollectionOperation),
         typeof(CreateCollectionOperation))] 
-    public abstract record MigrationOperation
-    {
-        
-    }
+    public abstract record MigrationOperation;
 
     public sealed record ApplyValidationSchemaOperation(
         BsonDocument Schema
@@ -46,6 +44,21 @@ namespace MongoObject.Core.Data
         {
             var parts = ns.Split('.');
             return new MongoNamespace(parts[0], parts[1]);
+        }
+    }
+
+    public static class RegisterOperations
+    {
+        public static void Register()
+        {
+            MongoObjectsPluginRegistry.RegisterHandler<CreateCollectionOperation>(async (db, coll, op) =>
+            {
+                Console.WriteLine("Creating Collection");
+            });
+            MongoObjectsPluginRegistry.RegisterHandler<ApplyValidationSchemaOperation>(async (db, coll, op) =>
+            {
+                Console.WriteLine("Applying Validation");
+            });
         }
     }
 }
