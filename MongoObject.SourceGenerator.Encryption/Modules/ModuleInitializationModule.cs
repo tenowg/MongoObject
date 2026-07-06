@@ -11,7 +11,7 @@ namespace MongoObject.SourceGenerator.Encryption.Modules
 {
     internal class ModuleInitializationModule : ICodeModuleMultiple
     {
-        public void Execute(SourceProductionContext context, (ImmutableArray<(CommonModel?, EncryptedPropertyModel?)> models, string rootNamespace) args)
+        public void Execute(SourceProductionContext context, (ImmutableArray<(CommonModel?, EncryptedClassModel?)> models, string rootNamespace) args)
         {
             var models = args.models.Where(x => x.Item1 != null).Select(x => x.Item1);
             var encryptedModels = args.models.Where(x => x.Item2 != null).Select(x => x.Item2);
@@ -40,70 +40,63 @@ namespace MongoObject.SourceGenerator.Encryption.Modules
                             {
 
                                 sb.AppendLine($"//{model!.FullQualifiedName}");
-                                //sb.AppendLine("services.AddKeyedSingleton<MongoObject.PropertyEncryption.Data.KmsProvidersDictionary>(\"KmsProviders\", (sp, _) =>");
-                                //using (sb.Block(closer: ");"))
-                                //{
-                                    //sb.AppendLine("var config = sp.GetService<global::Microsoft.Extensions.Configuration.IConfiguration>();");
-                                    sb.AppendLine("var kmsProviderCredentials = new global::MongoObject.PropertyEncryption.Data.KmsProvidersDictionary();");
+                                sb.AppendLine("var kmsProviderCredentials = new global::MongoObject.PropertyEncryption.Data.KmsProvidersDictionary();");
 
-                                    foreach (var prop in model.Properties)
+                                foreach (var prop in model.Properties)
+                                {
+                                    if (prop.Local is not null)
                                     {
-                                        if (prop.Local is not null)
+                                        sb.AppendLine("try");
+                                        using (sb.Block())
                                         {
-                                            sb.AppendLine("try");
+                                            sb.AppendLine($"var {prop.Name}CustomerMasterKeyBytes = File.ReadAllBytes(\"{prop.Local.BinFilePath}\");");
+                                            sb.AppendLine($"if ({prop.Name}CustomerMasterKeyBytes.Length != 96)");
                                             using (sb.Block())
                                             {
-                                                sb.AppendLine($"var {prop.Name}CustomerMasterKeyBytes = File.ReadAllBytes(\"{prop.Local.BinFilePath}\");");
-                                                sb.AppendLine($"if ({prop.Name}CustomerMasterKeyBytes.Length != 96)");
-                                                using (sb.Block())
-                                                {
-                                                    sb.AppendLine("throw new Exception(\"Expected the customer master key file to be 96 bytes.\");");
-                                                }
-                                                sb.AppendLine($"var {prop.Name}LocalOptions = new Dictionary<string, object>");
-                                                using (sb.Block(closer: ";"))
-                                                {
-                                                    sb.AppendLine($"{{ \"key\", {prop.Name}CustomerMasterKeyBytes }}");
-                                                }
-                                                sb.AppendLine($"kmsProviderCredentials.Add(\"{prop.Local.Key}\", {prop.Name}LocalOptions);");
+                                                sb.AppendLine("throw new Exception(\"Expected the customer master key file to be 96 bytes.\");");
                                             }
-                                            sb.AppendLine("catch");
-                                            using (sb.Block())
+                                            sb.AppendLine($"var {prop.Name}LocalOptions = new Dictionary<string, object>");
+                                            using (sb.Block(closer: ";"))
                                             {
-                                                sb.AppendLine("throw;");
+                                                sb.AppendLine($"{{ \"key\", {prop.Name}CustomerMasterKeyBytes }}");
                                             }
+                                            sb.AppendLine($"kmsProviderCredentials.Add(\"{prop.Local.Key}\", {prop.Name}LocalOptions);");
                                         }
-                                        else if (prop.Aws is not null)
+                                        sb.AppendLine("catch");
+                                        using (sb.Block())
                                         {
-                                            sb.AppendLine($"var {prop.Name}AwsOptions = new Dictionary<string, object>();");
-                                            if (prop.Aws.IsOverrided)
-                                            {
-                                                if (prop.Aws.SessionTokenPath != null)
-                                                {
-                                                    sb.AppendLine($"var {prop.Name}SessionPath = config[\"{prop.Aws.SessionTokenPath}\"];");
-                                                }
-                                                else if (prop.Aws.AccessKeyPath != null && prop.Aws.SecretKeyPath != null)
-                                                {
-                                                    sb.AppendLine($"{prop.Name}AwsOptions.Add(\"accessKeyId\", config[\"{prop.Aws.AccessKeyPath}\"]);");
-                                                    sb.AppendLine($"{prop.Name}AwsOptions.Add(\"secretAccessKey\", config[\"{prop.Aws.SecretKeyPath}\"]);");
-                                                }
-                                            }
-                                            sb.AppendLine($"kmsProviderCredentials.Add(\"{prop.Aws.Key}\", {prop.Name}AwsOptions);");
-                                        }
-                                        else if (prop.Azure is not null)
-                                        {
-                                            sb.AppendLine($"var {prop.Name}AzureOptions = new Dictionary<string, object>();");
-                                            if (prop.Azure.ClientSecretPath != null && prop.Azure.TenantIdPath != null && prop.Azure.ClientIdPath != null)
-                                            {
-                                                sb.AppendLine($"{prop.Name}AzureOptions.Add(\"tenantId\", config[\"{prop.Azure.TenantIdPath}\"]);");
-                                                sb.AppendLine($"{prop.Name}AzureOptions.Add(\"clientId\", config[\"{prop.Azure.ClientIdPath}\"]);");
-                                                sb.AppendLine($"{prop.Name}AzureOptions.Add(\"clientSecret\", config[\"{prop.Azure.ClientSecretPath}\"]);");
-                                            }
-                                            sb.AppendLine($"kmsProviderCredentials.Add(\"{prop.Azure.Key}\", {prop.Name}AzureOptions);");
+                                            sb.AppendLine("throw;");
                                         }
                                     }
-                                //}
-                                //sb.AppendLine("return kmsProviderCredentials;");
-                                //}
+                                    else if (prop.Aws is not null)
+                                    {
+                                        sb.AppendLine($"var {prop.Name}AwsOptions = new Dictionary<string, object>();");
+                                        if (prop.Aws.IsOverrided)
+                                        {
+                                            if (prop.Aws.SessionTokenPath != null)
+                                            {
+                                                sb.AppendLine($"var {prop.Name}SessionPath = config[\"{prop.Aws.SessionTokenPath}\"];");
+                                            }
+                                            else if (prop.Aws.AccessKeyPath != null && prop.Aws.SecretKeyPath != null)
+                                            {
+                                                sb.AppendLine($"{prop.Name}AwsOptions.Add(\"accessKeyId\", config[\"{prop.Aws.AccessKeyPath}\"]);");
+                                                sb.AppendLine($"{prop.Name}AwsOptions.Add(\"secretAccessKey\", config[\"{prop.Aws.SecretKeyPath}\"]);");
+                                            }
+                                        }
+                                        sb.AppendLine($"kmsProviderCredentials.Add(\"{prop.Aws.Key}\", {prop.Name}AwsOptions);");
+                                    }
+                                    else if (prop.Azure is not null)
+                                    {
+                                        sb.AppendLine($"var {prop.Name}AzureOptions = new Dictionary<string, object>();");
+                                        if (prop.Azure.ClientSecretPath != null && prop.Azure.TenantIdPath != null && prop.Azure.ClientIdPath != null)
+                                        {
+                                            sb.AppendLine($"{prop.Name}AzureOptions.Add(\"tenantId\", config[\"{prop.Azure.TenantIdPath}\"]);");
+                                            sb.AppendLine($"{prop.Name}AzureOptions.Add(\"clientId\", config[\"{prop.Azure.ClientIdPath}\"]);");
+                                            sb.AppendLine($"{prop.Name}AzureOptions.Add(\"clientSecret\", config[\"{prop.Azure.ClientSecretPath}\"]);");
+                                        }
+                                        sb.AppendLine($"kmsProviderCredentials.Add(\"{prop.Azure.Key}\", {prop.Name}AzureOptions);");
+                                    }
+                                }
                                 sb.AppendLine("global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument.Add(\"kmsProviders\", kmsProviderCredentials.ToBsonDocument());");
                                 sb.AppendLine();
                                 sb.AppendLine("services.AddKeyedSingleton<global::MongoObject.PropertyEncryption.Data.KmsProvidersDictionary>(\"KmsProviders\", kmsProviderCredentials);");

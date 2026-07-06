@@ -8,9 +8,9 @@ namespace MongoObject.SourceGenerator.Encryption.Modules
 {
     internal class ValidatorModule : ICodeModule
     {
-        public void Execute(SourceProductionContext context, ((CommonModel model, EncryptedPropertyModel encrypted) models, Compilation comp) provider)
+        public void Execute(SourceProductionContext context, ((CommonModel model, EncryptedClassModel encrypted) models, Compilation comp) provider)
         {
-            ((CommonModel model, EncryptedPropertyModel encrypted) allModels, Compilation comp) = provider;
+            ((CommonModel model, EncryptedClassModel encrypted) allModels, Compilation comp) = provider;
             var model = allModels.model;
             if (model == null) return;
 

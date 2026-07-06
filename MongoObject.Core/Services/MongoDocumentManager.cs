@@ -7,7 +7,6 @@ using MongoObject.Core.Data;
 using MongoObject.Core.Interfaces;
 using MongoOptions.Services;
 using System.Linq.Expressions;
-using System.Xml.Linq;
 
 namespace MongoObject.Core.Services
 {
@@ -79,7 +78,6 @@ namespace MongoObject.Core.Services
             foreach (var item in items)
             {
                 if (item.Document == null) continue;
-                //_entityTracker.AddOrUpdate(item.Document, item.Id);
                 var key = keyManager.SetKey(item);
                 cache.Add(key, item, cacheOptions);
                 result.Add(item.Document);
@@ -150,9 +148,6 @@ namespace MongoObject.Core.Services
                 .Skip(skip)
                 .As<BsonDocument>()
                 .ToListAsync();
-            //var items = await results.ToListAsync();
-
-            //bool isTrackable = typeof(IDocumentFileInternal).IsAssignableFrom(typeof(T));
 
             List<T> result = [];
 
@@ -174,21 +169,13 @@ namespace MongoObject.Core.Services
                 var typedDocument = BsonSerializer.Deserialize<MongoDocument<T>>(item) ?? throw new Exception("Invalid item type returned");
                 typedDocument.Document?.Version = version;
 
-                //if (item.Document == null) continue;
-                //item.Document.Version = item.Metadata["Version"].AsInt64;
                 keyManager.SetKey(typedDocument);
-                //cache.Add(key, item, cacheOptions);
                 result.Add(typedDocument.Document!);
 
                 if (isTrackable)
                 {
                     ((IDocumentFileInternal)typedDocument.Document!).TrackChanges();
                 }
-
-                //if (item.Document is IDocumentFileInternal internalDocument)
-                //{ 
-                //    internalDocument.TrackChanges();
-                //}
             }
 
             return result;

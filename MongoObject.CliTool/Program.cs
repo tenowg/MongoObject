@@ -1,23 +1,26 @@
-﻿using CliTool;
-using Spectre.Console.Cli;
+﻿using Spectre.Console.Cli;
 using MongoObject.CliTool.Processors;
+using Spectre.Console;
 
-var app = new CommandApp<MigrateCommand>();
-return app.Run(args);
-
-internal class MigrateCommand : Command<Settings>
+var cancellationTokenSource = new CancellationTokenSource();
+  
+Console.CancelKeyPress += (_, e) =>
 {
-    private List<IProcessor> processors =
-        [
-            new MigrationProcessor()
-        ];
+    e.Cancel = true;
+    cancellationTokenSource.Cancel();
+    AnsiConsole.WriteLine("Cancellation requested...");
+};
 
-    protected override int Execute(CommandContext context, Settings settings, CancellationToken cancellation)
+var app = new CommandApp();
+app.Configure(config =>
+{
+    config.AddBranch("migrate", add =>
     {
-        foreach(var process in processors)
-        {
-            process.Execute(settings);
-        }
-        return 0;
-    }
-}
+        add.SetDescription("Build and Run Migrations for MongoObjects");
+        add.AddCommand<BuildCommand>("build")
+            .WithDescription("Build the migration operation class, this is your first step");
+        add.AddCommand<MigrateCommand>("run")
+            .WithDescription("Run the migration operation class, this is your second step");
+    });
+});
+return await app.RunAsync(args, cancellationTokenSource.Token);

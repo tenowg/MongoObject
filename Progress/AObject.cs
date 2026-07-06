@@ -5,6 +5,7 @@ using MongoObject.Core.Attributes;
 using MongoObject.PropertyEncryption.Attributes;
 using Progress.Kms;
 using System.Collections.ObjectModel;
+using System.ComponentModel.DataAnnotations;
 
 namespace Progress.Test
 {
@@ -21,6 +22,7 @@ namespace Progress.Test
         [ProjectValue("Other", ProjectionType.Exclude)]
         [ProjectValue("VectorTest", ProjectionType.AutoVector, Similarity = VectorSimilarity.Cosine)]
         [MongoIndex("NameIndex", Type = IndexType.Ascending, Unique = true)]
+        [Required]
         //[BsonElement("name")]
         public partial string Name { get; set; }
         [ProjectValue("Other", ProjectionType.Include)]
@@ -51,5 +53,14 @@ namespace Progress.Test
         [EncyptedField]
         public partial int Age { get; set; }
         public partial TestA Test { get; set; } = new();
+    }
+
+    [MongoObject]
+    public partial class CObject
+    {
+        public partial string Name { get; set; } = string.Empty;
+        [BsonElement("last")]
+        public partial int Last { get; set; }
+        public partial int Age { get; set; }
     }
 }

@@ -1,4 +1,3 @@
-using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MongoObject.CliTool.Data
@@ -6,40 +5,61 @@ namespace MongoObject.CliTool.Data
     [BsonIgnoreExtraElements]
     public class DocumentConfiguration
     {
+        
         [BsonElement("connection_string")]
         public string? ConnectionString { get; set; }
-
+        [BsonElement("default_database")]
+        public string? DefaultDatabase { get; set; }
         [BsonElement("documentSchema")]
         public Dictionary<string, SchemaObject>? DocumentSchema { get; set; }
-
         [BsonElement("kmsProviders")]
         public KmsProvidersDictionary? KmsProviders { get; set; }
+        [BsonElement("key_vault_database")]
+        public string? KeyVaultDatabaseName { get; set; }
+        [BsonElement("key-vault-collection")]
+        public string? KeyVaultCollectionName { get; set; }
+        [BsonElement("mongo-crypt-path")]
+        public string? MongoCryptPath { get; set; }
+        [BsonElement("migration_folder")]
+        public string? MingrationFolder { get; set; }
+        [BsonElement("base_namespace")]
+        public string? BasNamespace { get; set; }
     }
 
     public class SchemaObject
     {
+        [BsonElement("name")]
+        public string Name { get; set; } = string.Empty;
         [BsonElement("properties")]
-        public List<SchemaProperty> Properties { get; set; }
-
+        public List<SchemaProperty> Properties { get; set; } = [];
         [BsonElement("is_encrypted")]
         public bool IsEncrypted { get; set; }
-
+        [BsonElement("encryption_key")]
+        public string? EncryptionKey { get; set; }
         [BsonElement("collection_name")]
-        public string CollectionName { get; set; }
-
+        public string? CollectionName { get; set; }
         [BsonElement("database_name")]
-        public string DatabaseName { get; set; }
+        public string? DatabaseName { get; set; }
+        [BsonElement("bson_type")]
+        public string BsonType { get; set; } = "object";
+        [BsonElement("type_name")]
+        public string? TypeName { get; set; }
     }
 
     public class SchemaProperty
     {
         [BsonElement("name")]
-        public string Name { get; set; }
-
+        public string? Name { get; set; }
         [BsonElement("queryName")]
-        public string QueryName { get; set; }
-
+        public string? QueryName { get; set; }
         [BsonElement("isEncrypted")]
         public bool IsEncrypted { get; set; }
+        [BsonElement("bson_type")]
+        public string BsonType { get; set; } = "object";
+        [BsonElement("is_required")]
+        public bool IsRequired { get; set; }
+        [BsonElement("type_name")]
+        public string? TypeName { get; set; }
+        // I need a list of queryable types for this property
     }
 }

@@ -11,7 +11,7 @@ namespace MongoObject.SourceGenerator.Encryption.Modules
 {
     internal class AttributeModule : CodeModule
     {
-        public override void Execute(SourceProductionContext context, ((CommonModel model, EncryptedPropertyModel encrypted) models, Compilation comp) provider)
+        public override void Execute(SourceProductionContext context, ((CommonModel model, EncryptedClassModel encrypted) models, Compilation comp) provider)
         {
             //Debugger.Launch();
             var model = provider.models.model;
