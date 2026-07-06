@@ -15,7 +15,7 @@ namespace MongoObject.Core.Data
     public abstract record MigrationOperation;
 
     public sealed record ApplyValidationSchemaOperation(
-        BsonDocument Schema
+        [property: BsonElement("Schema")] BsonDocument Schema
     ) : MigrationOperation;
 
     public sealed record RenamePropertyOperation(

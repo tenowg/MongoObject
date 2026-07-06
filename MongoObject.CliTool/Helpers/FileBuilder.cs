@@ -19,6 +19,8 @@ namespace MongoObject.CliTool.Helpers
             _sb.AppendLine("using MongoDB.Driver.Encryption;");
             _sb.AppendLine("using MongoDB.Bson.Serialization;");
             _sb.AppendLine("using MongoObject.Core.Data;");
+            _sb.AppendLine("using MongoObject.Core.Extensions;");
+            _sb.AppendLine("using System.Runtime.CompilerServices;");
             _sb.AppendLine();
             _sb.AppendLine($"namespace {projectNamespace}.Migration");
             using (_sb.Block())
@@ -34,8 +36,6 @@ namespace MongoObject.CliTool.Helpers
                     _sb.AppendLine("public MigrationBuilder()");
                     using(_sb.Block())
                     {
-                        _sb.AppendLine("var operations = BsonSerializer.Deserialize<Dictionary<string, MigrationOperation>>(Operations);");
-                        _sb.AppendLine();
                         _sb.AppendLine("var kmsData = MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument.GetValue(\"kmsProviders\", null);");
                         _sb.AppendLine("kmsProviders = kmsData != null ? MongoDB.Bson.Serialization.BsonSerializer.Deserialize<Dictionary<string, IReadOnlyDictionary<string, object>>>(");
                         _sb.AppendLine("    kmsData.AsBsonDocument");
@@ -64,6 +64,36 @@ namespace MongoObject.CliTool.Helpers
                             _sb.AppendLine("    autoClientSettings.AutoEncryptionOptions = autoEncryptionOptions;");
 
                             _sb.AppendLine("    _encryptionClient = new MongoClient(autoClientSettings);");
+                        }
+                    }
+
+                    _sb.AppendLine("public async Task RunMigration()");
+                    using (_sb.Block())
+                    {
+                        _sb.AppendLine("var operations = BsonSerializer.Deserialize<Dictionary<string, List<MigrationOperation>>>(Operations);");
+                        _sb.AppendLine();
+                        _sb.AppendLine("foreach(var operation in operations)");
+                        using(_sb.Block())
+                        {   
+                            _sb.AppendLine("var dbinfo = MongoNamespace.Parse(operation.Key);");
+                            _sb.AppendLine("var db = _client.GetDatabase(dbinfo.Database);");
+                            _sb.AppendLine("foreach (var item in operation.Value)");
+                            using(_sb.Block())
+                            {
+                                _sb.AppendLine("await MongoObjectsPluginRegistry.ExecuteAsync(item.GetType(), db, dbinfo.Collection, item);");
+                            }
+                        }
+                    }
+
+                    _sb.AppendLine("[ModuleInitializer]");
+                    _sb.AppendLine("public static void Initialize()");
+                    using (_sb.Block())
+                    {
+                        _sb.AppendLine("MongoObjectsPluginRegistry.RegisterMigration(async () =>");
+                        using(_sb.Block(closer: "});"))
+                        {
+                            _sb.AppendLine("var builder = new MigrationBuilder();");
+                            _sb.AppendLine("await builder.RunMigration();");
                         }
                     }
                 }

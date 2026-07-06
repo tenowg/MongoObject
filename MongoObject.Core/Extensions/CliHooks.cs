@@ -15,20 +15,34 @@ internal static class CliHooks
             MongoBuildPath(options);
         }
 
-        if (args.Contains("mongoobject-run-migration"))
+        if (args.Contains("--mongoobject-run-migration"))
         {
-            MongoRunMigration();
+            // we will do this differently
+            var bson = MongoObjectsPluginRegistry.SchemaDocument;
+            bson.Add("connection_string", options.ConnectionString ?? "");
+            bson.Add("default_database", options.DatabaseName);
+            bson.Add("migration_folder", options.MigrationFolder);
+
+            await MongoRunMigration();
         }
     }
 
-    private static void MongoRunMigration()
+    private static async Task MongoRunMigration()
     {
-        
+        Console.WriteLine("----------------------------------------------------------------------------------------------");
+        try 
+        {
+            await MongoObjectsPluginRegistry.RunMigrations();
+        } 
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        Environment.Exit(0);
     }
 
     private static void MongoBuildPath(MongoObjectOptions options)
     {
-        Console.WriteLine("Starting");
         string? envKey = Environment.GetEnvironmentVariable("IPC_AES_KEY");
         string? envIV = Environment.GetEnvironmentVariable("IPC_AES_IV");
         if (string.IsNullOrEmpty(envKey) || string.IsNullOrEmpty(envIV))

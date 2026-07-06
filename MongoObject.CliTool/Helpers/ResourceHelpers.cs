@@ -44,6 +44,75 @@ namespace MongoObject.CliTool.Helpers
             return await GatherDocument(execPath, workingDir, verbose, cancellationToken);
         }
 
+        public static async Task<int> BuildAndExecuteMigrations(string projectPath, string environment, bool verbose, CancellationToken cancellationToken = default)
+        {
+            var flowControl = await BuildProject(projectPath, environment, cancellationToken);
+            if (!flowControl)
+            {
+                return 1;
+            }
+
+            var execPath = await GetExecPath(projectPath, environment);
+
+            if (string.IsNullOrEmpty(execPath))
+            {
+                Console.WriteLine("ExecutionPath cannot be determined from Project path, ensure the path is correct and try again");
+                return 1;
+            }
+
+            string? workingDir = projectPath.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase)
+                ? Path.GetDirectoryName(projectPath)
+                : projectPath;
+
+            if (workingDir == null)
+            {
+                Console.WriteLine("WorkingDirectory cannot be determined from Project path");
+                return 1;
+            }
+            
+            return await ExecuteMigration(execPath, workingDir, verbose, cancellationToken);
+        }
+
+        private static async Task<int> ExecuteMigration(string execPath, string workingDir, bool Verbose, CancellationToken cancellationToken = default)
+        {   
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                ArgumentList = {"exec", execPath, "--mongoobject-run-migration"},
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = workingDir
+            };
+
+            using Process process = new() { StartInfo = startInfo };
+            process.ErrorDataReceived += (sender, args) =>
+            {
+                if (!string.IsNullOrWhiteSpace(args.Data))
+                {
+                    Console.WriteLine($"[SUBPROCESS ERROR]: {args.Data}");
+                }
+            };
+            process.OutputDataReceived += (sender, args) =>
+            {
+                AnsiConsole.WriteLine(args.Data!);
+            };
+
+            process.Start();
+            process.BeginErrorReadLine();
+            process.BeginOutputReadLine();
+            await process.WaitForExitAsync(cancellationToken);
+
+            if (process.ExitCode != 0)
+            {
+                Console.WriteLine("[RESPONSE ERROR] Project failed to run during Information gathering stage");
+                return 1;
+            }
+
+            return 0;
+        }
+
         private static async Task<DocumentConfiguration?> GatherDocument(string execPath, string workingDir, bool Verbose, CancellationToken cancellationToken = default)
         {   
             using Aes aes = Aes.Create();
@@ -89,7 +158,6 @@ namespace MongoObject.CliTool.Helpers
                     {
                         AnsiConsole.WriteLine(line);
                     }
-                    
                 }
             };
 

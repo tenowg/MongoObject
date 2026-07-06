@@ -1,8 +1,6 @@
 ﻿using CliTool;
+using MongoObject.CliTool.Helpers;
 using Spectre.Console.Cli;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace MongoObject.CliTool.Processors
 {
@@ -10,7 +8,8 @@ namespace MongoObject.CliTool.Processors
     {
         protected override async Task<int> ExecuteAsync(CommandContext context, MigrateSettings settings, CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            var projectPath = Path.GetFullPath(settings.Project);
+            return await ResourceHelpers.BuildAndExecuteMigrations(projectPath, settings.Environment, settings.Verbose, cancellationToken);
         }
     }
 }

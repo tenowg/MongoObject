@@ -15,16 +15,31 @@ namespace MongoObject.Core.Extensions
         public static BsonDocument SchemaDocument { get; } = [];
         private static readonly Dictionary<Type, Func<IMongoDatabase, string, MigrationOperation, Task>> _handlers = new();
 
+        private static Func<Task>? _migrateTask;
+
         public static void RegisterHandler<TOp>(Func<IMongoDatabase, string, TOp, Task> handler) 
         where TOp : MigrationOperation
         {
             _handlers[typeof(TOp)] = (db, coll, op) => handler(db, coll, (TOp)op);
         }
 
-        public static Task ExecuteAsync(Type opType, IMongoDatabase db, string coll, MigrationOperation op)
+        public static void RegisterMigration(Func<Task> migrationTask)
         {
-            if (!_handlers.TryGetValue(opType, out var handler))
-                throw new NotSupportedException($"No handler registered for {opType.Name}. Is the extension package missing?");
+            _migrateTask = migrationTask;
+        }
+
+        public static async Task RunMigrations()
+        {
+            if (_migrateTask != null)
+            {
+                await _migrateTask();
+            }
+        }
+
+        public static Task ExecuteAsync(Type type, IMongoDatabase db, string coll, MigrationOperation op)
+        {
+            if (!_handlers.TryGetValue(type, out var handler))
+                throw new NotSupportedException($"No handler registered for {type.Name}. Is the extension package missing?");
             
             return handler(db, coll, op);
         }

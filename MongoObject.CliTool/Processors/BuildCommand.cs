@@ -73,9 +73,36 @@ namespace MongoObject.CliTool.Processors
                         return 0;
                     }
 
-                    schemas = BuilderHelpers.BuildSchema(differences, _client, settings.Verbose, cancellationToken);
+                    try 
+                    {
+                        schemas = BuilderHelpers.BuildSchema(differences, _client, settings.Verbose, cancellationToken);
+                    }
+                    catch(InvalidOperationException ex)
+                    {
+                        AnsiConsole.MarkupLine($"[red]Error creating schemas: {ex.Message}");
+                        return 1;
+                    }
                     return 0;
                 });
+
+            if (_client == null)
+            {
+                AnsiConsole.WriteLine("Error creating Mongo Client");
+                return 1;
+            }
+
+            if (schemas == null)
+            {
+                AnsiConsole.WriteLine("Error generating Schema documents");
+                return 1;
+            }
+
+            if (differences == null)
+            {
+                AnsiConsole.WriteLine("Error Validating differences");
+                return 1;
+            }
+
             var operations = await ClientOperations.ProcessDifferences(_client, _encryptedClient, schemas, differences, cancellationToken);
             var fileBuilder = new FileBuilder(projectPath, _documents!, operations, settings, _documents.BasNamespace!);
             fileBuilder.BuildHeaders();

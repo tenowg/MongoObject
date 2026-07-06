@@ -1,6 +1,4 @@
-using System.Collections.ObjectModel;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using MongoDB.Driver;
 using MongoObject.CliTool.Data;
 using Spectre.Console;
@@ -70,14 +68,10 @@ namespace MongoObject.CliTool.Helpers
 
         private static void BuildProperties(CollectionDifferences diffs, IEnumerable<SchemaProperty> properties, Dictionary<string, JsonProperty> jsonProperties, string key, HashSet<string>? recursionCheck = null, Stack<string>? path = null, int recursions = 0)
         {
-            if (recursions == 0)
-            {
-                recursionCheck = [];
-                path = [];
-            }
+            recursionCheck ??= [];
+            path ??= [];
 
-
-            if (recursions > 5)
+            if (recursions > 100)
             {
                 AnsiConsole.WriteLine("Max number of recursions met, Fix the circlular dependencies to continue.");
                 Environment.Exit(1);    
