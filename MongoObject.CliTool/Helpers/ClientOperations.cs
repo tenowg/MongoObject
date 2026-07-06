@@ -1,4 +1,5 @@
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
 using MongoDB.Driver.Encryption;
 using MongoObject.CliTool.Data;
@@ -110,14 +111,6 @@ namespace MongoObject.CliTool.Helpers
 
         public static async Task<OperationDictionary> ProcessDifferences(IMongoClient standardClient, IMongoClient? encryptedClient, JsonSchemas schemas, CollectionDifferences diffs, CancellationToken cancellationToken = default)
         {
-            // var options = new CreateCollectionOptions<object>
-            // {
-            //     Validator = "",
-            //     ValidationAction = DocumentValidationAction.Error,
-            //     ValidationLevel = DocumentValidationLevel.Strict
-            // };
-
-            // standardClient.GetDatabase("test").CreateCollection("hello", options, cancellationToken);
             var operations = new OperationDictionary();
 
             foreach(var diff in diffs.ExistingCollections)
@@ -125,11 +118,58 @@ namespace MongoObject.CliTool.Helpers
                 AnsiConsole.WriteLine($"Processing {diff.Key}");
                 var database = standardClient.GetDatabase(diff.Value.DatabaseName);
                 var jsonSchema = await GetCollectionValidatorSchemaAsync(database, diff.Value.CollectionName!);
+                var newSchema = schemas[diff.Value.CollectionName!].JsonSchema.ToBsonDocument();
 
                 if (jsonSchema != null)
                 {
                     // here is where we will check for diffs, if there are any we write renameoperations, remove, or delete operations.
-                    AnsiConsole.WriteLine(jsonSchema.ToString());
+                    var existingProperties = jsonSchema.GetValue("$jsonSchema", new BsonDocument()).AsBsonDocument.GetValue("properties", new BsonDocument()).AsBsonDocument;
+                    var newProperties = newSchema.GetValue("properties", new BsonDocument()).AsBsonDocument; //.GetValue("properties").AsBsonDocument;
+                    var schemaDiff = CompareSchemas(existingProperties, newProperties);
+                    //AnsiConsole.WriteLine(jsonSchema.ToString());
+                    if (schemaDiff == null || (schemaDiff.AddedFields.Count == 0 && schemaDiff.RemovedFields.Count == 0 && schemaDiff.ChangedFields.Count == 0))
+                    {
+                        AnsiConsole.WriteLine("No changes detected, not appling schema");
+                    }
+                    else
+                    {
+                        foreach (var changed in schemaDiff.ChangedFields)
+                            Console.WriteLine($"[CHANGED] {changed} — will be updated.");
+
+                        var resolutions = ResolveMigrationIntent(schemaDiff);
+
+                        if (resolutions.Count > 0)
+                        {
+                            operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(new CliOperation("DisableValidation"));
+                        }
+
+                        // now we go thru each change and make the right operation
+                        foreach (var kvp in resolutions)
+                        {
+                            switch(kvp.Value)
+                            {
+                                case "new":
+                                    AnsiConsole.WriteLine($"The new property {kvp.Key} will be added.");
+                                    break;
+                                case "removed":
+                                    AnsiConsole.WriteLine($"The property {kvp.Key} will be removed");
+                                    break;
+                                default:
+                                    AnsiConsole.WriteLine($"The property {kvp.Value} will be renamed to {kvp.Key}");
+                                    operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(new CliOperation("RenamePropertyOperation")
+                                    {
+                                        {"From", kvp.Value},
+                                        {"To", kvp.Key}
+                                    });
+                                    break;
+                            }
+                        }
+                        
+                        operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(new CliOperation("ApplyValidationSchemaOperation")
+                        {
+                            {"Schema", schemas[diff.Value.CollectionName!]!}  
+                        });
+                    }
                 }
                 else
                 {
@@ -176,5 +216,115 @@ namespace MongoObject.CliTool.Helpers
 
             return null; // No validator schema found
         }
+
+        public static SchemaDiff CompareSchemas(BsonDocument existingProps, BsonDocument newProps, string path = "")
+        {
+            var diff = new SchemaDiff();
+
+            // --- Detect Added and Changed ---
+            foreach (var property in newProps)
+            {
+                string currentPath = string.IsNullOrEmpty(path) ? property.Name : $"{path}.{property.Name}";
+
+                if (!existingProps.Contains(property.Name))
+                {
+                    diff.AddedFields.Add(currentPath);
+                }
+                else
+                {
+                    var oldVal = existingProps[property.Name];
+                    var newVal = property.Value;
+
+                    if (!oldVal.Equals(newVal))
+                    {
+                        // Recurse into nested objects
+                        if (oldVal.IsBsonDocument && newVal.IsBsonDocument &&
+                            oldVal.AsBsonDocument.Contains("properties") &&
+                            newVal.AsBsonDocument.Contains("properties"))
+                        {
+                            var nestedDiff = CompareSchemas(
+                                oldVal.AsBsonDocument["properties"].AsBsonDocument,
+                                newVal.AsBsonDocument["properties"].AsBsonDocument,
+                                currentPath
+                            );
+
+                            diff.AddedFields.AddRange(nestedDiff.AddedFields);
+                            diff.RemovedFields.AddRange(nestedDiff.RemovedFields);
+                            diff.ChangedFields.AddRange(nestedDiff.ChangedFields);
+                        }
+                        else
+                        {
+                            diff.ChangedFields.Add(currentPath);
+                        }
+                    }
+                }
+            }
+
+            // --- Detect Removed ---
+            foreach (var property in existingProps)
+            {
+                string currentPath = string.IsNullOrEmpty(path) ? property.Name : $"{path}.{property.Name}";
+
+                if (!newProps.Contains(property.Name))
+                {
+                    diff.RemovedFields.Add(currentPath);
+                }
+            }
+
+            return diff;
+        }
+
+        public static Dictionary<string, string> ResolveMigrationIntent(SchemaDiff diff)
+        {
+            // Key = new field path, Value = resolved intent ("new" or the old field path it was renamed from)
+            var resolutions = new Dictionary<string, string>();
+
+            foreach (var addedField in diff.AddedFields)
+            {
+                Console.WriteLine($"\n[?] Field '{addedField}' appears to be new.");
+
+                if (diff.RemovedFields.Any())
+                {
+                    Console.WriteLine("    Is this a new field, or was it renamed from an existing one?");
+                    Console.WriteLine("    [0] New field");
+
+                    for (int i = 0; i < diff.RemovedFields.Count; i++)
+                    {
+                        Console.WriteLine($"    [{i + 1}] Renamed from '{diff.RemovedFields[i]}'");
+                    }
+
+                    Console.Write("    Enter choice: ");
+                    var input = Console.ReadLine();
+
+                    if (int.TryParse(input, out int choice) && choice > 0 && choice <= diff.RemovedFields.Count)
+                    {
+                        var renamedFrom = diff.RemovedFields[choice - 1];
+                        resolutions[addedField] = renamedFrom;
+                        Console.WriteLine($"    -> Marked as rename: '{renamedFrom}' -> '{addedField}'");
+                    }
+                    else
+                    {
+                        resolutions[addedField] = "new";
+                        Console.WriteLine($"    -> Marked as new field.");
+                    }
+                }
+                else
+                {
+                    resolutions[addedField] = "new";
+                    Console.WriteLine($"    -> No removed fields to match against. Marked as new.");
+                }
+            }
+
+            // Any removed fields not claimed as a rename source are true removals
+            var claimedRemovals = resolutions.Values.Where(v => v != "new").ToHashSet();
+            foreach (var removedField in diff.RemovedFields.Where(r => !claimedRemovals.Contains(r)))
+            {
+                Console.WriteLine($"\n[REMOVED] '{removedField}' was not matched to any new field. It will be treated as removed.");
+                resolutions[removedField] = "removed";
+            }
+
+            return resolutions;
+        }
+
     }
 }

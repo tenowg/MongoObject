@@ -59,6 +59,8 @@ namespace Progress.Test
     public partial class CObject
     {
         public partial string Name { get; set; } = string.Empty;
+        [BsonElement("last")]
         public partial int Last { get; set; }
+        public partial int Age { get; set; }
     }
 }
