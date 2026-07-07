@@ -126,5 +126,19 @@ namespace MongoObject.SourceGenerator.Generators
                 _ => throw new ArgumentOutOfRangeException(nameof(projectionType), $"Unsupported projection type: {projectionType}")
             };
         }
+
+        public static string GetMigrationPolicy(AttributeData? attributeData)
+        {
+            if (attributeData == null) return "Warn";
+            var projectionType = attributeData.ConstructorArguments.FirstOrDefault().Value as int? ?? 0;
+            return projectionType switch
+            {
+                0 => "AlwaysAsk",
+                1 => "Ignore",
+                2 => "Warn",
+                3 => "Delete",
+                _ => throw new ArgumentOutOfRangeException(nameof(projectionType), $"Unsupported projection type: {projectionType}")
+            };
+        }
     }
 }

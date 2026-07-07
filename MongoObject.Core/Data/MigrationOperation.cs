@@ -14,7 +14,10 @@ namespace MongoObject.Core.Data
         typeof(RenameCollectionOperation),
         typeof(DisableValidation),
         typeof(CreateCollectionOperation))] 
-    public abstract record MigrationOperation;
+    public abstract record MigrationOperation
+    {
+        public bool RequiresEnc { get; init; } = false;
+    };
 
     public sealed record ApplyValidationSchemaOperation(
         [property: BsonElement("Schema")] BsonDocument Schema
@@ -120,6 +123,16 @@ namespace MongoObject.Core.Data
                 await collection.UpdateManyAsync(
                     FilterDefinition<BsonDocument>.Empty,
                     rename);
+            });
+
+            MongoObjectsPluginRegistry.RegisterHandler<DeletePropertyOperation>(async (db, coll, op) =>
+            {
+                Console.WriteLine($"Deleting Property {op.Property}.");
+                var collection = db.GetCollection<BsonDocument>(coll);
+                var filter = Builders<BsonDocument>.Filter.Empty;
+                var update = Builders<BsonDocument>.Update.Unset(op.Property);
+
+                await collection.UpdateManyAsync(filter, update);
             });
         }
     }

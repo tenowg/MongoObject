@@ -4,6 +4,7 @@ using MongoDB.Driver;
 using MongoDB.Driver.Encryption;
 using MongoObject.CliTool.Data;
 using MongoObject.Core.Data;
+using SharpCompress.Compressors.Filters;
 using Spectre.Console;
 
 namespace MongoObject.CliTool.Helpers
@@ -146,6 +147,7 @@ namespace MongoObject.CliTool.Helpers
                         // now we go thru each change and make the right operation
                         foreach (var kvp in resolutions)
                         {
+                            var delete = false;
                             switch(kvp.Value)
                             {
                                 case "new":
@@ -153,6 +155,30 @@ namespace MongoObject.CliTool.Helpers
                                     break;
                                 case "removed":
                                     AnsiConsole.WriteLine($"The property {kvp.Key} will be removed");
+                                    switch(diff.Value.MigrationPolicy)
+                                    {
+                                        case "AlwaysAsk":
+                                            // create interactive script
+                                            delete = AnsiConsole.Confirm($"{kvp.Key} has been removed from the POCO ({diff.Key}), do you want to delete the field's data?");
+                                            break;
+                                        case "Ignore":
+                                            // its fine, do nothing
+                                            break;
+                                        case "Warn":
+                                            AnsiConsole.MarkupLine($"[yellow]{kvp.Key} will be Orphaned Data, to force deletion use [/][red]MigrationSchemaAttribute[/][yellow] and set the policy to Delete[/]");
+                                            break;
+                                        case "Delete":
+                                            delete = true;
+                                            break;
+                                    }
+                                    if (delete)
+                                    {
+                                        // remove the field by setting the operation
+                                        operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(new CliOperation("DeletePropertyOperation")
+                                        {
+                                             {"Property", kvp.Key} 
+                                        });
+                                    }
                                     break;
                                 default:
                                     AnsiConsole.WriteLine($"The property {kvp.Value} will be renamed to {kvp.Key}");
@@ -281,37 +307,43 @@ namespace MongoObject.CliTool.Helpers
 
             foreach (var addedField in diff.AddedFields)
             {
-                Console.WriteLine($"\n[?] Field '{addedField}' appears to be new.");
+                AnsiConsole.WriteLine($"\n[?] Field '{addedField}' appears to be new.");
 
                 if (diff.RemovedFields.Any())
                 {
-                    Console.WriteLine("    Is this a new field, or was it renamed from an existing one?");
-                    Console.WriteLine("    [0] New field");
+                    var choice = AnsiConsole.Prompt(new SelectionPrompt<string>()
+                        .Title("Select a [green]Property[/]:")
+                        .AddChoices("New field")
+                        .AddChoices(diff.RemovedFields));
+                    // Console.WriteLine("    Is this a new field, or was it renamed from an existing one?");
+                    // Console.WriteLine("    [0] New field");
 
-                    for (int i = 0; i < diff.RemovedFields.Count; i++)
+                    // for (int i = 0; i < diff.RemovedFields.Count; i++)
+                    // {
+                    //     Console.WriteLine($"    [{i + 1}] Renamed from '{diff.RemovedFields[i]}'");
+                    // }
+
+                    //Console.Write("    Enter choice: ");
+                    //var input = Console.ReadLine();
+
+                    //if (int.TryParse(input, out int choice) && choice > 0 && choice <= diff.RemovedFields.Count)
+                    //{
+                    if (choice != "New field")
                     {
-                        Console.WriteLine($"    [{i + 1}] Renamed from '{diff.RemovedFields[i]}'");
-                    }
-
-                    Console.Write("    Enter choice: ");
-                    var input = Console.ReadLine();
-
-                    if (int.TryParse(input, out int choice) && choice > 0 && choice <= diff.RemovedFields.Count)
-                    {
-                        var renamedFrom = diff.RemovedFields[choice - 1];
-                        resolutions[addedField] = renamedFrom;
-                        Console.WriteLine($"    -> Marked as rename: '{renamedFrom}' -> '{addedField}'");
+                        //var renamedFrom = diff.RemovedFields[choice - 1];
+                        resolutions[addedField] = choice;
+                        AnsiConsole.WriteLine($"    -> Marked as rename: '{choice}' -> '{addedField}'");
                     }
                     else
                     {
                         resolutions[addedField] = "new";
-                        Console.WriteLine($"    -> Marked as new field.");
+                        AnsiConsole.WriteLine($"    -> Marked as new field.");
                     }
                 }
                 else
                 {
                     resolutions[addedField] = "new";
-                    Console.WriteLine($"    -> No removed fields to match against. Marked as new.");
+                    AnsiConsole.WriteLine($"    -> No removed fields to match against. Marked as new.");
                 }
             }
 

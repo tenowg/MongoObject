@@ -4,7 +4,6 @@ using MongoObject.SourceGenerator.Interfaces;
 using MongoObject.SourceGenerator.Models;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Text;
 
 namespace MongoObject.SourceGenerator.Modules
 {
@@ -94,6 +93,7 @@ namespace MongoObject.SourceGenerator.Modules
                                 sb.AppendLine($"{{\"database_name\", \"{model.DatabaseName}\"}},");
                                 sb.AppendLine($"{{\"bson_type\", \"object\"}},");
                                 sb.AppendLine($"{{\"type_name\", \"{model.Namespace}.{model.Name}\"}},");
+                                sb.AppendLine($"{{\"migration_policy\", \"{model.MigrationPolicy}\"}}");
                             }
                             sb.AppendLine($"payload.Add(\"{model.Name}\", {model.Name}Document);");
                         }

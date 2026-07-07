@@ -44,6 +44,8 @@ namespace MongoObject.CliTool.Data
         public string BsonType { get; set; } = "object";
         [BsonElement("type_name")]
         public string? TypeName { get; set; }
+        [BsonElement("migration_policy")]
+        public string? MigrationPolicy { get; set; }
     }
 
     public class SchemaProperty

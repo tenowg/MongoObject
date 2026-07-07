@@ -21,6 +21,11 @@ namespace Progress
         {
             Console.WriteLine("Hello, World!");
 
+            await monitor.Add(new BObject {
+                Name = "Winslow",
+                Age = 16
+            }, null);
+
             //try
             //{
             //    await monitor.AddBuilder(new BObject() { Name = "Andrew" });
@@ -40,15 +45,15 @@ namespace Progress
             //    var t = 5;
             //}
             #region QueryExample
-            var nameProjection = await monitor.Search()
-                .WithQuery(f =>
-                {
-                    f.Name = "Case";
-                    //f.Age = f.Age.And(
-                    //    f.Age = f.Age.Lt(40000),
-                    //    f.Age = f.Age.Gt(2)
-                    //);
-                });
+            // var nameProjection = await monitor.Search()
+            //     .WithQuery(f =>
+            //     {
+            //         f.Name = "Case";
+            //         //f.Age = f.Age.And(
+            //         //    f.Age = f.Age.Lt(40000),
+            //         //    f.Age = f.Age.Gt(2)
+            //         //);
+            //     });
             //.WithNameProjection();
             //.WithVectorTestVector()
             //.WithEmbedding("Craig is eating biskits in the morning, I wonder if he is a cat")
@@ -57,21 +62,21 @@ namespace Progress
             //.WithListTestSlice(5, 3)
             //.WithLimit(5);
             #endregion
-            var t = nameProjection.FirstOrDefault();
+            //var t = nameProjection.FirstOrDefault();
             //t.PropertyChanged += (sender, e) =>
             //{
             //    Console.WriteLine($"{e.PropertyName}");
             //};
-            t.Name = "John";
+            //t.Name = "John";
 
-            try
-            {
-                var result = await monitor.SaveChanges(t);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.ToString());
-            }
+            // try
+            // {
+            //     var result = await monitor.SaveChanges(t);
+            // }
+            // catch (Exception ex)
+            // {
+            //     Console.WriteLine(ex.ToString());
+            // }
             //var vectorProjection = await monitor
             //    .Search()
             //    .WithVectorTestVector()

@@ -16,6 +16,7 @@ namespace Progress.Test
     }
 
     [MongoObject(CollectionName = "AObjectsCollection", DatabaseName = "AObjectsDatabase", MetadataType = typeof(AObjectMeta))]
+    [MigrationSchema(OrphanFieldPolicy.AlwaysAsk)]
     public partial class AObject
     {
         [ProjectValue("Name", ProjectionType.Include)]
@@ -29,11 +30,9 @@ namespace Progress.Test
         [MongoIndex("NameIndex", Type = IndexType.Ascending, Unique = true)]
         [MongoIndex("AgeIndex", Type = IndexType.Descending)]
         public partial int Age { get; set; }
-        //[BsonIgnore]
-        public partial BObject Nothing { get; set; }
         public partial ObservableCollection<string> Tags { get; set; }
         public partial TestA test { get; set; }
-        public partial Dictionary<string, string> Properties { get; set; }
+        //public partial Dictionary<string, string> Properties { get; set; }
         [ProjectValue("ListTest", ProjectionType.Slice)]
         public partial List<string> ListTest { get; set; } = [];
     }
