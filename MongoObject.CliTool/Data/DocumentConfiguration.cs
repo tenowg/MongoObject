@@ -24,8 +24,12 @@ namespace MongoObject.CliTool.Data
         public string? MingrationFolder { get; set; }
         [BsonElement("base_namespace")]
         public string? BasNamespace { get; set; }
+        [BsonIgnoreIfNull]
+        [BsonElement("indexes")]
+        public Dictionary<string, List<IndexObject>> Indexes { get; set; } = [];
     }
 
+    [BsonIgnoreExtraElements]
     public class SchemaObject
     {
         [BsonElement("name")]
@@ -48,6 +52,7 @@ namespace MongoObject.CliTool.Data
         public string? MigrationPolicy { get; set; }
     }
 
+    [BsonIgnoreExtraElements]
     public class SchemaProperty
     {
         [BsonElement("name")]
@@ -63,5 +68,19 @@ namespace MongoObject.CliTool.Data
         [BsonElement("type_name")]
         public string? TypeName { get; set; }
         // I need a list of queryable types for this property
+    }
+
+    [BsonIgnoreExtraElements]
+    public class IndexObject
+    {
+        [BsonElement("index_name")]
+        public string IndexName { get; set; } = string.Empty;
+        /// <summary>
+        /// A dictionary of index entities and types, first string is property path, second string is type (ascending, desending, etc)
+        /// </summary>
+        [BsonElement("entities")]
+        public Dictionary<string, string> Entities { get; set; }= [];
+        [BsonElement("unique")]
+        public bool Unique { get; set; }
     }
 }

@@ -15,6 +15,8 @@ items:
     href: creating-indexes.md
   - name: Dependency Injection
     href: dependency-injection.md
+  - name: CLI Tool
+    href: cli/cli-tool.md
   - name: Vectors
     href: vector/toc.yml
   - name: Encryption
