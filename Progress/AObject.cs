@@ -30,8 +30,8 @@ namespace Progress.Test
         [MongoIndex("NameIndex", Type = IndexType.Ascending, Unique = true)]
         [MongoIndex("AgeIndex", Type = IndexType.Descending)]
         public partial int Age { get; set; }
-        public partial ObservableCollection<string> Tags { get; set; }
-        public partial TestA test { get; set; }
+        public partial ObservableCollection<string> Tags { get; set; } = [];
+        public partial TestA test { get; set; } = new();
         //public partial Dictionary<string, string> Properties { get; set; }
         [ProjectValue("ListTest", ProjectionType.Slice)]
         public partial List<string> ListTest { get; set; } = [];

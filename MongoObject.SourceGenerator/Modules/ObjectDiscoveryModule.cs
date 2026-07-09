@@ -123,12 +123,12 @@ namespace MongoObject.SourceGenerator.Modules
                 if (model == null) continue;
                 if (model.Indexes.Count > 0)
                 {
-                    sb.AppendLine($"var {model!.Name}IndexDocument = new global::MongoDB.Bson.BsonDocument");
-                    using (sb.Block(closer: ";"))
-                    {
-                        using (sb.Block(closer: ","))
-                        {
-                            sb.AppendLine($"\"{model.DatabaseName}.{model.CollectionName}\", new global::MongoDB.Bson.BsonArray");
+                    //sb.AppendLine($"indexDoc.Add({model!.Name}IndexDocument = new global::MongoDB.Bson.BsonDocument");
+                    //using (sb.Block(closer: ";"))
+                    //{
+                    //    using (sb.Block(closer: ","))
+                    //    {
+                            sb.AppendLine($"indexDoc.Add(\"{model.DatabaseName}.{model.CollectionName}\", new global::MongoDB.Bson.BsonArray");
                             using (sb.Block())
                             {
                                 foreach(var index in model.Indexes)
@@ -140,7 +140,7 @@ namespace MongoObject.SourceGenerator.Modules
                                         sb.AppendLine($"{{\"unique\", {index.IsUnique.ToString().ToLower()}}},");
                                     
                                         sb.AppendLine($"{{\"entities\", new global::MongoDB.Bson.BsonDocument");
-                                        using(sb.Block(closer: ","))
+                                        using(sb.Block())
                                         {
                                             foreach(var pr in index.Properties)
                                             {
@@ -155,8 +155,10 @@ namespace MongoObject.SourceGenerator.Modules
                                     }
                                 }
                             }
-                        }
-                    }
+                            sb.AppendLine(");");
+                    //    }
+                    //sb.AppendLine(");");
+                    //}
                 }
             }
             sb.AppendLine($"global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument[\"indexes\"] = indexDoc;");

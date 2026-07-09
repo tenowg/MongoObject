@@ -8,7 +8,7 @@ using Progress.Test;
 
 namespace Progress
 {
-    public class App(IDocumentMonitor<BObject> monitor) : IDisposable
+    public class App(IDocumentMonitor<AObject> monitor) : IDisposable
     {
         //IMongoLockScope? lockMeta;
 
@@ -21,8 +21,9 @@ namespace Progress
         {
             Console.WriteLine("Hello, World!");
 
-            await monitor.Add(new BObject {
-                Name = "Winslow",
+            await monitor.Add(new AObject
+            {
+                Name = "Case",
                 Age = 16
             }, null);
 
@@ -45,15 +46,19 @@ namespace Progress
             //    var t = 5;
             //}
             #region QueryExample
-            // var nameProjection = await monitor.Search()
-            //     .WithQuery(f =>
-            //     {
-            //         f.Name = "Case";
-            //         //f.Age = f.Age.And(
-            //         //    f.Age = f.Age.Lt(40000),
-            //         //    f.Age = f.Age.Gt(2)
-            //         //);
-            //     });
+            var nameProjection = await monitor.Search()
+                .WithQuery(f =>
+                {
+                    f.Name = "Case";
+                    f.Age = f.Age.And(
+                        f.Age.Lt(40000),
+                        f.Age.Gt(5)
+                    );
+                })
+                .WithMeta(meta =>
+                {
+                    meta.LastModifiedAt = meta.LastModifiedAt.Lt(DateTime.UtcNow);
+                });
             //.WithNameProjection();
             //.WithVectorTestVector()
             //.WithEmbedding("Craig is eating biskits in the morning, I wonder if he is a cat")

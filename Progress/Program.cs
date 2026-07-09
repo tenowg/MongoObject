@@ -28,7 +28,7 @@ IConfiguration config = new ConfigurationBuilder()
 string apiKey = config["Mongo:Connection"];
 
 using IHost host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((_, services) =>
+    .ConfigureServices(async (_, services) =>
     {
         services.AddSingleton<IMongoClient>(sp =>
         {
@@ -47,7 +47,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
             return new MongoClient(mongoClientSettings);
         });
 
-        services.AddMongoObject(config, (builder, options) =>
+        await services.AddMongoObject(config, (builder, options) =>
         {
             options.ConnectionString = apiKey;
             options.DatabaseName = "mydatabase";
