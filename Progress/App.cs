@@ -54,6 +54,10 @@ namespace Progress
                         f.Age.Lt(40000),
                         f.Age.Gt(5)
                     );
+                    f.test(t =>
+                    {
+                        t.Name = "Andrew";
+                    });
                 })
                 .WithMeta(meta =>
                 {

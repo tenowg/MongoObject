@@ -27,6 +27,12 @@ Resulting in:
 
 MongoObject bridges the gap between MongoDB's document model and modern .NET development. Using Roslyn source generators and C# 14 partial properties, it provides an intuitive, inspired by EF Core's change tracking, experience for working with MongoDB documents.
 
+### Why
+
+I think this explains it all:
+
+> "MongoObject wasn't built because MongoDB.Driver is bad. It was built because even experienced MongoDB developers have to stop and think every time they write a `Builders<T>.Filter` query. The API is powerful but not discoverable. MongoObject makes the right thing the obvious thing."
+
 ### Key Features
 
 - **🚀 Source Generation** - Automatic implementation via `[MongoObject]` attribute
@@ -185,6 +191,10 @@ var results = await monitor.Search()
             f.Age.Lt(40000),
             f.Age.Gt(5)
         );
+        f.test(t =>
+        {
+            t.Name = "Andrew";
+        });
     })
     .WithMeta(meta =>
     {
@@ -195,17 +205,25 @@ var results = await monitor.Search()
 Compared with MongoDB.Driver
 
 ```csharp
-var collection = database.GetCollection<User>("Users");
+var collection = database.GetCollection<MongoDocument<User>>("Users");
 
-var filter = Builders<User>.Filter.And(
-    Builders<User>.Filter.Eq(x => x.Document.Name, "Case"),
-    Builders<User>.Filter.And(
-        Builders<User>.Filter.Lt(x => x.Document.Age, 40000),
-        Builders<User>.Filter.Gt(x => x.Document.Age, 2)
+var filter = Builders<MongoDocument<User>>.Filter.And(
+    // Document fields
+    Builders<MongoDocument<User>>.Filter.Eq(x => x.Document.Name, "Case"),
+    Builders<MongoDocument<User>>.Filter.And(
+        Builders<MongoDocument<User>>.Filter.Lt(x => x.Document.Age, 40000),
+        Builders<MongoDocument<User>>.Filter.Gt(x => x.Document.Age, 5)
+    ),
+    // Nested MongoObject query
+    Builders<MongoDocument<User>>.Filter.Eq(x => x.Document.Test.Name, "Andrew"),
+    // Metadata field
+    Builders<MongoDocument<User>>.Filter.Lt(
+        x => x.Metadata["LastModifiedAt"].AsDateTime, DateTime.UtcNow
     )
 );
 
 var results = await collection.Find(filter).ToListAsync();
+
 ```
 
 #### Projections
@@ -307,6 +325,7 @@ Full documentation is available at **[https://tenowg.github.io/MongoObject](http
 - **C# 14** (for partial properties)
 
 MongoObject targets .NET 10 because it relies on C# 14 partial properties to generate strongly typed document implementations without runtime proxies or reflection.
+
 ---
 
 ## Building from Source
