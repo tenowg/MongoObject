@@ -1,3 +1,5 @@
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.Mvc.ViewComponents;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
@@ -110,7 +112,7 @@ namespace MongoObject.CliTool.Helpers
             return new CollectionDifferences(existingCollections, newCollections);
         }
 
-        public static async Task<OperationDictionary> ProcessDifferences(IMongoClient standardClient, IMongoClient? encryptedClient, JsonSchemas schemas, CollectionDifferences diffs, CancellationToken cancellationToken = default)
+        public static async Task<OperationDictionary> ProcessDifferences(IMongoClient standardClient, Dictionary<string, List<IndexObject>> indexes, JsonSchemas schemas, CollectionDifferences diffs, CancellationToken cancellationToken = default)
         {
             var operations = new OperationDictionary();
 
@@ -121,16 +123,24 @@ namespace MongoObject.CliTool.Helpers
                 var jsonSchema = await GetCollectionValidatorSchemaAsync(database, diff.Value.CollectionName!);
                 var newSchema = schemas[diff.Value.CollectionName!].JsonSchema.ToBsonDocument();
 
+                // if a schema was reteived process difference if not add one, as it is likely a new collection.
                 if (jsonSchema != null)
                 {
                     // here is where we will check for diffs, if there are any we write renameoperations, remove, or delete operations.
                     var existingProperties = jsonSchema.GetValue("$jsonSchema", new BsonDocument()).AsBsonDocument.GetValue("properties", new BsonDocument()).AsBsonDocument;
                     var newProperties = newSchema.GetValue("properties", new BsonDocument()).AsBsonDocument; //.GetValue("properties").AsBsonDocument;
                     var schemaDiff = CompareSchemas(existingProperties, newProperties);
-                    //AnsiConsole.WriteLine(jsonSchema.ToString());
                     if (schemaDiff == null || (schemaDiff.AddedFields.Count == 0 && schemaDiff.RemovedFields.Count == 0 && schemaDiff.ChangedFields.Count == 0))
                     {
                         AnsiConsole.WriteLine("No changes detected, not appling schema");
+                        var indexOperations = await ProcessIndexes(standardClient, indexes, schemas, diff.Value, cancellationToken);
+                        foreach(var kvp in indexOperations)
+                        {
+                            foreach(var op in kvp.Value)
+                            {
+                                operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(op);
+                            }
+                        }
                     }
                     else
                     {
@@ -139,10 +149,7 @@ namespace MongoObject.CliTool.Helpers
 
                         var resolutions = ResolveMigrationIntent(schemaDiff);
 
-                        if (resolutions.Count > 0)
-                        {
-                            operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(new CliOperation("DisableValidation"));
-                        }
+                        var resOperations = new OperationDictionary();
 
                         // now we go thru each change and make the right operation
                         foreach (var kvp in resolutions)
@@ -174,7 +181,7 @@ namespace MongoObject.CliTool.Helpers
                                     if (delete)
                                     {
                                         // remove the field by setting the operation
-                                        operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(new CliOperation("DeletePropertyOperation")
+                                        resOperations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(new CliOperation("DeletePropertyOperation")
                                         {
                                              {"Property", kvp.Key} 
                                         });
@@ -182,12 +189,39 @@ namespace MongoObject.CliTool.Helpers
                                     break;
                                 default:
                                     AnsiConsole.WriteLine($"The property {kvp.Value} will be renamed to {kvp.Key}");
-                                    operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(new CliOperation("RenamePropertyOperation")
+                                    resOperations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(new CliOperation("RenamePropertyOperation")
                                     {
                                         {"From", kvp.Value},
                                         {"To", kvp.Key}
                                     });
                                     break;
+                            }
+                        }
+
+                        // we will move this whole checking of operations to later.
+                        var indexOperations = await ProcessIndexes(standardClient, indexes, schemas, diff.Value, cancellationToken);
+
+                        if (resOperations.Count > 0)
+                        {
+                            operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(new CliOperation("DisableValidation")
+                            {
+                                {"Reason", "Disabling validation to allow structural transformations before applying the new schema."}
+                            });
+                        }
+
+                        foreach(var kvp in resOperations)
+                        {
+                            foreach(var op in kvp.Value)
+                            {
+                                operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(op);
+                            }
+                        }
+
+                        foreach(var kvp in indexOperations)
+                        {
+                            foreach(var op in kvp.Value)
+                            {
+                                operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(op);
                             }
                         }
                         
@@ -215,6 +249,80 @@ namespace MongoObject.CliTool.Helpers
             }
 
             return operations;
+        }
+
+        public static async Task<OperationDictionary> ProcessIndexes(IMongoClient standardClient, Dictionary<string, List<IndexObject>> indexes, JsonSchemas schema, SchemaObject diff, CancellationToken cancellationToken = default)
+        {
+            var indexOperations = new OperationDictionary();
+            var database = standardClient.GetDatabase(diff.DatabaseName);
+            var collection = database.GetCollection<BsonDocument>(diff.CollectionName);
+
+            AnsiConsole.WriteLine($"Processing {diff.DatabaseName}.{diff.CollectionName}");
+            using var cursor = await collection.Indexes.ListAsync(cancellationToken);
+            var indexList = await cursor.ToListAsync(cancellationToken: cancellationToken);
+            var mongoIndex = indexList.Select(x => BsonSerializer.Deserialize<MongoIndex>(x));
+            if (!indexes.TryGetValue($"{diff.DatabaseName}.{diff.CollectionName}", out List<IndexObject>? indexObjects))
+            {
+                indexObjects ??= [];
+            }
+
+            foreach (var index in mongoIndex)
+            {
+                Console.WriteLine(index.Name);
+                bool delete = false;
+                // this is just to ensure structure
+                if (index.Name != "_id_")
+                {
+                    // decide to delete index
+                    if (!indexObjects.Any(x => x.IndexName == index.Name))
+                    {
+                        // does not contain the index, delete it
+                        delete = true;
+                    }
+                    else
+                    {
+                        var indexObject = indexObjects.FirstOrDefault(x => x.IndexName == index.Name);
+                        var properties = new Dictionary<string, string>();
+                        foreach (var prop in indexObject!.Entities)
+                            properties.Add(prop.Key, prop.Value);
+
+                        // Keys in schema but missing from live index → need to be added
+                        var added = indexObject.Entities.Keys
+                            .Where(k => !index.Keys.ContainsKey(k))
+                            .ToList();
+
+                        // Keys in live index but missing from schema → need to be removed
+                        var removed = index.Keys.Keys
+                            .Where(k => !indexObject.Entities.ContainsKey(k))
+                            .ToList();
+AnsiConsole.WriteLine($"Checking removed: {string.Join(",", index.Keys.Keys)} against {string.Join(",", indexObject.Entities.Keys)}");
+                        if (added.Count > 0 || removed.Count > 0)
+                        {
+                            AnsiConsole.WriteLine($"Index diff on '{index.Name}': Added=[{string.Join(", ", added)}] Removed=[{string.Join(", ", removed)}]");
+
+                            indexOperations[$"{diff.DatabaseName}.{diff.CollectionName}"].Add(new CliOperation("DropIndexOperation")
+                            {
+                                { "IndexName", indexObject.IndexName },
+                                {"Reason", $"Index diff on {index.Name}: Added=[{string.Join(", ", added)}] Removed=[{string.Join(", ", removed)}]"}
+                            });
+
+                            indexOperations[$"{diff.DatabaseName}.{diff.CollectionName}"].Add(new CliOperation("CreateIndexOperation")
+                            {
+                                { "IndexName", indexObject.IndexName },
+                                { "Members", properties },
+                                { "Unique", indexObject.Unique }
+                            });
+                        }
+                    }
+
+                    if (delete)
+                    {
+                        // add the delete operation
+                    }
+                }
+            }
+
+            return indexOperations;
         }
 
         public static async Task<BsonDocument?> GetCollectionValidatorSchemaAsync(IMongoDatabase database, string collectionName)

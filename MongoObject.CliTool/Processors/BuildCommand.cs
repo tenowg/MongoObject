@@ -103,7 +103,7 @@ namespace MongoObject.CliTool.Processors
                 return 1;
             }
 
-            var operations = await ClientOperations.ProcessDifferences(_client, _encryptedClient, schemas, differences, cancellationToken);
+            var operations = await ClientOperations.ProcessDifferences(_client, _documents!.Indexes, schemas, differences, cancellationToken);
             var fileBuilder = new FileBuilder(projectPath, _documents!, operations, settings, _documents.BasNamespace!);
             fileBuilder.BuildHeaders();
             return result;

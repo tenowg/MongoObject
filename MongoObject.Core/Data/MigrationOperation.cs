@@ -15,10 +15,12 @@ namespace MongoObject.Core.Data
         typeof(RenameCollectionOperation),
         typeof(DisableValidation),
         typeof(CreateIndexOperation),
+        typeof(DropIndexOperation),
         typeof(CreateCollectionOperation))] 
     public abstract record MigrationOperation
     {
         public bool RequiresEnc { get; init; } = false;
+        public string? Reason { get; init; } = string.Empty;
     };
 
     public sealed record ApplyValidationSchemaOperation(
@@ -47,6 +49,11 @@ namespace MongoObject.Core.Data
 
     public sealed record DisableValidation : MigrationOperation;
 
+    public sealed record DropIndexOperation(
+        string IndexName
+    ) : MigrationOperation;
+    
+
     public sealed record CreateIndexOperation
     (
         string IndexName,
@@ -67,7 +74,7 @@ namespace MongoObject.Core.Data
     {
         public static void Register()
         {
-            MongoObjectsPluginRegistry.RegisterHandler<DisableValidation>(async (db, coll, op) =>
+            MongoObjectsPluginRegistry.RegisterHandler<DisableValidation>(async (db, coll, op, cancellationToken) =>
             {
                 Console.WriteLine("DisableValidation");
                 var command = new BsonDocument
@@ -78,7 +85,7 @@ namespace MongoObject.Core.Data
 
                 try
                 {
-                    db.RunCommand<BsonDocument>(command);
+                    db.RunCommand<BsonDocument>(command, cancellationToken: cancellationToken);
                     Console.WriteLine($"Validator successfully disabled on {coll}.");
                 }
                 catch (MongoCommandException ex)
@@ -87,7 +94,7 @@ namespace MongoObject.Core.Data
                 }
             });
 
-            MongoObjectsPluginRegistry.RegisterHandler<CreateCollectionOperation>(async (db, coll, op) =>
+            MongoObjectsPluginRegistry.RegisterHandler<CreateCollectionOperation>(async (db, coll, op, cancellationToken) =>
             {
                 Console.WriteLine("Creating Collection");
                 var options = new CreateCollectionOptions<object>
@@ -97,10 +104,10 @@ namespace MongoObject.Core.Data
                     ValidationLevel = DocumentValidationLevel.Strict
                 };
 
-                await db.CreateCollectionAsync(coll, options);
+                await db.CreateCollectionAsync(coll, options, cancellationToken);
 
             });
-            MongoObjectsPluginRegistry.RegisterHandler<ApplyValidationSchemaOperation>(async (db, coll, op) =>
+            MongoObjectsPluginRegistry.RegisterHandler<ApplyValidationSchemaOperation>(async (db, coll, op, cancellationToken) =>
             {
                 Console.WriteLine("Applying Validation");
                 var command = new BsonDocument
@@ -113,7 +120,7 @@ namespace MongoObject.Core.Data
 
                 try
                 {
-                    db.RunCommand<BsonDocument>(command);
+                    db.RunCommand<BsonDocument>(command, cancellationToken: cancellationToken);
                     Console.WriteLine("Validator successfully applied to existing collection.");
                 }
                 catch (MongoCommandException ex)
@@ -122,19 +129,17 @@ namespace MongoObject.Core.Data
                 }
             });
 
-            MongoObjectsPluginRegistry.RegisterHandler<RenamePropertyOperation>(async (db, coll, op) =>
+            MongoObjectsPluginRegistry.RegisterHandler<RenamePropertyOperation>(async (db, coll, op, cancellationToken) =>
             {
                 Console.WriteLine($"Renaming Property {op.From} to {op.To}");
                 var collection = db.GetCollection<BsonDocument>(coll);
                 var rename = new BsonDocument("$rename",
                 new BsonDocument(op.From, op.To));
 
-                await collection.UpdateManyAsync(
-                    FilterDefinition<BsonDocument>.Empty,
-                    rename);
+                await collection.UpdateManyAsync(FilterDefinition<BsonDocument>.Empty, rename, cancellationToken: cancellationToken);
             });
 
-            MongoObjectsPluginRegistry.RegisterHandler<DeletePropertyOperation>(async (db, coll, op) =>
+            MongoObjectsPluginRegistry.RegisterHandler<DeletePropertyOperation>(async (db, coll, op, cancellationToken) =>
             {
                 Console.WriteLine($"Deleting Property {op.Property}.");
                 var collection = db.GetCollection<BsonDocument>(coll);
@@ -144,7 +149,13 @@ namespace MongoObject.Core.Data
                 await collection.UpdateManyAsync(filter, update);
             });
 
-            MongoObjectsPluginRegistry.RegisterHandler<CreateIndexOperation>(async (db, coll, op) =>
+            MongoObjectsPluginRegistry.RegisterHandler<DropIndexOperation>(async (db, coll, op, cancellationToken) =>
+            {
+                var collection = db.GetCollection<BsonDocument>(coll);
+                await collection.Indexes.DropOneAsync(op.IndexName, cancellationToken);
+            });
+
+            MongoObjectsPluginRegistry.RegisterHandler<CreateIndexOperation>(async (db, coll, op, cancellationToken) =>
             {
                 var keyDefinitions = new List<IndexKeysDefinition<BsonDocument>>();
 
@@ -170,7 +181,7 @@ namespace MongoObject.Core.Data
                 var combined = builder.Combine(keyDefinitions);
 
                 var collection = db.GetCollection<BsonDocument>(coll);
-                await collection.Indexes.CreateOneAsync(new CreateIndexModel<BsonDocument>(combined, new CreateIndexOptions { Name = op.IndexName, Unique = op.Unique })); 
+                await collection.Indexes.CreateOneAsync(new CreateIndexModel<BsonDocument>(combined, new CreateIndexOptions { Name = op.IndexName, Unique = op.Unique }), cancellationToken: cancellationToken); 
             });
         }
     }
