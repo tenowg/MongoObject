@@ -13,7 +13,25 @@
 
 ## Overview
 
-MongoObject bridges the gap between MongoDB's document model and modern .NET development. Using Roslyn source generators and C# 14 partial properties, it provides an intuitive, EF Core-like experience for working with MongoDB documents.
+MongoObject is a source-generated MongoDB ODM for modern .NET.
+
+Instead of writing string-based queries, update definitions, projection definitions, indexes, and validation schemas manually, MongoObject generates strongly typed APIs directly from your POCO models at compile time.
+
+Resulting in:
+
+- Compile-time validation instead of runtime errors
+- Automatic change tracking
+- Minimal update payloads
+- Zero reflection-based mapping
+- Less boilerplate than using MongoDB.Driver directly
+
+MongoObject bridges the gap between MongoDB's document model and modern .NET development. Using Roslyn source generators and C# 14 partial properties, it provides an intuitive, inspired by EF Core's change tracking, experience for working with MongoDB documents.
+
+### Why
+
+I think this explains it all:
+
+> "MongoObject wasn't built because MongoDB.Driver is bad. It was built because even experienced MongoDB developers have to stop and think every time they write a `Builders<T>.Filter` query. The API is powerful but not discoverable. MongoObject makes the right thing the obvious thing."
 
 ### Key Features
 
@@ -25,6 +43,20 @@ MongoObject bridges the gap between MongoDB's document model and modern .NET dev
 - **🔒 Distributed Locking** - Document-level concurrency control
 - **⚡ Caching** - Built-in memory caching with configurable expiration
 - **👁️ Change Streams** - Real-time MongoDB change monitoring
+- **Cli Based Migration Support** - run a migration tool to help build, validate, and rename properties
+- **Vector Search Ingration** - Vector Search is a built in feature, enabled by adding a few Attributes, described more in the full documentation.
+
+---
+
+### Design Goals
+MongoObject is designed around a few principles:
+
+- Compile-time safety over runtime configuration
+- POCO-first development
+- Minimal MongoDB payloads
+- Zero boilerplate
+- Source generation instead of reflection
+- Native MongoDB features without hiding MongoDB itself
 
 ---
 
@@ -32,10 +64,14 @@ MongoObject bridges the gap between MongoDB's document model and modern .NET dev
 
 > The `Tenowg.MongoObjects` package is currently in active development.
 
-```
+```bash
+// install the main package
 dotnet add package Tenowg.MongoObjects --prerelease
-```
 
+// install the Cli
+dotnet tool install -g Tenowg.MongoObjects.CliTool
+```
+OR
 ```bash
 # Clone the repository
 git clone https://github.com/tenowg/MongoObject.git
@@ -89,19 +125,27 @@ public class Address
 using MongoObject.Core.Extensions;
 
 var builder = Host.CreateDefaultBuilder(args)
-    .ConfigureServices((_, services) =>
+    .ConfigureServices(config, (_, services) =>
     {
-        services.AddMongoObject(options =>
+        services.AddMongoObject(config, (builder, options) =>
         {
-            options.ConnectionString = "mongodb://localhost:27017";
-            options.DatabaseName = "MyApp";
-        })
-        .AddWatchStream()  // Enable real-time change monitoring
-        .RegisterDocumentsFromAssembly();
+            options.ConnectionString = apiKey;
+            options.DatabaseName = "mydatabase";
+
+            builder.AddWatchStream()
+            .RegisterDocumentsProjectName();
+        });
     });
 ```
 
+> RegisterDocumentsProjectName is a source generated discovery class, calling it will register all 
+> POCO class marked with `[MongoObject]` with DI. Just need to change ProjectName to your `ProjectName`. This will also handle
+> POCO's defined in other libraries such as shared data libraries. Just need to add an additional
+> .RegisterDocumentsSharedLibrary()
+
 ### 3. Use the Document Monitor
+
+#### Document Updates
 
 ```csharp
 public class UserService(IDocumentMonitor<User> monitor)
@@ -132,6 +176,87 @@ public class UserService(IDocumentMonitor<User> monitor)
         return await monitor.LockDocument(user);
     }
 }
+```
+
+#### Query
+
+MongoObject uses a custom Fluent Query API instead of LINQ for better performance, compile-time metadata support, and Native AOT compatibility.
+
+``` csharp
+var results = await monitor.Search()
+    .WithQuery(f =>
+    {
+        f.Name = "Case";
+        f.Age = f.Age.And(
+            f.Age.Lt(40000),
+            f.Age.Gt(5)
+        );
+        f.test(t =>
+        {
+            t.Name = "Andrew";
+        });
+    })
+    .WithMeta(meta =>
+    {
+        meta.LastModifiedAt = meta.LastModifiedAt.Lt(DateTime.UtcNow);
+    });
+```
+
+Compared with MongoDB.Driver
+
+```csharp
+var collection = database.GetCollection<MongoDocument<User>>("Users");
+
+var filter = Builders<MongoDocument<User>>.Filter.And(
+    // Document fields
+    Builders<MongoDocument<User>>.Filter.Eq(x => x.Document.Name, "Case"),
+    Builders<MongoDocument<User>>.Filter.And(
+        Builders<MongoDocument<User>>.Filter.Lt(x => x.Document.Age, 40000),
+        Builders<MongoDocument<User>>.Filter.Gt(x => x.Document.Age, 5)
+    ),
+    // Nested MongoObject query
+    Builders<MongoDocument<User>>.Filter.Eq(x => x.Document.Test.Name, "Andrew"),
+    // Metadata field
+    Builders<MongoDocument<User>>.Filter.Lt(
+        x => x.Metadata["LastModifiedAt"].AsDateTime, DateTime.UtcNow
+    )
+);
+
+var results = await collection.Find(filter).ToListAsync();
+
+```
+
+#### Projections
+
+Define projections directly on your properties with attributes:
+
+```csharp
+[ProjectValue("Summary", ProjectionType.Include)]
+public partial string Name { get; set; }
+
+[ProjectValue("Summary", ProjectionType.Include)]
+public partial int Age { get; set; }
+```
+
+MongoObject generates a strongly typed projection record at compile time:
+
+```csharp
+var summary = await monitor.Search()
+    .WithQuery(f => f.Name = "Case")
+    .WithSummaryProjection();
+
+Console.WriteLine(summary.First().Name); // strongly typed result
+```
+
+No ProjectionDefinition<T>, no field name strings, no manual serializer wiring.
+
+---
+
+### 4. Use the cli
+The optional CLI keeps your MongoDB schema synchronized with your codebase by generating validation schemas, tracking renamed properties, and assisting with safe document migrations. (optional, By use of `[MigrationSchema(OrphanFieldPolicy.AlwaysAsk)]`)
+
+``` csharp
+mo migrate build -p ../Path/To/Project
 ```
 
 ---
@@ -193,32 +318,13 @@ Full documentation is available at **[https://tenowg.github.io/MongoObject](http
 
 ---
 
-## Project Structure
-
-```
-MongoObject/
-├── MongoObject.Core/              # Core library
-│   ├── Attributes/                # [MongoObject], [ProjectValue]
-│   ├── Data/                      # MongoDocument, TrackingObservableObject
-│   ├── Interfaces/                # Core interfaces
-│   ├── Services/                  # Service implementations
-│   └── Extensions/                # DI extensions
-├── MongoObject.SourceGenerator/   # Roslyn source generator
-│   ├── Generators/                # CommonGenerator
-│   └── Modules/                   # Generation modules
-├── Docs/                          # Documentation (DocFX)
-│   ├── articles/                  # Manual documentation
-│   └── api/                       # API reference
-└── Progress/                      # Demo/test project
-```
-
----
-
 ## Requirements
 
 - **.NET 10 SDK**
 - **MongoDB 4.0+** (for change streams support)
 - **C# 14** (for partial properties)
+
+MongoObject targets .NET 10 because it relies on C# 14 partial properties to generate strongly typed document implementations without runtime proxies or reflection.
 
 ---
 
@@ -239,12 +345,7 @@ dotnet run --project Progress
 
 ## Roadmap
 
-- [ ] Complete projection module implementation
-- [ ] Add delete operations
-- [ ] Implement polling-based watch mode
-- [ ] Add batch operations support
-- [ ] Comprehensive unit and integration tests
-- [ ] Publish to NuGet
+For the best idea of what is coming or what is on the Roadmap please look at current Issues.
 
 ---
 

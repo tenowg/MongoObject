@@ -20,5 +20,6 @@ namespace MongoObject.SourceGenerator.Models
         public IReadOnlyList<IndexModel> Indexes { get; init; } = [];
         public bool IsEncryptedModel { get; init; } = false;
         public EncryptedModel EncryptedModels { get; init; } = new();
+        public string? MigrationPolicy { get; init; }
     }
 }

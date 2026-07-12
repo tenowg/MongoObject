@@ -92,7 +92,7 @@ namespace MongoObject.CliTool.Helpers
                     jsonProperty.Properties ??= new();
                     jsonProperty.Properties[$"{property.QueryName!}"] = new JsonProperty
                     {
-                        BsonType = property.BsonType,
+                        BsonType = property.IsEncrypted ? "binData" : property.BsonType,
                         Description = $"{property.QueryName} must be a ({property.BsonType}){(property.IsRequired ? " and is required." : ".")}"
                     };
                     

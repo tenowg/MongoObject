@@ -145,6 +145,7 @@ _ReSharper*/
 node_modules/
 .clineignore
 /.clinerules/*
+.abacusai/
 /Progress/GeneratedFiles
 /Progress/crypt-master-key.txt
 /Progress/crypt-master.key.bin
