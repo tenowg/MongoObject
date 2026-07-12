@@ -2,6 +2,7 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using MongoObject.Core.Extensions;
+using SharpCompress.Compressors.ZStandard.Unsafe;
 
 namespace MongoObject.Core.Data
 {
@@ -13,6 +14,7 @@ namespace MongoObject.Core.Data
         typeof(DeleteCollectionOperation),
         typeof(RenameCollectionOperation),
         typeof(DisableValidation),
+        typeof(CreateIndexOperation),
         typeof(CreateCollectionOperation))] 
     public abstract record MigrationOperation
     {
@@ -44,6 +46,13 @@ namespace MongoObject.Core.Data
     ) : MigrationOperation;
 
     public sealed record DisableValidation : MigrationOperation;
+
+    public sealed record CreateIndexOperation
+    (
+        string IndexName,
+        Dictionary<string, string> Members,
+        bool Unique
+    ) : MigrationOperation;
 
     public readonly record struct MongoNamespace(string Database, string Collection)
     {
@@ -133,6 +142,35 @@ namespace MongoObject.Core.Data
                 var update = Builders<BsonDocument>.Update.Unset(op.Property);
 
                 await collection.UpdateManyAsync(filter, update);
+            });
+
+            MongoObjectsPluginRegistry.RegisterHandler<CreateIndexOperation>(async (db, coll, op) =>
+            {
+                var keyDefinitions = new List<IndexKeysDefinition<BsonDocument>>();
+
+                var builder = Builders<BsonDocument>.IndexKeys;
+
+                foreach(var member in op.Members)
+                {
+                    var definition = member.Value switch
+                    {
+                        "Ascending"  => builder.Ascending(member.Key),
+                        "Descending" => builder.Descending(member.Key),
+                        "Text"       => builder.Text(member.Key),
+                        "Hashed"     => builder.Hashed(member.Key),
+                        "Geo2d"      => builder.Geo2D(member.Key),
+                        "Geo2dsphere"=> builder.Geo2DSphere(member.Key),
+                        "Wildcard"   => builder.Wildcard(member.Key),
+                        _ => null
+                    };
+
+                    if (definition != null)
+                        keyDefinitions.Add(definition);
+                }
+                var combined = builder.Combine(keyDefinitions);
+
+                var collection = db.GetCollection<BsonDocument>(coll);
+                await collection.Indexes.CreateOneAsync(new CreateIndexModel<BsonDocument>(combined, new CreateIndexOptions { Name = op.IndexName, Unique = op.Unique })); 
             });
         }
     }
