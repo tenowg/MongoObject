@@ -128,34 +128,34 @@ namespace MongoObject.SourceGenerator.Modules
                     //{
                     //    using (sb.Block(closer: ","))
                     //    {
-                            sb.AppendLine($"indexDoc.Add(\"{model.DatabaseName}.{model.CollectionName}\", new global::MongoDB.Bson.BsonArray");
-                            using (sb.Block())
-                            {
-                                foreach(var index in model.Indexes)
-                                {    
-                                    sb.AppendLine($"new global::MongoDB.Bson.BsonDocument");
-                                    using (sb.Block(closer: ","))
-                                    {
-                                        sb.AppendLine($"{{\"index_name\", \"{index.Name}\"}},");
-                                        sb.AppendLine($"{{\"unique\", {index.IsUnique.ToString().ToLower()}}},");
+                            //sb.AppendLine($"indexDoc.Add(\"{model.DatabaseName}.{model.CollectionName}\", new global::MongoDB.Bson.BsonArray");
+                            //using (sb.Block())
+                            //{
+                            //    foreach(var index in model.Indexes)
+                            //    {    
+                            //        sb.AppendLine($"new global::MongoDB.Bson.BsonDocument");
+                            //        using (sb.Block(closer: ","))
+                            //        {
+                            //            sb.AppendLine($"{{\"index_name\", \"{index.Name}\"}},");
+                            //            sb.AppendLine($"{{\"unique\", {index.IsUnique.ToString().ToLower()}}},");
                                     
-                                        sb.AppendLine($"{{\"entities\", new global::MongoDB.Bson.BsonDocument");
-                                        using(sb.Block())
-                                        {
-                                            foreach(var pr in index.Properties)
-                                            {
-                                                foreach (var ind in pr.Indexes)
-                                                {
-                                                    if (ind.IndexName == index.Name)
-                                                        sb.AppendLine($"{{\"{prefix}.{ind.Name}\", \"{ind.Order}\"}},");
-                                                }
-                                            }
-                                        }
-                                        sb.AppendLine("}");
-                                    }
-                                }
-                            }
-                            sb.AppendLine(");");
+                            //            sb.AppendLine($"{{\"entities\", new global::MongoDB.Bson.BsonDocument");
+                            //            using(sb.Block())
+                            //            {
+                            //                foreach(var pr in index.Properties)
+                            //                {
+                            //                    foreach (var ind in pr.Indexes)
+                            //                    {
+                            //                        if (ind.IndexName == index.Name)
+                            //                            sb.AppendLine($"{{\"{prefix}.{ind.Name}\", \"{ind.Order}\"}},");
+                            //                    }
+                            //                }
+                            //            }
+                            //            sb.AppendLine("}");
+                            //        }
+                            //    }
+                            //}
+                            //sb.AppendLine(");");
                     //    }
                     //sb.AppendLine(");");
                     //}
