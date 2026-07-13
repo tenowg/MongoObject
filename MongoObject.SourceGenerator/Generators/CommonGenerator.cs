@@ -111,6 +111,7 @@ namespace MongoObject.SourceGenerator.Generators
             var encryptedAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.MongoEncryptAttribute");
             var encryptedPropertyAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.PropertyEncryption.Attributes.EncyptedFieldAttribute");
             var requiredAttrSymbol = compilation.GetTypeByMetadataName("System.ComponentModel.DataAnnotations.RequiredAttribute");
+            var migrationAttrSymbol = compilation.GetTypeByMetadataName("MongoObject.Core.Attributes.MigrationSchemaAttribute");
 
             var databaseName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "DatabaseName").Value.Value?.ToString();
             var collectionName = mongoAttr.NamedArguments.FirstOrDefault(n => n.Key == "CollectionName").Value.Value?.ToString();
@@ -187,9 +188,10 @@ namespace MongoObject.SourceGenerator.Generators
                 Properties = validProperties,
                 Projections = [.. ProcessProjections(namedTypeSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol, projectionAttrSymbol)],
                 Errors = errors,
-                Indexes = [.. indexes.Select(g => new IndexModel { Name = g.Key, Properties = [.. g.Value] })],
+                Indexes = [.. indexes.Select(g => new IndexModel { Name = g.Key, Properties = [.. g.Value], IsUnique = g.Value.Any(c => c.Indexes.Any(i => i.Unique == true && g.Key == i.IndexName)) })],
                 IsEncryptedModel = symbol.GetAttributes().Any(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, encryptedAttrSymbol)),
-                EncryptedModels = new EncryptedModel { Properties = [.. validProperties.Where(x => x.isEncrypted)] }
+                EncryptedModels = new EncryptedModel { Properties = [.. validProperties.Where(x => x.isEncrypted)] },
+                MigrationPolicy = symbol.GetAttributes().Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, migrationAttrSymbol)).Select(x => GetMigrationPolicy(x)).FirstOrDefault() ?? "Warn"
             };
         }
 

@@ -4,7 +4,7 @@ using MongoObject.SourceGenerator.Interfaces;
 using MongoObject.SourceGenerator.Models;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Text;
+using System.Runtime.InteropServices.ComTypes;
 
 namespace MongoObject.SourceGenerator.Modules
 {
@@ -94,9 +94,11 @@ namespace MongoObject.SourceGenerator.Modules
                                 sb.AppendLine($"{{\"database_name\", \"{model.DatabaseName}\"}},");
                                 sb.AppendLine($"{{\"bson_type\", \"object\"}},");
                                 sb.AppendLine($"{{\"type_name\", \"{model.Namespace}.{model.Name}\"}},");
+                                sb.AppendLine($"{{\"migration_policy\", \"{model.MigrationPolicy}\"}}");
                             }
                             sb.AppendLine($"payload.Add(\"{model.Name}\", {model.Name}Document);");
                         }
+                        BuildIndexBson(sb, models);
                         sb.AppendLine($"global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument[\"documentSchema\"] = payload;");
                         sb.AppendLine($"global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument[\"base_namespace\"] = \"{rootNamespace}\";");
                     }
@@ -105,6 +107,61 @@ namespace MongoObject.SourceGenerator.Modules
 
             // Use a unique file name that won't conflict with ExtensionModule
             context.AddSource($"{rootNamespace.Replace(".", "_")}_ObjectDiscovery.g.cs", sb.ToString());
+        }
+
+        private void BuildIndexBson(IndentedStringBuilder sb, ImmutableArray<CommonModel?> models)
+        {
+            var prefix = "Document";
+            sb.AppendLine("var indexDoc = new global::MongoDB.Bson.BsonDocument();");
+            sb.AppendLine("if (global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument.TryGetValue(\"indexes\", out var indexes))");
+            using(sb.Block())
+            {
+                sb.AppendLine("indexDoc = indexes.AsBsonDocument;");
+            }
+            foreach(var model in models)
+            {
+                if (model == null) continue;
+                if (model.Indexes.Count > 0)
+                {
+                    //sb.AppendLine($"indexDoc.Add({model!.Name}IndexDocument = new global::MongoDB.Bson.BsonDocument");
+                    //using (sb.Block(closer: ";"))
+                    //{
+                    //    using (sb.Block(closer: ","))
+                    //    {
+                            sb.AppendLine($"indexDoc.Add(\"{model.DatabaseName}.{model.CollectionName}\", new global::MongoDB.Bson.BsonArray");
+                            using (sb.Block())
+                            {
+                                foreach(var index in model.Indexes)
+                                {    
+                                    sb.AppendLine($"new global::MongoDB.Bson.BsonDocument");
+                                    using (sb.Block(closer: ","))
+                                    {
+                                        sb.AppendLine($"{{\"index_name\", \"{index.Name}\"}},");
+                                        sb.AppendLine($"{{\"unique\", {index.IsUnique.ToString().ToLower()}}},");
+                                    
+                                        sb.AppendLine($"{{\"entities\", new global::MongoDB.Bson.BsonDocument");
+                                        using(sb.Block())
+                                        {
+                                            foreach(var pr in index.Properties)
+                                            {
+                                                foreach (var ind in pr.Indexes)
+                                                {
+                                                    if (ind.IndexName == index.Name)
+                                                        sb.AppendLine($"{{\"{prefix}.{ind.Name}\", \"{ind.Order}\"}},");
+                                                }
+                                            }
+                                        }
+                                        sb.AppendLine("}");
+                                    }
+                                }
+                            }
+                            sb.AppendLine(");");
+                    //    }
+                    //sb.AppendLine(");");
+                    //}
+                }
+            }
+            sb.AppendLine($"global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument[\"indexes\"] = indexDoc;");
         }
 
         private static string SanitizeName(string name)

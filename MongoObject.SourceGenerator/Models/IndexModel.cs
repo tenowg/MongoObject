@@ -9,5 +9,6 @@ namespace MongoObject.SourceGenerator.Models
     {
         public string Name { get; init; } = string.Empty;
         public IReadOnlyList<PropertyModel> Properties { get; init; } = [];
+        public bool IsUnique { get; init; }
     }
 }
