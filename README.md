@@ -8,6 +8,8 @@
 [![Deploy Documentation](https://github.com/tenowg/MongoObject/actions/workflows/docs.yml/badge.svg)](https://github.com/tenowg/MongoObject/actions/workflows/docs.yml)
 [![Build](https://github.com/tenowg/MongoObject/actions/workflows/dotnet.yml/badge.svg)](https://github.com/tenowg/MongoObject/actions/workflows/dotnet.yml)
 [![NuGet Pre-release Version](https://shields.io/nuget/vpre/Tenowg.MongoObjects)](https://www.nuget.org/packages/Tenowg.MongoObjects)
+[![Discord](https://img.shields.io/discord/1526014089296478289?logo=discord)](https://discord.gg/adU3BXdstu)
+
 
 ---
 
