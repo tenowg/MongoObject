@@ -152,3 +152,4 @@ node_modules/
 /nupkg
 /Progress/Migrations
 /Progress/Migration.cs
+/.abacusai/config.json
