@@ -6,8 +6,6 @@ using MongoObject.SourceGenerator.Models;
 using MongoObject.SourceGenerator.Modules;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.IO.Compression;
 using System.Linq;
 
 namespace MongoObject.SourceGenerator.Generators
@@ -188,7 +186,7 @@ namespace MongoObject.SourceGenerator.Generators
                 Properties = validProperties,
                 Projections = [.. ProcessProjections(namedTypeSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol, projectionAttrSymbol)],
                 Errors = errors,
-                Indexes = [.. indexes.Select(g => new IndexModel { Name = g.Key, Properties = [.. g.Value], IsUnique = g.Value.Any(c => c.Indexes.Any(i => i.Unique == true && g.Key == i.IndexName)) })],
+                //Indexes = [.. indexes.Select(g => new IndexModel { Name = g.Key, Properties = [.. g.Value], IsUnique = g.Value.Any(c => c.Indexes.Any(i => i.Unique == true && g.Key == i.IndexName)) })],
                 IsEncryptedModel = symbol.GetAttributes().Any(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, encryptedAttrSymbol)),
                 EncryptedModels = new EncryptedModel { Properties = [.. validProperties.Where(x => x.isEncrypted)] },
                 MigrationPolicy = symbol.GetAttributes().Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, migrationAttrSymbol)).Select(x => GetMigrationPolicy(x)).FirstOrDefault() ?? "Warn"

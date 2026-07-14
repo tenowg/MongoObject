@@ -1,3 +1,9 @@
+---
+
+uid: cli-docs
+
+---
+
 # MongoObject CLI Tool
 
 The MongoObject CLI Tool (`mo`) is a command-line utility that automates the generation and execution of MongoDB schema migrations for your MongoObject projects. It analyzes your document definitions and generates migration files that handle schema changes, index creation, and other database operations.
