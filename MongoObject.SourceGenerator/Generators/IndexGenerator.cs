@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis;
@@ -15,7 +14,6 @@ namespace MongoObject.SourceGenerator.Generators
     {
         public void Initialize(IncrementalGeneratorInitializationContext context)
         {
-            //Debugger.Launch();
             var provider = context.SyntaxProvider.ForAttributeWithMetadataName("MongoObject.Core.Attributes.MongoIndexAttribute",
                 predicate: static (s, _) => s is ClassDeclarationSyntax,
                 transform: (ctx, ct) => BuildIndexModel(ctx, ct))
@@ -28,7 +26,6 @@ namespace MongoObject.SourceGenerator.Generators
             });
 
             var combinedProvider = provider.Collect().Combine(values);
-
             context.RegisterSourceOutput(combinedProvider, BuildIndexBson);
         }
 
@@ -57,16 +54,18 @@ namespace MongoObject.SourceGenerator.Generators
                 .OfType<IPropertySymbol>()
                 .SelectMany(prop => prop.GetAttributes()
                 .Where(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, fieldIndexAttrSymbol))
-                .Select(a => new IndexProperty {
-                    PropertyName = prop.Name,
-                    IndexName = (string)a.ConstructorArguments[0].Value!,
-                    Direction = GetIndexTypeName(a),
-                    QueryName = prop.Name // prop.GetAttributes().First(b => SymbolEqualityComparer.Default.Equals(b.AttributeClass, bsonElementAttrSymbol)).ConstructorArguments.FirstOrDefault().Value as string ?? prop.Name,
+                .Select(a => {
+                    var isBsonElement = bsonElementAttrSymbol != null && prop.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonElementAttrSymbol));
+                    return new IndexProperty {
+                        PropertyName = prop.Name,
+                        IndexName = (string)a.ConstructorArguments[0].Value!,
+                        Direction = GetIndexTypeName(a),
+                        QueryName = isBsonElement ? prop.GetAttributes().First(b => SymbolEqualityComparer.Default.Equals(b.AttributeClass, bsonElementAttrSymbol)).ConstructorArguments.FirstOrDefault().Value as string ?? prop.Name : prop.Name,
+                    };
                     })
                 )
                 .ToImmutableArray();
 
-            // Collect all [MongoIndex] attributes on the class
             var indexes = classSymbol.GetAttributes()
                 .Where(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, mongoIndexAttrSymbol))
                 .Select(a => new IndexModel {
@@ -115,19 +114,12 @@ namespace MongoObject.SourceGenerator.Generators
                             }
                             if (provider.indexModels.Length > 0)
                             {
-                                //sb.AppendLine($"indexDoc.Add({model!.Name}IndexDocument = new global::MongoDB.Bson.BsonDocument");
-                                //using (sb.Block(closer: ";"))
-                                //{
-                                //    using (sb.Block(closer: ","))
-                                //    {
                                 sb.AppendLine($"indexDoc.Add(\"{provider.DatabaseName}.{provider.CollectionName}\", new global::MongoDB.Bson.BsonArray");
 
                                 using (sb.Block())
                                 {
                                     foreach (var model in provider.indexModels)
-                                    {
-                                        //foreach(var index in model.Properties)
-                                        //{    
+                                    { 
                                         sb.AppendLine($"new global::MongoDB.Bson.BsonDocument");
                                         using (sb.Block(closer: ","))
                                         {
@@ -139,11 +131,7 @@ namespace MongoObject.SourceGenerator.Generators
                                             {
                                                 foreach (var pr in model.Properties)
                                                 {
-                                                    //foreach (var ind in pr.Indexes)
-                                                    //{
-                                                    //if (model.Name == pr.Name)
                                                     sb.AppendLine($"{{\"{prefix}.{pr.QueryName}\", \"{pr.Direction}\"}},");
-                                                    //}
                                                 }
                                             }
                                             sb.AppendLine("}");
@@ -156,10 +144,6 @@ namespace MongoObject.SourceGenerator.Generators
                             {
                                 sb.AppendLine("// No index models found for this provider");
                             }
-                            //    }
-                            //sb.AppendLine(");");
-                            //}
-
                         }
                         sb.AppendLine($"//{models.Length} models processed");
                         sb.AppendLine($"global::MongoObject.Core.Extensions.MongoObjectsPluginRegistry.SchemaDocument[\"indexes\"] = indexDoc;");
