@@ -30,11 +30,11 @@ namespace MongoObject.SourceGenerator.Generators
             new MongoObjectModule(),
             new DocumentSearchModule(),
             new ExtensionModule(),
-            new ProjectionModule(),
+            //new ProjectionModule(),
             new SearchBuilderModule(),
             new AddBuilderModule(),
             new DeleteManyBuilderModule(),
-            new BsonProjectionSerialilzerModule(),
+            //new BsonProjectionSerialilzerModule(),
             new EncrytionModule()
         ];
 
@@ -186,7 +186,6 @@ namespace MongoObject.SourceGenerator.Generators
                 Properties = validProperties,
                 Projections = [.. ProcessProjections(namedTypeSymbol, bsonElementAttrSymbol, bsonIgnoreAttrSymbol, projectionAttrSymbol)],
                 Errors = errors,
-                //Indexes = [.. indexes.Select(g => new IndexModel { Name = g.Key, Properties = [.. g.Value], IsUnique = g.Value.Any(c => c.Indexes.Any(i => i.Unique == true && g.Key == i.IndexName)) })],
                 IsEncryptedModel = symbol.GetAttributes().Any(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, encryptedAttrSymbol)),
                 EncryptedModels = new EncryptedModel { Properties = [.. validProperties.Where(x => x.isEncrypted)] },
                 MigrationPolicy = symbol.GetAttributes().Where(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, migrationAttrSymbol)).Select(x => GetMigrationPolicy(x)).FirstOrDefault() ?? "Warn"
@@ -319,8 +318,8 @@ namespace MongoObject.SourceGenerator.Generators
         }
 
         public IEnumerable<ProjectionModel> ProcessProjections(
-            INamedTypeSymbol symbol, 
-            INamedTypeSymbol? bsonElementAttrSymbol, 
+            INamedTypeSymbol symbol,
+            INamedTypeSymbol? bsonElementAttrSymbol,
             INamedTypeSymbol? bsonIgnoreAttrSymbol,
             INamedTypeSymbol? projectionAttrSymbol)
         {
@@ -329,7 +328,8 @@ namespace MongoObject.SourceGenerator.Generators
                 .SelectMany(prop => prop.GetAttributes()
                     .Where(attr => attr.AttributeClass?.Name is "ProjectValueAttribute" or "ProjectValue")
                     .Select(attr => new { Property = prop, Attribute = attr }))
-                .Select(target => {
+                .Select(target =>
+                {
                     var isBsonElement = bsonElementAttrSymbol != null && target.Property.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonElementAttrSymbol));
                     var isBsonIgnore = bsonIgnoreAttrSymbol != null && target.Property.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonIgnoreAttrSymbol));
                     var dimensions = (int)(target.Property.GetAttributes().First(x => SymbolEqualityComparer.Default.Equals(x.AttributeClass, projectionAttrSymbol)).NamedArguments.FirstOrDefault(x => x.Key == "Dimensions").Value.Value ?? 1024);
@@ -337,7 +337,7 @@ namespace MongoObject.SourceGenerator.Generators
                     {
                         Name = target.Attribute?.ConstructorArguments.FirstOrDefault().Value as string ?? target.Property.Name,
 
-                        Prop = new PropertyModel
+                        Prop = new ProjectionPropertyModel
                         {
                             FullName = target.Property.Type.ToDisplayString(format),
                             QueryName = isBsonElement ? target.Property.GetAttributes().First(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, bsonElementAttrSymbol)).ConstructorArguments.FirstOrDefault().Value as string ?? target.Property.Name : target.Property.Name,
