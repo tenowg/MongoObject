@@ -318,6 +318,7 @@ namespace MongoObject.Core.Services
             {
                 if (doc != null && doc.Document != null)
                 {
+                    
                     // we need to set it the key here as well, because the memory cache
                     // can hold references between scopes
                     keyManager.SetKey(doc);
@@ -326,7 +327,6 @@ namespace MongoObject.Core.Services
             }
 
             var collection = connection.Collection;
-            // the his purely base line code
             
             var keyFilter = Builders<MongoDocument<T>>.Filter.Eq("_id", key);
             var result = await collection.FindAsync<MongoDocument<T>>(keyFilter);
@@ -335,6 +335,10 @@ namespace MongoObject.Core.Services
 
             if (mongoDoc != null && mongoDoc.Document != null)
             {
+                if (isTrackable)
+                {
+                    ((IDocumentFileInternal)mongoDoc.Document!).TrackChanges();
+                }
                 keyManager.SetKey(mongoDoc);
             }
 
