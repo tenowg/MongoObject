@@ -24,9 +24,9 @@ namespace MongoObject.Core.Services
             return documentManager.DeleteDocument(document);
         }
 
-        public async Task<TDocument> Get(string id)
+        public async Task<TDocument?> Get(string id)
         {
-            return new TDocument();
+            return await documentManager.GetDocument(id);
         }
 
         public string GetKey(TDocument document)
