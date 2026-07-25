@@ -335,6 +335,19 @@ namespace MongoObject.Core.Services
 
             if (mongoDoc != null && mongoDoc.Document != null)
             {
+                string cacheKey = cacheKeyBase + mongoDoc.Id;
+                var item = mongoDoc.ToBsonDocument();
+                cache.Add(cacheKey, item, cacheOptions);
+
+                long version = 0;
+                if (item.TryGetValue("Metadata", out var metadataNode) &&
+                    metadataNode.AsBsonDocument.TryGetValue("Version", out var versionNode))
+                {
+                    version = versionNode.AsInt64;
+                }
+
+                mongoDoc.Document.Version = version;
+
                 if (isTrackable)
                 {
                     ((IDocumentFileInternal)mongoDoc.Document!).TrackChanges();
@@ -373,8 +386,8 @@ namespace MongoObject.Core.Services
             var keyFilter = Builders<MongoDocument<T>>.Filter
                 .And(
                     Builders<MongoDocument<T>>.Filter.Eq("_id", key),
-                    Builders<MongoDocument<T>>.Filter.Eq("Metadata.Version", document.Version
-                    ));
+                    Builders<MongoDocument<T>>.Filter.Eq("Metadata.Version", new BsonInt64(document.Version))
+                    );
 
             switch (capabilities.ClusterType)
             {
@@ -423,6 +436,8 @@ namespace MongoObject.Core.Services
 
                 using var trans = await client.StartSessionAsync();
 
+                UpdateResult? changed = null;
+
                 trans.StartTransaction();
                 try
                 {
@@ -435,7 +450,7 @@ namespace MongoObject.Core.Services
                         return (flowControl: false, value: SaveChangesResult.Failed($"Document is locked"));
                     }
 
-                    await connection.Collection.UpdateOneAsync(keyFilter, updates);
+                    changed = await connection.Collection.UpdateOneAsync(keyFilter, updates);
                     internalDocument.ClearChanges();
                     await trans.CommitTransactionAsync();
                 }
@@ -444,7 +459,7 @@ namespace MongoObject.Core.Services
                     await trans.AbortTransactionAsync();
                     return (flowControl: false, value: SaveChangesResult.Failed($"Saves changes failed with a mongo Error"));
                 }
-                return (flowControl: false, value: SaveChangesResult.Success);
+                return (flowControl: false, value: SaveChangesResult.Success(changed));
             }
 
             return (flowControl: true, value: null);
@@ -469,7 +484,7 @@ namespace MongoObject.Core.Services
                         return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
                     }
                 }
-
+                UpdateResult? changed = null;
                 try
                 {
                     var lockData = await lockManager.IsLockedByOther(lockKey, document);
@@ -479,14 +494,14 @@ namespace MongoObject.Core.Services
                         return (flowControl: false, value: SaveChangesResult.Failed($"Document is locked"));
                     }
 
-                    await connection.Collection.UpdateOneAsync(keyFilter, updates);
+                    changed = await connection.Collection.UpdateOneAsync(keyFilter, updates);
                     internalDocument.ClearChanges();
                 }
                 catch (Exception)
                 {
                     return (flowControl: false, value: SaveChangesResult.Failed($"Saves changes failed with a mongo Error"));
                 }
-                return (flowControl: false, value: SaveChangesResult.Success);
+                return (flowControl: false, value: SaveChangesResult.Success(changed));
             }
 
             return (flowControl: true, value: null);
