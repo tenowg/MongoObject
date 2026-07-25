@@ -210,7 +210,7 @@ namespace MongoObject.Core.Data
 
             update = Builders<MongoDocument<T>>.Update.Pipeline(
                 new PipelineStagePipelineDefinition<MongoDocument<T>, MongoDocument<T>>(stages)
-    );
+                );
 
 
             return true;

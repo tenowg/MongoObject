@@ -154,5 +154,3 @@ node_modules/
 /Progress/Migrations
 /Progress/Migration.cs
 /.abacusai/config.json
-
-/CodeReview
