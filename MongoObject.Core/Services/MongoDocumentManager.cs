@@ -338,7 +338,7 @@ namespace MongoObject.Core.Services
                 keyManager.SetKey(mongoDoc);
             }
 
-            return result.FirstOrDefault().Document;
+            return mongoDoc?.Document;
         }
 
         public async Task<DeleteResult> DeleteDocument(T document)
