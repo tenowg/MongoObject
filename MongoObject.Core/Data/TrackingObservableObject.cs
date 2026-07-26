@@ -69,7 +69,6 @@ namespace MongoObject.Core.Data
 
             if (ParentName == string.Empty)
             {
-                Console.WriteLine("Changed at root: " + mongoEvent.PropertyName + " to " + mongoEvent.Value?.ToString());
                 // this should never happen, but just in case
                 if (mongoEvent.PropertyName != null)
                 {

@@ -20,7 +20,6 @@ namespace MongoObject.Core.Services
 
         private async Task RunTasks(Database database, CancellationToken cancellationToken)
         {
-            //var configRegistry = sp.GetRequiredService<MongoConfigRegistry>();
             var mongoDatabase = sp.GetRequiredService<IMongoClient>().GetDatabase(database.database);
             var connections = sp.GetRequiredService<IEnumerable<IMongoConnection>>().Where(o => o.DatabaseName == database.database).ToDictionary(o => o.CollectionName, o => o);
 
