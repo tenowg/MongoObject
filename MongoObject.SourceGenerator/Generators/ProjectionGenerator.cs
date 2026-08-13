@@ -105,7 +105,7 @@ namespace MongoObject.SourceGenerator.Generators
                                     {
                                         if (property.EnumName == "Include" || property.EnumName == "AutoVector")
                                         {
-                                            sb.AppendLine($"projectionDoc[\"{property.Name}\"] = \"$Document.{property.QueryName}\";");
+                                            sb.AppendLine($"projectionDoc[\"{property.QueryName}\"] = \"$Document.{property.QueryName}\";");
                                         }
                                         else if (property.EnumName == "Slice")
                                         {
