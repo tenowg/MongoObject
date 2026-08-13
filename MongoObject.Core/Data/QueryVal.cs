@@ -1,9 +1,11 @@
 ﻿using MongoDB.Bson;
+using System.Linq.Expressions;
 using System.Text.RegularExpressions;
 using static MongoDB.Driver.WriteConcern;
 
 namespace MongoObject.Core.Data
 {
+    public record SortField<T>(Expression<Func<T, object>> Selector, bool Descending = false);
     public abstract record QueryVal<T>
     {
         // The implicit operator allows 'Age: 32' to automatically become 'new EqualTo(32)'

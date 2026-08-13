@@ -14,19 +14,19 @@ namespace MongoObject.Core.Services
         where TDocument : class, IDocumentFile, new()
     {
         public IMongoCollection<MongoDocument<TDocument>> GetConnection() => connection.Collection;
-        public async Task<IMongoLockScope> LockDocument(TDocument Document)
+        public async Task<IMongoLockScope> LockDocument(TDocument Document, CancellationToken cancellationToken = default)
         {
-            return await lockManager.LockScopedAsync(Document);
+            return await lockManager.LockScopedAsync(Document, null, cancellationToken);
         }
 
-        public Task<DeleteResult> Delete(TDocument document)
+        public Task<DeleteResult> Delete(TDocument document, CancellationToken cancellationToken = default)
         {
-            return documentManager.DeleteDocument(document);
+            return documentManager.DeleteDocument(document, cancellationToken);
         }
 
-        public async Task<TDocument?> Get(string id)
+        public async Task<TDocument?> Get(string id, CancellationToken cancellationToken = default)
         {
-            return await documentManager.GetDocument(id);
+            return await documentManager.GetDocument(id, cancellationToken);
         }
 
         public string GetKey(TDocument document)
@@ -35,23 +35,19 @@ namespace MongoObject.Core.Services
             return key ?? string.Empty;
         }
 
-        public async Task<SaveChangesResult> SaveChanges(TDocument document, IMongoLockScope? lockKey = null)
+        public async Task<SaveChangesResult> SaveChanges(TDocument document, IMongoLockScope? lockKey = null, CancellationToken cancellationToken = default)
         {
-            return await documentManager.UpdateDocument(document, lockKey);
+            return await documentManager.UpdateDocument(document, lockKey, cancellationToken);
         }
 
-        public async Task<string> Add<TMetaSearch>(TDocument document, Action<TMetaSearch>? metadata)
+        public async Task<string> Add<TMetaSearch>(TDocument document, Action<TMetaSearch>? metadata = null, CancellationToken cancellationToken = default)
             where TMetaSearch : class, IMetadataBase, new()
         {
             if (document is TDocument doc)
             {
-                return await documentManager.AddDocument(doc, metadata);
+                return await documentManager.AddDocument(doc, metadata, cancellationToken);
             }
             return string.Empty;
-        }
-        public Task<string> Add(TDocument document)
-        {
-            throw new NotImplementedException();
         }
 
         public Task SaveChanges<TMetaSearch>(TDocument document, Action<TMetaSearch> metadata)
@@ -79,37 +75,37 @@ namespace MongoObject.Core.Services
             monitor.SignalChange(key);
         }
 
-        async Task<IEnumerable<TDocument>> IDocumentMonitorInternal<TDocument>.DocumentSearch<TClassSearch>(Action<TClassSearch> metadata)
+        async Task<IEnumerable<TDocument>> IDocumentMonitorInternal<TDocument>.DocumentSearch<TClassSearch>(Action<TClassSearch> metadata, CancellationToken cancellationToken)
         {
-            return await documentManager.ClassSearch(metadata);
+            return await documentManager.ClassSearch(metadata, cancellationToken);
         }
 
-        async Task<IEnumerable<TDocument>> IDocumentMonitorInternal<TDocument>.MetadataSearch<TMetaSearch>(Action<TMetaSearch> metadata)
+        async Task<IEnumerable<TDocument>> IDocumentMonitorInternal<TDocument>.MetadataSearch<TMetaSearch>(Action<TMetaSearch> metadata, CancellationToken cancellationToken)
         {
-            return await documentManager.MetadataSearch(metadata);
+            return await documentManager.MetadataSearch(metadata, cancellationToken);
         }
 
         async Task<IEnumerable<TDocument>> IDocumentMonitorInternal<TDocument>.CombinedSearch<TClassSearch, TMetaSearch>(
-            Action<TClassSearch>? query, Action<TMetaSearch>? meta, int limit, int skip)
+            Action<TClassSearch>? query, Action<TMetaSearch>? meta, SortDefinition<MongoDocument<TDocument>> sort, int limit, int skip, CancellationToken cancellationToken)
         {
-            return await documentManager.CombinedSearch<TClassSearch, TMetaSearch>(query, meta, limit, skip);
+            return await documentManager.CombinedSearch<TClassSearch, TMetaSearch>(query, meta, sort, limit, skip);
         }
 
         async Task<IEnumerable<TProjection>> IDocumentMonitorInternal<TDocument>.SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(
-            Action<TClassSearch>? query, Action<TMetaSearch>? meta, TProjection projection, int limit, int skip)
+            Action<TClassSearch>? query, Action<TMetaSearch>? meta, TProjection projection, SortDefinition<MongoDocument<TDocument>> sort, int limit, int skip, CancellationToken cancellationToken)
         {
-            return await documentManager.SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(query, meta, projection, limit, skip);
+            return await documentManager.SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(query, meta, projection, sort, limit, skip, cancellationToken);
         }
 
         async Task<long> IDocumentMonitorInternal<TDocument>.DeleteMany<TClassSearch, TMetaSearch>(
-            Action<TClassSearch>? query, Action<TMetaSearch>? meta)
+            Action<TClassSearch>? query, Action<TMetaSearch>? meta, CancellationToken cancellationToken)
         {
-            return await documentManager.DeleteMany<TClassSearch, TMetaSearch>(query, meta);
+            return await documentManager.DeleteMany<TClassSearch, TMetaSearch>(query, meta, cancellationToken);
         }
 
-        async Task<IEnumerable<TProjection>> IDocumentMonitorInternal<TDocument>.VectorSearchWithProjection<TClassSearch, TMetaSearch, TProjection>(Action<TClassSearch>? query, Action<TMetaSearch>? meta, TProjection projection, string index, string embeddingName, float[] embedding, int limit, int skip, int returnCount, int conciderFrom)
+        async Task<IEnumerable<TProjection>> IDocumentMonitorInternal<TDocument>.VectorSearchWithProjection<TClassSearch, TMetaSearch, TProjection>(Action<TClassSearch>? query, Action<TMetaSearch>? meta, TProjection projection, string index, string embeddingName, float[] embedding, int limit, int skip, int returnCount, int conciderFrom, CancellationToken cancellationToken)
         {
-            return await documentManager.SearchWithVector(query, meta, projection, index, embeddingName, embedding, limit, skip, returnCount, conciderFrom);
+            return await documentManager.SearchWithVector(query, meta, projection, index, embeddingName, embedding, limit, skip, returnCount, conciderFrom, cancellationToken);
         }
 
         async Task<IEnumerable<TProjection>> IDocumentMonitorInternal<TDocument>.AutoVectorSearchWithProjection<TClassSearch, TMetaSearch, TProjection, TField>(
@@ -122,9 +118,10 @@ namespace MongoObject.Core.Services
             int limit, 
             int skip, 
             int returnCount, 
-            int conciderFrom)
+            int conciderFrom,
+            CancellationToken cancellationToken)
         {
-            return await documentManager.SearchWithAutoVector(query, meta, projection, index, embeddingName, embedding, limit, skip, returnCount, conciderFrom);
+            return await documentManager.SearchWithAutoVector(query, meta, projection, index, embeddingName, embedding, limit, skip, returnCount, conciderFrom, cancellationToken);
         }
     }
 }

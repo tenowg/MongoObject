@@ -7,8 +7,10 @@ namespace MongoObject.SourceGenerator.Models
     /// </summary>
     internal sealed record ProjectionModel
     {
+        public string Namespace { get; init; } = string.Empty;
+        public string ModelName { get; init; } = string.Empty;
         public string Name { get; init; } = string.Empty;
         public string Description { get; init; } = string.Empty;
-        public IReadOnlyList<PropertyModel> Properties { get; init; } = [];
+        public IReadOnlyList<ProjectionPropertyModel> Properties { get; init; } = [];
     }
 }

@@ -25,7 +25,7 @@ namespace MongoOptions.Services
         public bool TryGet<T>(string key, out MongoDocument<T>? doc)
             where T : class, IDocumentFile, new()
         {
-            if(cache.TryGetValue(BuildKey<T>(key), out BsonDocument? value))
+            if (cache.TryGetValue(BuildKey<T>(key), out BsonDocument? value))
             {
                 doc = BsonSerializer.Deserialize<MongoDocument<T>>(value);
                 if (doc.Document == null)

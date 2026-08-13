@@ -230,7 +230,8 @@ namespace MongoObject.Core.Services
         /// </summary>
         public async Task<IMongoLockScope> LockScopedAsync<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] T>(
             T document,
-            TimeSpan? duration = null)
+            TimeSpan? duration = null,
+            CancellationToken cancellationToken = default)
             where T : class, IDocumentFile, new()
         {
             if (!keys.TryGetKey(document, out string? key))

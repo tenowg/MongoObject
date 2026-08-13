@@ -151,6 +151,7 @@ namespace MongoObject.Core.Data
 
             MongoObjectsPluginRegistry.RegisterHandler<DropIndexOperation>(async (db, coll, op, cancellationToken) =>
             {
+                Console.WriteLine($"Dropping {coll}.{op.IndexName}");
                 var collection = db.GetCollection<BsonDocument>(coll);
                 await collection.Indexes.DropOneAsync(op.IndexName, cancellationToken);
             });

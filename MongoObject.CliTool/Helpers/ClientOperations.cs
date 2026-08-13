@@ -133,10 +133,17 @@ namespace MongoObject.CliTool.Helpers
                     if (schemaDiff == null || (schemaDiff.AddedFields.Count == 0 && schemaDiff.RemovedFields.Count == 0 && schemaDiff.ChangedFields.Count == 0))
                     {
                         AnsiConsole.WriteLine("No changes detected, not appling schema");
-                        var indexOperations = await ProcessIndexes(standardClient, indexes, schemas, diff.Value, cancellationToken);
-                        foreach(var kvp in indexOperations)
+                        var (indexRemove, indexAdd) = await ProcessIndexes(standardClient, indexes, schemas, diff.Value, cancellationToken);
+                        foreach(var kvp in indexRemove)
                         {
                             foreach(var op in kvp.Value)
+                            {
+                                operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(op);
+                            }
+                        }
+                        foreach (var kvp in indexAdd)
+                        {
+                            foreach (var op in kvp.Value)
                             {
                                 operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(op);
                             }
@@ -199,7 +206,7 @@ namespace MongoObject.CliTool.Helpers
                         }
 
                         // we will move this whole checking of operations to later.
-                        var indexOperations = await ProcessIndexes(standardClient, indexes, schemas, diff.Value, cancellationToken);
+                        var (indexRemove, indexAdd) = await ProcessIndexes(standardClient, indexes, schemas, diff.Value, cancellationToken);
 
                         if (resOperations.Count > 0)
                         {
@@ -209,7 +216,15 @@ namespace MongoObject.CliTool.Helpers
                             });
                         }
 
-                        foreach(var kvp in resOperations)
+                        foreach (var kvp in indexRemove)
+                        {
+                            foreach (var op in kvp.Value)
+                            {
+                                operations[$"{diff.Value.DatabaseName}.{diff.Value.CollectionName}"].Add(op);
+                            }
+                        }
+
+                        foreach (var kvp in resOperations)
                         {
                             foreach(var op in kvp.Value)
                             {
@@ -217,7 +232,7 @@ namespace MongoObject.CliTool.Helpers
                             }
                         }
 
-                        foreach(var kvp in indexOperations)
+                        foreach(var kvp in indexAdd)
                         {
                             foreach(var op in kvp.Value)
                             {
@@ -251,11 +266,13 @@ namespace MongoObject.CliTool.Helpers
             return operations;
         }
 
-        public static async Task<OperationDictionary> ProcessIndexes(IMongoClient standardClient, Dictionary<string, List<IndexObject>> indexes, JsonSchemas schema, SchemaObject diff, CancellationToken cancellationToken = default)
+        public static async Task<(OperationDictionary remove, OperationDictionary add)> ProcessIndexes(IMongoClient standardClient, Dictionary<string, List<IndexObject>> indexes, JsonSchemas schema, SchemaObject diff, CancellationToken cancellationToken = default)
         {
-            var indexOperations = new OperationDictionary();
+            var indexRemoveOperations = new OperationDictionary();
+            var indexAddOperations = new OperationDictionary();
             var database = standardClient.GetDatabase(diff.DatabaseName);
             var collection = database.GetCollection<BsonDocument>(diff.CollectionName);
+            
 
             AnsiConsole.WriteLine($"Processing {diff.DatabaseName}.{diff.CollectionName}");
             using var cursor = await collection.Indexes.ListAsync(cancellationToken);
@@ -263,8 +280,9 @@ namespace MongoObject.CliTool.Helpers
             var mongoIndex = indexList.Select(x => BsonSerializer.Deserialize<MongoIndex>(x));
             if (!indexes.TryGetValue($"{diff.DatabaseName}.{diff.CollectionName}", out List<IndexObject>? indexObjects))
             {
-                indexObjects ??= [];
+                indexObjects ??= []; 
             }
+            var tempIndex = new List<IndexObject>(indexObjects);
 
             foreach (var index in mongoIndex)
             {
@@ -295,34 +313,63 @@ namespace MongoObject.CliTool.Helpers
                         var removed = index.Keys.Keys
                             .Where(k => !indexObject.Entities.ContainsKey(k))
                             .ToList();
-AnsiConsole.WriteLine($"Checking removed: {string.Join(",", index.Keys.Keys)} against {string.Join(",", indexObject.Entities.Keys)}");
                         if (added.Count > 0 || removed.Count > 0)
                         {
                             AnsiConsole.WriteLine($"Index diff on '{index.Name}': Added=[{string.Join(", ", added)}] Removed=[{string.Join(", ", removed)}]");
 
-                            indexOperations[$"{diff.DatabaseName}.{diff.CollectionName}"].Add(new CliOperation("DropIndexOperation")
+                            indexRemoveOperations[$"{diff.DatabaseName}.{diff.CollectionName}"].Add(new CliOperation("DropIndexOperation")
                             {
                                 { "IndexName", indexObject.IndexName },
                                 {"Reason", $"Index diff on {index.Name}: Added=[{string.Join(", ", added)}] Removed=[{string.Join(", ", removed)}]"}
                             });
 
-                            indexOperations[$"{diff.DatabaseName}.{diff.CollectionName}"].Add(new CliOperation("CreateIndexOperation")
+                            indexAddOperations[$"{diff.DatabaseName}.{diff.CollectionName}"].Add(new CliOperation("CreateIndexOperation")
                             {
                                 { "IndexName", indexObject.IndexName },
                                 { "Members", properties },
                                 { "Unique", indexObject.Unique }
                             });
                         }
+
+                        tempIndex.Remove(indexObject);
                     }
 
                     if (delete)
                     {
-                        // add the delete operation
+                        if (index.Name.StartsWith("__") || index.Name.Contains("__safeContent__")) continue;
+
+                        // 3. Ignore search helper configurations
+                        if (index.Name.StartsWith("fts") || index.Name.StartsWith("text"))
+                        {
+                            // Only drop if you explicitly created and named them
+                            continue;
+                        }
+                        indexRemoveOperations[$"{diff.DatabaseName}.{diff.CollectionName}"].Add(new CliOperation("DropIndexOperation")
+                        {
+                            { "IndexName", index.Name },
+                            {"Reason", $"Index ({index.Name}) not found on {diff.DatabaseName}.{diff.CollectionName}"}
+                        });
                     }
                 }
             }
 
-            return indexOperations;
+            foreach(var index in tempIndex)
+            { 
+                var properties = new Dictionary<string, string>();
+                foreach (var prop in index!.Entities)
+                {
+                    properties.Add(prop.Key, prop.Value);
+                }
+
+                indexAddOperations[$"{diff.DatabaseName}.{diff.CollectionName}"].Add(new CliOperation("CreateIndexOperation")
+                    {
+                        { "IndexName", index.IndexName },
+                        { "Members", properties },
+                        { "Unique", index.Unique }
+                    });
+            }
+
+            return (indexRemoveOperations, indexAddOperations);
         }
 
         public static async Task<BsonDocument?> GetCollectionValidatorSchemaAsync(IMongoDatabase database, string collectionName)
