@@ -19,11 +19,6 @@ namespace MongoObject.Core.Services
             return await lockManager.LockScopedAsync(Document, null, cancellationToken);
         }
 
-        public async Task<string> Add(TDocument document, CancellationToken cancellationToken = default)
-        {
-            throw new NotImplementedException();
-        }
-
         public Task<DeleteResult> Delete(TDocument document, CancellationToken cancellationToken = default)
         {
             return documentManager.DeleteDocument(document, cancellationToken);

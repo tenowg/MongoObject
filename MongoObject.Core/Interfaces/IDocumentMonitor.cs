@@ -8,7 +8,6 @@ namespace MongoObject.Core.Interfaces
     {
         IMongoCollection<MongoDocument<TDocument>> GetConnection();
         Task<IMongoLockScope> LockDocument(TDocument Document, CancellationToken cancellationToken = default);
-        internal Task<string> Add(TDocument document, CancellationToken cancellationToken = default);
         void Change(TDocument doc);
         Task<DeleteResult> Delete(TDocument document, CancellationToken cancellationToken = default);
         Task<TDocument?> Get(string id, CancellationToken cancellationToken = default);
