@@ -371,24 +371,26 @@ namespace MongoObject.Core.Services
             throw new InvalidOperationException("Invalid IDocumentFile submitted");
         }
 
-        private async Task<SaveChangesResult?> CapabilityCheck(T document, IMongoLockScope? lockKey, FilterDefinition<MongoDocument<T>> keyFilter)
+        private async Task<SaveChangesResult?> CapabilityCheck(T document, IMongoLockScope? lockKey, FilterDefinition<MongoDocument<T>> keyFilter, CancellationToken cancellationToken = default)
         {
             switch (capabilities.ClusterType)
             {
                 case ClusterType.ReplicaSet:
                 case ClusterType.LoadBalanced:
                 case ClusterType.Sharded:
-                    (bool flowControl, SaveChangesResult? value) = await UpdateWithReplica(document, lockKey, keyFilter, !IsCollectionEncrypted(connection.Collection), cancellationToken);
-                    if (!flowControl && value != null)
+                    SaveChangesResult? value = await UpdateWithReplica(document, lockKey, keyFilter, !IsCollectionEncrypted(connection.Collection), cancellationToken);
+                    if (value != null)
                     {
                         return value;
+                    }
                     break;
                 case ClusterType.Unknown:
                 case ClusterType.Standalone:
-                    (bool flowControl2, SaveChangesResult? value2) = await UpdateWithOutReplica(document, lockKey, keyFilter, !IsCollectionEncrypted(connection.Collection), cancellationToken);
-                    if (!flowControl2 && value2 != null)
+                    SaveChangesResult? value2 = await UpdateWithOutReplica(document, lockKey, keyFilter, !IsCollectionEncrypted(connection.Collection), cancellationToken);
+                    if (value2 != null)
                     {
                         return value2;
+                    }
                     break;
                 default: throw new InvalidOperationException("Unknown ClusterType please report for a fix");
             }
@@ -458,15 +460,15 @@ namespace MongoObject.Core.Services
             return SaveChangesResult.Success(changed);
         }
 
-        private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithReplica(
+        private async Task<SaveChangesResult?> UpdateWithReplica(
             T document, IMongoLockScope? lockKey,
             FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline, CancellationToken cancellationToken = default)
         {
             if (document is not IDocumentFileInternal internalDocument)
-                return (flowControl: true, value: null);
+                return null;
 
             if (!TryGetPendingUpdates(internalDocument, withPipeline, out var updates))
-                return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
+                return SaveChangesResult.Failed("Cannot update when no changes Found");
 
             using var session = await client.StartSessionAsync(null, cancellationToken);
             session.StartTransaction();
@@ -479,32 +481,32 @@ namespace MongoObject.Core.Services
                 else
                     await session.AbortTransactionAsync(cancellationToken);
 
-                return (flowControl: false, value: result);
+                return result;
             }
             catch (Exception)
             {
                 await session.AbortTransactionAsync();
-                return (flowControl: false, value: SaveChangesResult.Failed("Saves changes failed with a mongo Error"));
+                return SaveChangesResult.Failed("Saves changes failed with a mongo Error");
             }
         }
 
-        private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithOutReplica(
+        private async Task<SaveChangesResult?> UpdateWithOutReplica(
             T document, IMongoLockScope? lockKey,
             FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline, CancellationToken cancellationToken = default)
         {
             if (document is not IDocumentFileInternal internalDocument)
-                return (flowControl: true, value: null);
+                return null;
 
             if (!TryGetPendingUpdates(internalDocument, withPipeline, out var updates))
-                return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
+                return SaveChangesResult.Failed("Cannot update when no changes Found");
 
             try
             {
-                return (flowControl: false, value: await ExecuteCoreUpdate(internalDocument, document, lockKey, keyFilter, updates!));
+                return await ExecuteCoreUpdate(internalDocument, document, lockKey, keyFilter, updates!);
             }
             catch (Exception)
             {
-                return (flowControl: false, value: SaveChangesResult.Failed("Saves changes failed with a mongo Error"));
+                return SaveChangesResult.Failed("Saves changes failed with a mongo Error");
             }
         }
 
