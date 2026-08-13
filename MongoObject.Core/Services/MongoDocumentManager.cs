@@ -25,7 +25,6 @@ namespace MongoObject.Core.Services
             SlidingExpiration = options.CacheSoftDuration
         };
         private bool isTrackable = typeof(IDocumentFileInternal).IsAssignableFrom(typeof(T));
-        private string cacheKeyBase = cache.PrebuildKey<T>();
 
         public async Task<string> AddDocument<TMetaBase>(T document, Action<TMetaBase>? action, CancellationToken cancellationToken = default)
             where TMetaBase : class, IMetadataBase, new()
@@ -73,7 +72,7 @@ namespace MongoObject.Core.Services
             var results = await collection.FindAsync(query, null, cancellationToken);
             var items = await results.ToListAsync();
 
-            List<T> result = new List<T>();
+            List<T> result = [];
 
             foreach (var item in items)
             {
@@ -123,24 +122,25 @@ namespace MongoObject.Core.Services
             where TClassSearch : class, IClassSearch<T>, new()
             where TMetaSearch : class, IMetadataSearchBase, new()
         {
-            var builder = Builders<MongoDocument<T>>.Filter;
-            var filters = new List<FilterDefinition<MongoDocument<T>>>();
+            var combinedFilter = BuildCombinedFilter(queryAction, metaAction);
+            //var builder = Builders<MongoDocument<T>>.Filter;
+            //var filters = new List<FilterDefinition<MongoDocument<T>>>();
 
-            if (queryAction != null)
-            {
-                var queryFilter = new TClassSearch();
-                queryAction.Invoke(queryFilter);
-                filters.Add(queryFilter.ToMongoFilter());
-            }
+            //if (queryAction != null)
+            //{
+            //    var queryFilter = new TClassSearch();
+            //    queryAction.Invoke(queryFilter);
+            //    filters.Add(queryFilter.ToMongoFilter());
+            //}
 
-            if (metaAction != null)
-            {
-                var metaFilter = new TMetaSearch();
-                metaAction.Invoke(metaFilter);
-                filters.Add(metaFilter.ToMongoFilter<T>());
-            }
+            //if (metaAction != null)
+            //{
+            //    var metaFilter = new TMetaSearch();
+            //    metaAction.Invoke(metaFilter);
+            //    filters.Add(metaFilter.ToMongoFilter<T>());
+            //}
 
-            var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
+            //var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
 
             var collection = connection.Collection;
             var results = await collection.Find(combinedFilter)
@@ -161,10 +161,8 @@ namespace MongoObject.Core.Services
                     version = versionNode.AsInt64;
                 }
 
-                var docId = item["_id"].ToString();
-                string cacheKey = cacheKeyBase + docId;
-
-                cache.Add(cacheKey, item, cacheOptions);
+                var docId = item["_id"].ToString() ?? throw new InvalidOperationException("Document ID is null");
+                cache.Add<T>(docId, item, cacheOptions);
 
                 // for now throw an error, future log and continaue
                 var typedDocument = BsonSerializer.Deserialize<MongoDocument<T>>(item) ?? throw new Exception("Invalid item type returned");
@@ -188,7 +186,7 @@ namespace MongoObject.Core.Services
             where TMetaSearch : class, IMetadataSearchBase, new()
             where TProjection : class, IProjectionBase<T, TProjection>, new()
         {
-            ProcessFiltersAndProjection(queryAction, metaAction, projection, out FilterDefinition<MongoDocument<T>> combinedFilter, out IMongoCollection<MongoDocument<T>> collection, out ProjectionDefinition<MongoDocument<T>, TProjection> projectionDefinition);
+            //ProcessFiltersAndProjection(queryAction, metaAction, projection, out FilterDefinition<MongoDocument<T>> combinedFilter, out IMongoCollection<MongoDocument<T>> collection, out ProjectionDefinition<MongoDocument<T>, TProjection> projectionDefinition);
 
             var results = await collection.Find(combinedFilter)
                 .Sort(sort)
@@ -209,7 +207,8 @@ namespace MongoObject.Core.Services
         {
             if (!capabilities.SupportsVectorSearch) throw new InvalidOperationException("MongoDB Server does not support Vector Search");
             
-            ProcessFiltersAndProjection(queryAction, metaAction, projection, out FilterDefinition<MongoDocument<T>> combinedFilter, out IMongoCollection<MongoDocument<T>> collection, out ProjectionDefinition<MongoDocument<T>, TProjection> projectionDefinition);
+            var combinedFilter = BuildCombinedFilter(queryAction, metaAction);
+            var projectionDefinition = projection.ToMongoProjection();
 
             var options = new VectorSearchOptions<MongoDocument<T>>()
             {
@@ -236,7 +235,8 @@ namespace MongoObject.Core.Services
         {
             if (!capabilities.SupportsVectorSearch) throw new InvalidOperationException("MongoDB Server does not support AuthEmbed Vector Search");
             
-            ProcessFiltersAndProjection(queryAction, metaAction, projection, out FilterDefinition<MongoDocument<T>> combinedFilter, out IMongoCollection<MongoDocument<T>> collection, out ProjectionDefinition<MongoDocument<T>, TProjection> projectionDefinition);
+            var combinedFilter = BuildCombinedFilter(queryAction, metaAction);
+            var projectionDefinition = projection.ToMongoProjection();
 
             var options = new VectorSearchOptions<MongoDocument<T>>()
             {
@@ -255,57 +255,59 @@ namespace MongoObject.Core.Services
             return results.Cast<TProjection>();
         }
 
-        private void ProcessFiltersAndProjection<TClassSearch, TMetaSearch, TProjection>(Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, TProjection projection, out FilterDefinition<MongoDocument<T>> combinedFilter, out IMongoCollection<MongoDocument<T>> collection, out ProjectionDefinition<MongoDocument<T>, TProjection> projectionDefinition)
-            where TClassSearch : class, IClassSearch<T>, new()
-            where TMetaSearch : class, IMetadataSearchBase, new()
-            where TProjection : class, IProjectionBase<T, TProjection>, new()
-        {
-            var builder = Builders<MongoDocument<T>>.Filter;
-            var filters = new List<FilterDefinition<MongoDocument<T>>>();
+        //private void ProcessFiltersAndProjection<TClassSearch, TMetaSearch, TProjection>(Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, TProjection projection, out FilterDefinition<MongoDocument<T>> combinedFilter, out IMongoCollection<MongoDocument<T>> collection, out ProjectionDefinition<MongoDocument<T>, TProjection> projectionDefinition)
+        //    where TClassSearch : class, IClassSearch<T>, new()
+        //    where TMetaSearch : class, IMetadataSearchBase, new()
+        //    where TProjection : class, IProjectionBase<T, TProjection>, new()
+        //{
+        //    var builder = Builders<MongoDocument<T>>.Filter;
+        //    var filters = new List<FilterDefinition<MongoDocument<T>>>();
 
-            if (queryAction != null)
-            {
-                var queryFilter = new TClassSearch();
-                queryAction.Invoke(queryFilter);
-                filters.Add(queryFilter.ToMongoFilter());
-            }
+        //    if (queryAction != null)
+        //    {
+        //        var queryFilter = new TClassSearch();
+        //        queryAction.Invoke(queryFilter);
+        //        filters.Add(queryFilter.ToMongoFilter());
+        //    }
 
-            if (metaAction != null)
-            {
-                var metaFilter = new TMetaSearch();
-                metaAction.Invoke(metaFilter);
-                filters.Add(metaFilter.ToMongoFilter<T>());
-            }
+        //    if (metaAction != null)
+        //    {
+        //        var metaFilter = new TMetaSearch();
+        //        metaAction.Invoke(metaFilter);
+        //        filters.Add(metaFilter.ToMongoFilter<T>());
+        //    }
 
-            combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
-            collection = connection.Collection;
+        //    combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
+        //    collection = connection.Collection;
 
-            // Create projection instance to get the projection definition
-            projectionDefinition = projection.ToMongoProjection();
-        }
+        //    // Create projection instance to get the projection definition
+        //    projectionDefinition = projection.ToMongoProjection();
+        //}
 
         public async Task<long> DeleteMany<TClassSearch, TMetaSearch>(Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, CancellationToken cancellationToken = default)
             where TClassSearch : class, IClassSearch<T>, new()
             where TMetaSearch : class, IMetadataSearchBase, new()
         {
-            var builder = Builders<MongoDocument<T>>.Filter;
-            var filters = new List<FilterDefinition<MongoDocument<T>>>();
 
-            if (queryAction != null)
-            {
-                var queryFilter = new TClassSearch();
-                queryAction.Invoke(queryFilter);
-                filters.Add(queryFilter.ToMongoFilter());
-            }
+            var combinedFilter = BuildCombinedFilter(queryAction, metaAction);
+            //var builder = Builders<MongoDocument<T>>.Filter;
+            //var filters = new List<FilterDefinition<MongoDocument<T>>>();
 
-            if (metaAction != null)
-            {
-                var metaFilter = new TMetaSearch();
-                metaAction.Invoke(metaFilter);
-                filters.Add(metaFilter.ToMongoFilter<T>());
-            }
+            //if (queryAction != null)
+            //{
+            //    var queryFilter = new TClassSearch();
+            //    queryAction.Invoke(queryFilter);
+            //    filters.Add(queryFilter.ToMongoFilter());
+            //}
 
-            var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
+            //if (metaAction != null)
+            //{
+            //    var metaFilter = new TMetaSearch();
+            //    metaAction.Invoke(metaFilter);
+            //    filters.Add(metaFilter.ToMongoFilter<T>());
+            //}
+
+            //var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
 
             var collection = connection.Collection;
             var result = await collection.DeleteManyAsync(combinedFilter, cancellationToken);
@@ -320,6 +322,7 @@ namespace MongoObject.Core.Services
             {
                 if (doc != null && doc.Document != null)
                 {
+                    
                     // we need to set it the key here as well, because the memory cache
                     // can hold references between scopes
                     keyManager.SetKey(doc);
@@ -328,19 +331,35 @@ namespace MongoObject.Core.Services
             }
 
             var collection = connection.Collection;
-            // the his purely base line code
             
             var keyFilter = Builders<MongoDocument<T>>.Filter.Eq("_id", key);
             var result = await collection.FindAsync<MongoDocument<T>>(keyFilter, null, cancellationToken);
 
             var mongoDoc = await result.FirstOrDefaultAsync();
 
-            if (mongoDoc != null && mongoDoc.Document != null)
+            if (mongoDoc != null && mongoDoc.Contains("Document"))
             {
-                keyManager.SetKey(mongoDoc);
+                long version = 0;
+                if (mongoDoc.TryGetValue("Metadata", out var metadataNode) &&
+                    metadataNode.AsBsonDocument.TryGetValue("Version", out var versionNode))
+                {
+                    version = versionNode.AsInt64;
+                }
+
+                var document = BsonSerializer.Deserialize<MongoDocument<T>>(mongoDoc) ?? throw new Exception("Invalid item type returned");
+
+                document.Document!.Version = version;
+
+                if (isTrackable)
+                {
+                    ((IDocumentFileInternal)document.Document!).TrackChanges();
+                }
+                keyManager.SetKey(document);
+                cache.Add<T>(document.Id, mongoDoc, cacheOptions);
+                return document.Document;
             }
 
-            return result.FirstOrDefault().Document;
+            return null;
         }
 
         public async Task<DeleteResult> DeleteDocument(T document, CancellationToken cancellationToken = default)
@@ -371,8 +390,8 @@ namespace MongoObject.Core.Services
             var keyFilter = Builders<MongoDocument<T>>.Filter
                 .And(
                     Builders<MongoDocument<T>>.Filter.Eq("_id", key),
-                    Builders<MongoDocument<T>>.Filter.Eq("Metadata.Version", document.Version
-                    ));
+                    Builders<MongoDocument<T>>.Filter.Eq("Metadata.Version", new BsonInt64(document.Version))
+                    );
 
             switch (capabilities.ClusterType)
             {
@@ -399,96 +418,98 @@ namespace MongoObject.Core.Services
             throw new InvalidOperationException("Invalid IDocumentFile submitted");
         }
 
-        private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithReplica(T document, IMongoLockScope? lockKey, FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline, CancellationToken cancellationToken = default)
-        {
-            if (document is IDocumentFileInternal internalDocument)
-            {
-                UpdateDefinition<MongoDocument<T>>? updates;
-                if (withPipeline)
-                {
-                    if (!internalDocument.TryGetPendingUpdatesPipeline<T>(out updates))
-                    {
-                        return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
-                    }
-                }
-                else
-                {
-                    if (!internalDocument.TryGetPendingUpdates<T>(out updates))
-                    {
-                        return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
-                    }
-                }
+        //private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithReplica(T document, IMongoLockScope? lockKey, FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline)
+        //{
+        //    if (document is IDocumentFileInternal internalDocument)
+        //    {
+        //        UpdateDefinition<MongoDocument<T>>? updates;
+        //        if (withPipeline)
+        //        {
+        //            if (!internalDocument.TryGetPendingUpdatesPipeline<T>(out updates))
+        //            {
+        //                return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
+        //            }
+        //        }
+        //        else
+        //        {
+        //            if (!internalDocument.TryGetPendingUpdates<T>(out updates))
+        //            {
+        //                return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
+        //            }
+        //        }
 
-                using var trans = await client.StartSessionAsync();
+        //        using var trans = await client.StartSessionAsync();
 
-                trans.StartTransaction();
-                try
-                {
-                    var lockData = await lockManager.IsLockedByOther(lockKey, document);
+        //        UpdateResult? changed = null;
 
-                    if (lockData)
-                    {
+        //        trans.StartTransaction();
+        //        try
+        //        {
+        //            var lockData = await lockManager.IsLockedByOther(lockKey, document);
 
-                        trans.AbortTransaction();
-                        return (flowControl: false, value: SaveChangesResult.Failed($"Document is locked"));
-                    }
+        //            if (lockData)
+        //            {
 
-                    await connection.Collection.UpdateOneAsync(keyFilter, updates);
-                    internalDocument.ClearChanges();
-                    await trans.CommitTransactionAsync();
-                }
-                catch (Exception)
-                {
-                    await trans.AbortTransactionAsync();
-                    return (flowControl: false, value: SaveChangesResult.Failed($"Saves changes failed with a mongo Error"));
-                }
-                return (flowControl: false, value: SaveChangesResult.Success);
-            }
+        //                trans.AbortTransaction();
+        //                return (flowControl: false, value: SaveChangesResult.Failed($"Document is locked"));
+        //            }
 
-            return (flowControl: true, value: null);
-        }
+        //            changed = await connection.Collection.UpdateOneAsync(keyFilter, updates);
+        //            internalDocument.ClearChanges();
+        //            await trans.CommitTransactionAsync();
+        //        }
+        //        catch (Exception)
+        //        {
+        //            await trans.AbortTransactionAsync();
+        //            return (flowControl: false, value: SaveChangesResult.Failed($"Saves changes failed with a mongo Error"));
+        //        }
+        //        return (flowControl: false, value: SaveChangesResult.Success(changed));
+        //    }
 
-        private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithOutReplica(T document, IMongoLockScope? lockKey, FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline, CancellationToken cancellationToken = default)
-        {
-            if (document is IDocumentFileInternal internalDocument)
-            {
-                UpdateDefinition<MongoDocument<T>>? updates;
-                if (withPipeline)
-                {
-                    if (!internalDocument.TryGetPendingUpdatesPipeline<T>(out updates))
-                    {
-                        return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
-                    }
-                }
-                else
-                {
-                    if (!internalDocument.TryGetPendingUpdates<T>(out updates))
-                    {
-                        return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
-                    }
-                }
+        //    return (flowControl: true, value: null);
+        //}
 
-                try
-                {
-                    var lockData = await lockManager.IsLockedByOther(lockKey, document);
+        //private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithOutReplica(T document, IMongoLockScope? lockKey, FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline)
+        //{
+        //    if (document is IDocumentFileInternal internalDocument)
+        //    {
+        //        UpdateDefinition<MongoDocument<T>>? updates;
+        //        if (withPipeline)
+        //        {
+        //            if (!internalDocument.TryGetPendingUpdatesPipeline<T>(out updates))
+        //            {
+        //                return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
+        //            }
+        //        }
+        //        else
+        //        {
+        //            if (!internalDocument.TryGetPendingUpdates<T>(out updates))
+        //            {
+        //                return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
+        //            }
+        //        }
+        //        UpdateResult? changed = null;
+        //        try
+        //        {
+        //            var lockData = await lockManager.IsLockedByOther(lockKey, document);
 
-                    if (lockData)
-                    {
-                        return (flowControl: false, value: SaveChangesResult.Failed($"Document is locked"));
-                    }
+        //            if (lockData)
+        //            {
+        //                return (flowControl: false, value: SaveChangesResult.Failed($"Document is locked"));
+        //            }
 
-                    await connection.Collection.UpdateOneAsync(keyFilter, updates);
-                    internalDocument.ClearChanges();
-                }
-                catch (Exception)
-                {
-                    return (flowControl: false, value: SaveChangesResult.Failed($"Saves changes failed with a mongo Error"));
-                }
-                return (flowControl: false, value: SaveChangesResult.Success);
-            }
+        //            changed = await connection.Collection.UpdateOneAsync(keyFilter, updates);
+        //            internalDocument.ClearChanges();
+        //        }
+        //        catch (Exception)
+        //        {
+        //            return (flowControl: false, value: SaveChangesResult.Failed($"Saves changes failed with a mongo Error"));
+        //        }
+        //        return (flowControl: false, value: SaveChangesResult.Success(changed));
+        //    }
 
-            return (flowControl: true, value: null);
-        }
+        //    return (flowControl: true, value: null);
+        //}
 
         public async Task<SaveChangesResult> UpdateDocument<TMetaSearch>(T document, Action<TMetaSearch> metadata, IMongoLockScope? lockKey = null)
             where TMetaSearch : class, IMetadataSearchBase, new()
@@ -536,6 +557,106 @@ namespace MongoObject.Core.Services
         {
             var settings = collection.Database.Client.Settings;
             return settings.AutoEncryptionOptions != null;
+        }
+
+        private bool TryGetPendingUpdates(IDocumentFileInternal document, bool withPipeline,
+            out UpdateDefinition<MongoDocument<T>>? updates) =>
+            withPipeline
+                ? document.TryGetPendingUpdatesPipeline<T>(out updates)
+                : document.TryGetPendingUpdates<T>(out updates);
+
+        private async Task<SaveChangesResult> ExecuteCoreUpdate(
+            IDocumentFileInternal internalDocument,
+            T document,
+            IMongoLockScope? lockKey,
+            FilterDefinition<MongoDocument<T>> keyFilter,
+            UpdateDefinition<MongoDocument<T>> updates,
+            IClientSessionHandle? session = null)
+        {
+            if (await lockManager.IsLockedByOther(lockKey, document))
+                return SaveChangesResult.Failed("Document is locked");
+
+            var changed = session != null
+                ? await connection.Collection.UpdateOneAsync(session, keyFilter, updates)
+                : await connection.Collection.UpdateOneAsync(keyFilter, updates);
+
+            internalDocument.ClearChanges();
+            return SaveChangesResult.Success(changed);
+        }
+
+        private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithReplica(
+            T document, IMongoLockScope? lockKey,
+            FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline)
+        {
+            if (document is not IDocumentFileInternal internalDocument)
+                return (flowControl: true, value: null);
+
+            if (!TryGetPendingUpdates(internalDocument, withPipeline, out var updates))
+                return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
+
+            using var session = await client.StartSessionAsync();
+            session.StartTransaction();
+            try
+            {
+                var result = await ExecuteCoreUpdate(internalDocument, document, lockKey, keyFilter, updates!, session);
+
+                if (result.SuccessResult)
+                    await session.CommitTransactionAsync();
+                else
+                    await session.AbortTransactionAsync();
+
+                return (flowControl: false, value: result);
+            }
+            catch (Exception)
+            {
+                await session.AbortTransactionAsync();
+                return (flowControl: false, value: SaveChangesResult.Failed("Saves changes failed with a mongo Error"));
+            }
+        }
+
+        private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithOutReplica(
+            T document, IMongoLockScope? lockKey,
+            FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline)
+        {
+            if (document is not IDocumentFileInternal internalDocument)
+                return (flowControl: true, value: null);
+
+            if (!TryGetPendingUpdates(internalDocument, withPipeline, out var updates))
+                return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
+
+            try
+            {
+                return (flowControl: false, value: await ExecuteCoreUpdate(internalDocument, document, lockKey, keyFilter, updates!));
+            }
+            catch (Exception)
+            {
+                return (flowControl: false, value: SaveChangesResult.Failed("Saves changes failed with a mongo Error"));
+            }
+        }
+
+        private FilterDefinition<MongoDocument<T>> BuildCombinedFilter<TClassSearch, TMetaSearch>(
+            Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction)
+            where TClassSearch : class, IClassSearch<T>, new()
+            where TMetaSearch : class, IMetadataSearchBase, new()
+        {
+            var builder = Builders<MongoDocument<T>>.Filter;
+            var filters = new List<FilterDefinition<MongoDocument<T>>>();
+
+            if (queryAction != null)
+            {
+                var queryFilter = new TClassSearch();
+                queryAction.Invoke(queryFilter);
+                filters.Add(queryFilter.ToMongoFilter());
+            }
+
+            if (metaAction != null)
+            {
+                var metaFilter = new TMetaSearch();
+                metaAction.Invoke(metaFilter);
+                filters.Add(metaFilter.ToMongoFilter<T>());
+            }
+
+            return filters.Count == 0 ? builder.Empty : builder.And(filters);
         }
     }
 }
