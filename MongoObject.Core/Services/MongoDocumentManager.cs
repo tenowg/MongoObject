@@ -19,6 +19,8 @@ namespace MongoObject.Core.Services
                                            MongoObjectOptions options)
         where T : class, IDocumentFile, new()
     {
+        private bool? _encrypted = null;
+
         private readonly MemoryCacheEntryOptions cacheOptions = new()
         {
             AbsoluteExpirationRelativeToNow = options.CacheHardDuration,
@@ -117,24 +119,6 @@ namespace MongoObject.Core.Services
             where TMetaSearch : class, IMetadataSearchBase, new()
         {
             var combinedFilter = BuildCombinedFilter(queryAction, metaAction);
-            //var builder = Builders<MongoDocument<T>>.Filter;
-            //var filters = new List<FilterDefinition<MongoDocument<T>>>();
-
-            //if (queryAction != null)
-            //{
-            //    var queryFilter = new TClassSearch();
-            //    queryAction.Invoke(queryFilter);
-            //    filters.Add(queryFilter.ToMongoFilter());
-            //}
-
-            //if (metaAction != null)
-            //{
-            //    var metaFilter = new TMetaSearch();
-            //    metaAction.Invoke(metaFilter);
-            //    filters.Add(metaFilter.ToMongoFilter<T>());
-            //}
-
-            //var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
 
             var collection = connection.Collection;
             var results = await collection.Find(combinedFilter)
@@ -180,8 +164,6 @@ namespace MongoObject.Core.Services
             where TMetaSearch : class, IMetadataSearchBase, new()
             where TProjection : class, IProjectionBase<T, TProjection>, new()
         {
-            //ProcessFiltersAndProjection(queryAction, metaAction, projection, out FilterDefinition<MongoDocument<T>> combinedFilter, out IMongoCollection<MongoDocument<T>> collection, out ProjectionDefinition<MongoDocument<T>, TProjection> projectionDefinition);
-
             var combinedFilter = BuildCombinedFilter(queryAction, metaAction);
             var projectionDefinition = projection.ToMongoProjection();
 
@@ -297,24 +279,6 @@ namespace MongoObject.Core.Services
         {
 
             var combinedFilter = BuildCombinedFilter(queryAction, metaAction);
-            //var builder = Builders<MongoDocument<T>>.Filter;
-            //var filters = new List<FilterDefinition<MongoDocument<T>>>();
-
-            //if (queryAction != null)
-            //{
-            //    var queryFilter = new TClassSearch();
-            //    queryAction.Invoke(queryFilter);
-            //    filters.Add(queryFilter.ToMongoFilter());
-            //}
-
-            //if (metaAction != null)
-            //{
-            //    var metaFilter = new TMetaSearch();
-            //    metaAction.Invoke(metaFilter);
-            //    filters.Add(metaFilter.ToMongoFilter<T>());
-            //}
-
-            //var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
 
             var collection = connection.Collection;
             var result = await connection.Collection.DeleteManyAsync(combinedFilter, cancellationToken);
@@ -398,7 +362,17 @@ namespace MongoObject.Core.Services
                     Builders<MongoDocument<T>>.Filter.Eq("_id", key),
                     Builders<MongoDocument<T>>.Filter.Eq("Metadata.Version", new BsonInt64(document.Version))
                     );
+            var value = await CapabilityCheck(document, lockKey, keyFilter);
+            if (value is not null)
+            {
+                return value;
+            }
 
+            throw new InvalidOperationException("Invalid IDocumentFile submitted");
+        }
+
+        private async Task<SaveChangesResult?> CapabilityCheck(T document, IMongoLockScope? lockKey, FilterDefinition<MongoDocument<T>> keyFilter)
+        {
             switch (capabilities.ClusterType)
             {
                 case ClusterType.ReplicaSet:
@@ -408,7 +382,6 @@ namespace MongoObject.Core.Services
                     if (!flowControl && value != null)
                     {
                         return value;
-                    }
                     break;
                 case ClusterType.Unknown:
                 case ClusterType.Standalone:
@@ -416,106 +389,12 @@ namespace MongoObject.Core.Services
                     if (!flowControl2 && value2 != null)
                     {
                         return value2;
-                    }
                     break;
                 default: throw new InvalidOperationException("Unknown ClusterType please report for a fix");
             }
 
-            throw new InvalidOperationException("Invalid IDocumentFile submitted");
+            return null;
         }
-
-        //private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithReplica(T document, IMongoLockScope? lockKey, FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline)
-        //{
-        //    if (document is IDocumentFileInternal internalDocument)
-        //    {
-        //        UpdateDefinition<MongoDocument<T>>? updates;
-        //        if (withPipeline)
-        //        {
-        //            if (!internalDocument.TryGetPendingUpdatesPipeline<T>(out updates))
-        //            {
-        //                return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
-        //            }
-        //        }
-        //        else
-        //        {
-        //            if (!internalDocument.TryGetPendingUpdates<T>(out updates))
-        //            {
-        //                return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
-        //            }
-        //        }
-
-        //        using var trans = await client.StartSessionAsync();
-
-        //        UpdateResult? changed = null;
-
-        //        trans.StartTransaction();
-        //        try
-        //        {
-        //            var lockData = await lockManager.IsLockedByOther(lockKey, document);
-
-        //            if (lockData)
-        //            {
-
-        //                trans.AbortTransaction();
-        //                return (flowControl: false, value: SaveChangesResult.Failed($"Document is locked"));
-        //            }
-
-        //            changed = await connection.Collection.UpdateOneAsync(keyFilter, updates);
-        //            internalDocument.ClearChanges();
-        //            await trans.CommitTransactionAsync();
-        //        }
-        //        catch (Exception)
-        //        {
-        //            await trans.AbortTransactionAsync();
-        //            return (flowControl: false, value: SaveChangesResult.Failed($"Saves changes failed with a mongo Error"));
-        //        }
-        //        return (flowControl: false, value: SaveChangesResult.Success(changed));
-        //    }
-
-        //    return (flowControl: true, value: null);
-        //}
-
-        //private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithOutReplica(T document, IMongoLockScope? lockKey, FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline)
-        //{
-        //    if (document is IDocumentFileInternal internalDocument)
-        //    {
-        //        UpdateDefinition<MongoDocument<T>>? updates;
-        //        if (withPipeline)
-        //        {
-        //            if (!internalDocument.TryGetPendingUpdatesPipeline<T>(out updates))
-        //            {
-        //                return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
-        //            }
-        //        }
-        //        else
-        //        {
-        //            if (!internalDocument.TryGetPendingUpdates<T>(out updates))
-        //            {
-        //                return (flowControl: false, value: SaveChangesResult.Failed("Cannot update when no changes Found"));
-        //            }
-        //        }
-        //        UpdateResult? changed = null;
-        //        try
-        //        {
-        //            var lockData = await lockManager.IsLockedByOther(lockKey, document);
-
-        //            if (lockData)
-        //            {
-        //                return (flowControl: false, value: SaveChangesResult.Failed($"Document is locked"));
-        //            }
-
-        //            changed = await connection.Collection.UpdateOneAsync(keyFilter, updates);
-        //            internalDocument.ClearChanges();
-        //        }
-        //        catch (Exception)
-        //        {
-        //            return (flowControl: false, value: SaveChangesResult.Failed($"Saves changes failed with a mongo Error"));
-        //        }
-        //        return (flowControl: false, value: SaveChangesResult.Success(changed));
-        //    }
-
-        //    return (flowControl: true, value: null);
-        //}
 
         public async Task<SaveChangesResult> UpdateDocument<TMetaSearch>(T document, Action<TMetaSearch> metadata, IMongoLockScope? lockKey = null)
             where TMetaSearch : class, IMetadataSearchBase, new()
@@ -527,27 +406,9 @@ namespace MongoObject.Core.Services
             queryMeta.Version = document.Version;
             var filter = queryMeta.ToMongoFilter<T>();
 
-            switch (capabilities.ClusterType)
-            {
-                case ClusterType.ReplicaSet:
-                case ClusterType.LoadBalanced:
-                case ClusterType.Sharded:
-                    (bool flowControl, SaveChangesResult? value) = await UpdateWithReplica(document, lockKey, filter, !IsCollectionEncrypted(connection.Collection));
-                    if (!flowControl && value != null)
-                    {
-                        return value;
-                    }
-                    break;
-                case ClusterType.Unknown:
-                case ClusterType.Standalone:
-                    (bool flowControl2, SaveChangesResult? value2) = await UpdateWithOutReplica(document, lockKey, filter, !IsCollectionEncrypted(connection.Collection));
-                    if (!flowControl2 && value2 != null)
-                    {
-                        return value2;
-                    }
-                    break;
-                default: throw new InvalidOperationException("Unknown ClusterType please report for a fix");
-            }
+            var value = await CapabilityCheck(document, lockKey, filter);
+            if (value is not null)
+                return value;
 
             throw new InvalidOperationException("Invalid metadata or Document was supplied for Update");
         }
@@ -559,10 +420,16 @@ namespace MongoObject.Core.Services
             return key;
         }
 
-        public static bool IsCollectionEncrypted(IMongoCollection<MongoDocument<T>> collection)
+        public bool IsCollectionEncrypted(IMongoCollection<MongoDocument<T>> collection)
         {
+            if (_encrypted is not null)
+            {
+                return _encrypted.Value;
+            }
+            
             var settings = collection.Database.Client.Settings;
-            return settings.AutoEncryptionOptions != null;
+            _encrypted = settings.AutoEncryptionOptions != null;
+            return _encrypted.Value;
         }
 
         private bool TryGetPendingUpdates(IDocumentFileInternal document, bool withPipeline,
