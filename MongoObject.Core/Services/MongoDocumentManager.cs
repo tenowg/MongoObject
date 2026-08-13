@@ -27,7 +27,7 @@ namespace MongoObject.Core.Services
         private bool isTrackable = typeof(IDocumentFileInternal).IsAssignableFrom(typeof(T));
         private string cacheKeyBase = cache.PrebuildKey<T>();
 
-        public async Task<string> AddDocument<TMetaBase>(T document, Action<TMetaBase>? action)
+        public async Task<string> AddDocument<TMetaBase>(T document, Action<TMetaBase>? action, CancellationToken cancellationToken = default)
             where TMetaBase : class, IMetadataBase, new()
         {
             var meta = new TMetaBase
@@ -48,7 +48,7 @@ namespace MongoObject.Core.Services
             
             try
             {
-                await collection.InsertOneAsync(mongoDocument);
+                await collection.InsertOneAsync(mongoDocument, null, cancellationToken);
             } catch
             {
                 throw;
@@ -61,7 +61,7 @@ namespace MongoObject.Core.Services
             return key;
         }
 
-        public async Task<IEnumerable<T>> ClassSearch<TClassSearch>(Action<TClassSearch> action) where TClassSearch : class, IClassSearch<T>, new()
+        public async Task<IEnumerable<T>> ClassSearch<TClassSearch>(Action<TClassSearch> action, CancellationToken cancellationToken = default) where TClassSearch : class, IClassSearch<T>, new()
         {
             var filter = new TClassSearch();
             action.Invoke(filter);
@@ -70,7 +70,7 @@ namespace MongoObject.Core.Services
 
             var collection = connection.Collection;
 
-            var results = await collection.FindAsync(query);
+            var results = await collection.FindAsync(query, null, cancellationToken);
             var items = await results.ToListAsync();
 
             List<T> result = new List<T>();
@@ -90,7 +90,7 @@ namespace MongoObject.Core.Services
             return result;
         }
 
-        public async Task<IEnumerable<T>> MetadataSearch<TMetaSearch>(Action<TMetaSearch> action)
+        public async Task<IEnumerable<T>> MetadataSearch<TMetaSearch>(Action<TMetaSearch> action, CancellationToken cancellationToken = default)
             where TMetaSearch : class, IMetadataSearchBase, new()
         {
             var queryMeta = new TMetaSearch();
@@ -119,7 +119,7 @@ namespace MongoObject.Core.Services
             return results;
         }
 
-        public async Task<IEnumerable<T>> CombinedSearch<TClassSearch, TMetaSearch>(Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, int limit = 0, int skip = 0)
+        public async Task<IEnumerable<T>> CombinedSearch<TClassSearch, TMetaSearch>(Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, SortDefinition<MongoDocument<T>>? sort = null, int limit = 0, int skip = 0, CancellationToken cancellationToken = default)
             where TClassSearch : class, IClassSearch<T>, new()
             where TMetaSearch : class, IMetadataSearchBase, new()
         {
@@ -144,6 +144,7 @@ namespace MongoObject.Core.Services
 
             var collection = connection.Collection;
             var results = await collection.Find(combinedFilter)
+                .Sort(sort)
                 .Limit(limit)
                 .Skip(skip)
                 .As<BsonDocument>()
@@ -182,7 +183,7 @@ namespace MongoObject.Core.Services
         }
 
         public async Task<IEnumerable<TProjection>> SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(
-            Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, TProjection projection, int limit = 0, int skip = 0)
+            Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, TProjection projection, SortDefinition<MongoDocument<T>>? sort = null, int limit = 0, int skip = 0, CancellationToken cancellationToken = default)
             where TClassSearch : class, IClassSearch<T>, new()
             where TMetaSearch : class, IMetadataSearchBase, new()
             where TProjection : class, IProjectionBase<T, TProjection>, new()
@@ -190,17 +191,18 @@ namespace MongoObject.Core.Services
             ProcessFiltersAndProjection(queryAction, metaAction, projection, out FilterDefinition<MongoDocument<T>> combinedFilter, out IMongoCollection<MongoDocument<T>> collection, out ProjectionDefinition<MongoDocument<T>, TProjection> projectionDefinition);
 
             var results = await collection.Find(combinedFilter)
+                .Sort(sort)
                 .Project(projectionDefinition)
                 .Skip(skip)
                 .Limit(limit)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
 
             // Cast results to TProjection - the projection expression creates TProjection instances
             return results.Cast<TProjection>();
         }
 
         public async Task<IEnumerable<TProjection>> SearchWithVector<TClassSearch, TMetaSearch, TProjection>(
-            Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, TProjection projection, string index, string embeddingName, float[] embedding, int limit, int skip, int returnCount, int conciderFrom)
+            Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, TProjection projection, string index, string embeddingName, float[] embedding, int limit, int skip, int returnCount, int conciderFrom, CancellationToken cancellationToken = default)
             where TClassSearch : class, IClassSearch<T>, new()
             where TMetaSearch : class, IMetadataSearchBase, new()
             where TProjection : class, IProjectionBase<T, TProjection>, new()
@@ -220,14 +222,14 @@ namespace MongoObject.Core.Services
                 .VectorSearch(embeddingName, embedding, returnCount, options)
                 .Project(projectionDefinition);
 
-            var results = await collection.Aggregate(pipeline).ToListAsync();
+            var results = await collection.Aggregate(pipeline, null, cancellationToken).ToListAsync(cancellationToken);
 
             // Cast results to TProjection - the projection expression creates TProjection instances
             return results.Cast<TProjection>();
         }
 
         public async Task<IEnumerable<TProjection>> SearchWithAutoVector<TClassSearch, TMetaSearch, TProjection, TField>(
-            Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, TProjection projection, string index, Expression<Func<MongoDocument<T>, TField>> embeddingName, string embedding, int limit, int skip, int returnCount, int conciderFrom)
+            Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, TProjection projection, string index, Expression<Func<MongoDocument<T>, TField>> embeddingName, string embedding, int limit, int skip, int returnCount, int conciderFrom, CancellationToken cancellationToken = default)
             where TClassSearch : class, IClassSearch<T>, new()
             where TMetaSearch : class, IMetadataSearchBase, new()
             where TProjection : class, IProjectionBase<T, TProjection>, new()
@@ -247,7 +249,7 @@ namespace MongoObject.Core.Services
                 .VectorSearch(embeddingName, embedding, returnCount, options)
                 .Project(projectionDefinition);
 
-            var results = await collection.Aggregate(pipeline).ToListAsync();
+            var results = await collection.Aggregate(pipeline, null, cancellationToken).ToListAsync();
 
             // Cast results to TProjection - the projection expression creates TProjection instances
             return results.Cast<TProjection>();
@@ -282,7 +284,7 @@ namespace MongoObject.Core.Services
             projectionDefinition = projection.ToMongoProjection();
         }
 
-        public async Task<long> DeleteMany<TClassSearch, TMetaSearch>(Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction)
+        public async Task<long> DeleteMany<TClassSearch, TMetaSearch>(Action<TClassSearch>? queryAction, Action<TMetaSearch>? metaAction, CancellationToken cancellationToken = default)
             where TClassSearch : class, IClassSearch<T>, new()
             where TMetaSearch : class, IMetadataSearchBase, new()
         {
@@ -306,12 +308,12 @@ namespace MongoObject.Core.Services
             var combinedFilter = filters.Count == 0 ? builder.Empty : builder.And(filters);
 
             var collection = connection.Collection;
-            var result = await collection.DeleteManyAsync(combinedFilter);
+            var result = await collection.DeleteManyAsync(combinedFilter, cancellationToken);
 
             return result.DeletedCount;
         }
 
-        public async Task<T?> GetDocument(string key)
+        public async Task<T?> GetDocument(string key, CancellationToken cancellationToken = default)
         {
             // firat see if document is in cache
             if (cache.TryGet<T>(key, out MongoDocument<T>? doc))
@@ -329,7 +331,7 @@ namespace MongoObject.Core.Services
             // the his purely base line code
             
             var keyFilter = Builders<MongoDocument<T>>.Filter.Eq("_id", key);
-            var result = await collection.FindAsync<MongoDocument<T>>(keyFilter);
+            var result = await collection.FindAsync<MongoDocument<T>>(keyFilter, null, cancellationToken);
 
             var mongoDoc = await result.FirstOrDefaultAsync();
 
@@ -341,14 +343,14 @@ namespace MongoObject.Core.Services
             return result.FirstOrDefault().Document;
         }
 
-        public async Task<DeleteResult> DeleteDocument(T document)
+        public async Task<DeleteResult> DeleteDocument(T document, CancellationToken cancellationToken = default)
         {
             var key = GetKey(document) ?? throw new InvalidOperationException("Document is not being tracked. Cannot delete.");
 
             var keyFilter = Builders<MongoDocument<T>>.Filter.Eq("_id", key);
             var collection = connection.Collection;
 
-            var result = await collection.DeleteOneAsync(keyFilter);
+            var result = await collection.DeleteOneAsync(keyFilter, cancellationToken);
 
             if (result.DeletedCount >0)
             {
@@ -357,7 +359,7 @@ namespace MongoObject.Core.Services
             return result;
         }
 
-        public async Task<SaveChangesResult> UpdateDocument(T document, IMongoLockScope? lockKey = null)
+        public async Task<SaveChangesResult> UpdateDocument(T document, IMongoLockScope? lockKey = null, CancellationToken cancellationToken = default)
         {
             var key = GetKey(document);
 
@@ -377,7 +379,7 @@ namespace MongoObject.Core.Services
                 case ClusterType.ReplicaSet:
                 case ClusterType.LoadBalanced:
                 case ClusterType.Sharded:
-                    (bool flowControl, SaveChangesResult? value) = await UpdateWithReplica(document, lockKey, keyFilter, !IsCollectionEncrypted(connection.Collection));
+                    (bool flowControl, SaveChangesResult? value) = await UpdateWithReplica(document, lockKey, keyFilter, !IsCollectionEncrypted(connection.Collection), cancellationToken);
                     if (!flowControl && value != null)
                     {
                         return value;
@@ -385,7 +387,7 @@ namespace MongoObject.Core.Services
                     break;
                 case ClusterType.Unknown:
                 case ClusterType.Standalone:
-                    (bool flowControl2, SaveChangesResult? value2) = await UpdateWithOutReplica(document, lockKey, keyFilter, !IsCollectionEncrypted(connection.Collection));
+                    (bool flowControl2, SaveChangesResult? value2) = await UpdateWithOutReplica(document, lockKey, keyFilter, !IsCollectionEncrypted(connection.Collection), cancellationToken);
                     if (!flowControl2 && value2 != null)
                     {
                         return value2;
@@ -397,7 +399,7 @@ namespace MongoObject.Core.Services
             throw new InvalidOperationException("Invalid IDocumentFile submitted");
         }
 
-        private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithReplica(T document, IMongoLockScope? lockKey, FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline)
+        private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithReplica(T document, IMongoLockScope? lockKey, FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline, CancellationToken cancellationToken = default)
         {
             if (document is IDocumentFileInternal internalDocument)
             {
@@ -446,7 +448,7 @@ namespace MongoObject.Core.Services
             return (flowControl: true, value: null);
         }
 
-        private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithOutReplica(T document, IMongoLockScope? lockKey, FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline)
+        private async Task<(bool flowControl, SaveChangesResult? value)> UpdateWithOutReplica(T document, IMongoLockScope? lockKey, FilterDefinition<MongoDocument<T>> keyFilter, bool withPipeline, CancellationToken cancellationToken = default)
         {
             if (document is IDocumentFileInternal internalDocument)
             {

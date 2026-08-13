@@ -35,6 +35,8 @@ namespace MongoObject.SourceGenerator.Modules
 
             sb.AppendLine("#nullable enable");
             sb.AppendLine("// auto-generated");
+            sb.AppendLine("using MongoObject.Core.Extensions;");
+            sb.AppendLine();
             sb.AppendLine($"namespace {model.Namespace}");
             using (sb.Block())
             {
@@ -49,6 +51,7 @@ namespace MongoObject.SourceGenerator.Modules
                     sb.AppendLine($"private global::System.Action<global::{model.Namespace}.{model.Metadata.Name}Query>? _meta;");
                     sb.AppendLine($"private int _limit;");
                     sb.AppendLine($"private int _skip;");
+                    sb.AppendLine($"private List<global::MongoObject.Core.Data.SortField<global::{model.Namespace}.{model.Name}>> _sortOptions = [];");
                     sb.AppendLine();
 
                     // Constructor
@@ -76,6 +79,14 @@ namespace MongoObject.SourceGenerator.Modules
                         sb.AppendLine("_skip = skip;");
                     }
                     sb.AppendLine();
+
+                    // SortBy method
+                    sb.AppendLine($"public {model.Name}SearchBuilder SortBy(global::System.Linq.Expressions.Expression<Func<global::{model.Namespace}.{model.Name}, object>> expression, bool descending = false)");
+                    using(sb.Block())
+                    {
+                        sb.AppendLine($"_sortOptions.Add(new global::MongoObject.Core.Data.SortField<{model.Namespace}.{model.Name}>(expression, descending));");
+                        sb.AppendLine("return this;");
+                    }
 
                     // WithLimit method
                     sb.AppendLine($"public {model.Name}SearchBuilder WithLimit(int limit)");
@@ -125,7 +136,7 @@ namespace MongoObject.SourceGenerator.Modules
                         sb.AppendLine($"public {model.Name}{projection.Name}SearchBuilder With{projectionName}()");
                         using (sb.Block())
                         {
-                            sb.AppendLine($"return new {model.Name}{projection.Name}SearchBuilder(_monitor, _query, _meta, _limit, _skip);");
+                            sb.AppendLine($"return new {model.Name}{projection.Name}SearchBuilder(_monitor, _query, _meta, _sortOptions, _limit, _skip);");
                         }
                         sb.AppendLine();
                     }
@@ -142,10 +153,12 @@ namespace MongoObject.SourceGenerator.Modules
                     sb.AppendLine($"private async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<global::{model.Namespace}.{model.Name}>> ExecuteAsync()");
                     using (sb.Block())
                     {
+                        sb.AppendLine($"var sortDefinition = SortHelper.BuildSortDefinition<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>, global::{model.Namespace}.{model.Name}>(_sortOptions.ToArray());");
+
                         sb.AppendLine($"if (_monitor is global::MongoObject.Core.Interfaces.IDocumentMonitorInternal<global::{model.Namespace}.{model.Name}> internalMonitor)");
                         using (sb.Block())
                         {
-                            sb.AppendLine($"return await internalMonitor.CombinedSearch<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query>(_query, _meta, _limit, _skip);");
+                            sb.AppendLine($"return await internalMonitor.CombinedSearch<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query>(_query, _meta, sortDefinition, _limit, _skip);");
                         }
                         sb.AppendLine($"return global::System.Array.Empty<global::{model.Namespace}.{model.Name}>();");
                     }
@@ -157,11 +170,12 @@ namespace MongoObject.SourceGenerator.Modules
 
         private static void GenerateProjectionSearchBuilder(SourceProductionContext context, CommonModel model, ProjectionModel projection, System.Threading.CancellationToken ct)
         {
-            var sb = new StringBuilder(4096);
+            var sb = new IndentedStringBuilder();
             var projectionTypeName = $"{model.Name}{projection.Name}";
 
             sb.AppendLine("#nullable enable");
             sb.AppendLine("// auto-generated");
+            sb.AppendLine("using MongoObject.Core.Extensions;");
             sb.AppendLine($"namespace {model.Namespace}");
             sb.AppendLine("{");
             sb.AppendLine($"    /// <summary>");
@@ -172,8 +186,10 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"        private readonly global::MongoObject.Core.Interfaces.IDocumentMonitor<global::{model.Namespace}.{model.Name}> _monitor;");
             sb.AppendLine($"        private global::System.Action<global::{model.Namespace}.{model.Name}Query>? _query;");
             sb.AppendLine($"        private global::System.Action<global::{model.Namespace}.{model.Metadata.Name}Query>? _meta;");
+            sb.AppendLine($"        private List<global::MongoObject.Core.Data.SortField<global::{model.Namespace}.{model.Name}>> _sortOptions = [];");
             sb.AppendLine("        private int _limit;");
             sb.AppendLine("        private int _skip;");
+
 
             if (projection.Properties.Any(x => x.EnumName == "Vector" || x.EnumName == "AutoVector"))
             {
@@ -205,14 +221,17 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"            global::MongoObject.Core.Interfaces.IDocumentMonitor<global::{model.Namespace}.{model.Name}> monitor,");
             sb.AppendLine($"            global::System.Action<global::{model.Namespace}.{model.Name}Query>? query,");
             sb.AppendLine($"            global::System.Action<global::{model.Namespace}.{model.Metadata.Name}Query>? meta,");
+            sb.AppendLine($"            List<global::MongoObject.Core.Data.SortField<global::{model.Namespace}.{model.Name}>> sortOptions,");
             sb.AppendLine($"            int limit = 0,");
             sb.AppendLine($"            int skip = 0)");
+
             sb.AppendLine("        {");
             sb.AppendLine("            _monitor = monitor;");
             sb.AppendLine("            _query = query;");
             sb.AppendLine("            _meta = meta;");
             sb.AppendLine("            _limit = limit;");
             sb.AppendLine("            _skip = skip;");
+            sb.AppendLine("            _sortOptions = sortOptions;");       
             //sb.AppendLine("            _embedding = embedding;");
             sb.AppendLine("        }");
             sb.AppendLine();
@@ -224,6 +243,14 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine("            return this;");
             sb.AppendLine("        }");
             sb.AppendLine();
+
+            // SortBy method
+            sb.AppendLine($"public {projectionTypeName}SearchBuilder SortBy(global::System.Linq.Expressions.Expression<Func<global::{model.Namespace}.{model.Name}, object>> expression, bool descending = false)");
+            using (sb.Block())
+            {
+                sb.AppendLine($"_sortOptions.Add(new global::MongoObject.Core.Data.SortField<{model.Namespace}.{model.Name}>(expression, descending));");
+                sb.AppendLine("return this;");
+            }
 
             // WithLimit method
             sb.AppendLine($"        public {projectionTypeName}SearchBuilder WithLimit(int limit)");
@@ -308,6 +335,8 @@ namespace MongoObject.SourceGenerator.Modules
             // ExecuteAsync method with projection
             sb.AppendLine($"        private async global::System.Threading.Tasks.Task<global::System.Collections.Generic.IEnumerable<global::{model.Namespace}.{projectionTypeName}>> ExecuteAsync()");
             sb.AppendLine("        {");
+            sb.AppendLine($"        var sortDefinition = SortHelper.BuildSortDefinition<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>, global::{model.Namespace}.{model.Name}>(_sortOptions.ToArray());");
+
             sb.AppendLine($"            if (_monitor is global::MongoObject.Core.Interfaces.IDocumentMonitorInternal<global::{model.Namespace}.{model.Name}> internalMonitor)");
             sb.AppendLine("            {");
             sb.AppendLine($"                var projection = new global::{model.Namespace}.{projectionTypeName}();");
@@ -323,7 +352,7 @@ namespace MongoObject.SourceGenerator.Modules
             {
                 // return a call to a new method called SearchWithVector()
                 var vectorName = projection.Properties.Where(x => x.EnumName == "AutoVector").FirstOrDefault();
-                sb.AppendLine($"                 return await internalMonitor.AutoVectorSearchWithProjection<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query, global::{model.Namespace}.{projectionTypeName}, {vectorName.FullName}>(_query, _meta, projection, \"{projection.Name}\", x => x.Document.{vectorName.QueryName}, _embedding, _limit, _skip, _returnCount, _maxConsidered);");
+                sb.AppendLine($"                 return await internalMonitor.AutoVectorSearchWithProjection<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query, global::{model.Namespace}.{projectionTypeName}, {vectorName.FullName}>(_query, _meta, projection, \"{projection.Name}\", x => x.Document.{vectorName.Name}, _embedding, _limit, _skip, _returnCount, _maxConsidered);");
             }
             else if (projection.Properties.Any(x => x.EnumName == "Vector"))
             {
@@ -333,7 +362,7 @@ namespace MongoObject.SourceGenerator.Modules
             }
             else
             {
-                sb.AppendLine($"                return await internalMonitor.SearchWithProjection<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query, global::{model.Namespace}.{projectionTypeName}>(_query, _meta, projection, _limit, _skip);");
+                sb.AppendLine($"                return await internalMonitor.SearchWithProjection<global::{model.Namespace}.{model.Name}Query, global::{model.Namespace}.{model.Metadata.Name}Query, global::{model.Namespace}.{projectionTypeName}>(_query, _meta, projection, sortDefinition, _limit, _skip);");
             }
             sb.AppendLine("            }");
             sb.AppendLine($"            return global::System.Array.Empty<global::{model.Namespace}.{projectionTypeName}>();");

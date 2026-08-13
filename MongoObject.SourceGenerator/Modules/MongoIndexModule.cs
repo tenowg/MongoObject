@@ -77,7 +77,7 @@ namespace MongoObject.SourceGenerator.Modules
                                     var vectorPropName = projection.Properties.Where(x => x.EnumName == "AutoVector").FirstOrDefault();
                                     // create the vector search
                                     sb.AppendLine($"var {projection.Name}model = new global::MongoDB.Driver.CreateAutoEmbeddingVectorSearchIndexModel<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>> (");
-                                    sb.AppendLine($"    x => x.Document.{vectorPropName.QueryName},");
+                                    sb.AppendLine($"    x => x.Document.{vectorPropName.Name},");
                                     sb.AppendLine($"    \"{projection.Name}\",");
                                     sb.AppendLine($"    \"{vectorPropName.VectorModel}\"");
                                     // m => m.Runtime, m => m.Year  // Optional filter fields
