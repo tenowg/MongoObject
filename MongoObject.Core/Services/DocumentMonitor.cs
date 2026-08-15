@@ -26,7 +26,7 @@ namespace MongoObject.Core.Services
 
         public async Task<TDocument?> Get(string id, CancellationToken cancellationToken = default)
         {
-            return await documentManager.GetDocument(id, cancellationToken);
+            return await documentManager.GetDocument<NoOpSearchBase>(id, null, cancellationToken);
         }
 
         public string GetKey(TDocument document)
@@ -122,6 +122,11 @@ namespace MongoObject.Core.Services
             CancellationToken cancellationToken)
         {
             return await documentManager.SearchWithAutoVector(query, meta, projection, index, embeddingName, embedding, limit, skip, returnCount, conciderFrom, cancellationToken);
+        }
+
+        async Task<TDocument?> IDocumentMonitorInternal<TDocument>.GetById<TMetaSearch>(string id, Action<TMetaSearch>? meta, CancellationToken cancellationToken)
+        {
+            return await documentManager.GetDocument(id, meta, cancellationToken);
         }
     }
 }

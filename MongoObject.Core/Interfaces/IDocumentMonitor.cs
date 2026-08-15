@@ -26,7 +26,10 @@ namespace MongoObject.Core.Interfaces
         Task<IEnumerable<TDocument>> CombinedSearch<TClassSearch, TMetaSearch>(Action<TClassSearch>? query, Action<TMetaSearch>? meta, SortDefinition<MongoDocument<TDocument>> sort, int limit = 0, int skip = 0, CancellationToken cancellationToken = default) 
             where TClassSearch : class, IClassSearch<TDocument>, new()
             where TMetaSearch : class, IMetadataSearchBase, new();
-        
+
+        Task<TDocument?> GetById<TMetaSearch>(string id, Action<TMetaSearch>? meta, CancellationToken cancellationToken = default)
+            where TMetaSearch : class, IMetadataSearchBase, new();
+
         Task<IEnumerable<TProjection>> SearchWithProjection<TClassSearch, TMetaSearch, TProjection>(
             Action<TClassSearch>? query, Action<TMetaSearch>? meta, TProjection projection, SortDefinition<MongoDocument<TDocument>> sort, int limit = 0, int skip = 0, CancellationToken cancellationToken = default) 
             where TClassSearch : class, IClassSearch<TDocument>, new()

@@ -12,6 +12,18 @@ namespace MongoObject.Core.Interfaces
         public FilterDefinition<MongoDocument<T>> ToMongoFilter<T>() where T : class, IDocumentFile, new();
     }
 
+    internal record NoOpSearchBase : IMetadataSearchBase
+    {
+        public QueryVal<DateTime>? CreatedAt { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public QueryVal<DateTime>? LastModifiedAt { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public QueryVal<long>? Version { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        FilterDefinition<MongoDocument<T>> IMetadataSearchBase.ToMongoFilter<T>()
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     public abstract record MetadataSearch
     {
         public static FilterDefinition<TDocument> CreateFilter<TDocument, TValue>(
