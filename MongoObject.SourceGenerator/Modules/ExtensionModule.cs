@@ -36,6 +36,7 @@ namespace MongoObject.SourceGenerator.Modules
             GenerateSearchExtension(sb, model);
             GenerateAddBuilderExtension(sb, model);
             GenerateDeleteManyExtension(sb, model);
+            GenerateGetByIdExtension(sb, model);
 
             sb.AppendLine("    }");
             sb.AppendLine("}");
@@ -73,6 +74,22 @@ namespace MongoObject.SourceGenerator.Modules
             sb.AppendLine($"            return System.Array.Empty<global::{model.Namespace}.{model.Name}>();");
             sb.AppendLine("        }");
             sb.AppendLine();
+        }
+
+        private static void GenerateGetByIdExtension(StringBuilder sb, CommonModel model)
+        {
+            sb.AppendLine("        [global::System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+            sb.AppendLine($"        public static async System.Threading.Tasks.Task<global::{model.Namespace}.{model.Name}?> GetWithId(");
+            sb.AppendLine($"            this global::MongoObject.Core.Interfaces.IDocumentMonitor<global::{model.Namespace}.{model.Name}> monitor,");
+            sb.AppendLine("            string id,");
+            sb.AppendLine($"            System.Action<global::{model.Namespace}.{model.Metadata.Name}Query>? configure = null)");
+            sb.AppendLine("        {");
+            sb.AppendLine($"            if (monitor is global::MongoObject.Core.Interfaces.IDocumentMonitorInternal<global::{model.Namespace}.{model.Name}> internalMonitor)");
+            sb.AppendLine("            {");
+            sb.AppendLine($"                return await internalMonitor.GetById<global::{model.Namespace}.{model.Metadata.Name}Query>(id, configure);");
+            sb.AppendLine("            }");
+            sb.AppendLine("            return null;");
+            sb.AppendLine("        }");
         }
 
         private static void GenerateAddExtension(StringBuilder sb, CommonModel model)
