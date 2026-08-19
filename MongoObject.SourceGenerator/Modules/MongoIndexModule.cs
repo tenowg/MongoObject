@@ -30,42 +30,16 @@ namespace MongoObject.SourceGenerator.Modules
                     foreach (var model in args.models)
                     {
                         if (model == null) continue;
-                        sb.AppendLine($"var {model.Name}connection = sp.GetRequiredService<global::MongoObject.Core.Interfaces.IMongoConnection<global::{model.Namespace}.{model.Name}>>();");
-                        //if (model.Indexes.Count > 0)
-                        //{
-                        //    sb.AppendLine();
-                        //    sb.AppendLine($"var index{model.Name}Models = new List<global::MongoDB.Driver.CreateIndexModel<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>>>();");
-                        //    sb.AppendLine();
-                        //    bool? unique = false;
-                        //    string indexName = "";
-                        //    foreach (var index in model.Indexes)
-                        //    {
-                        //        indexName = index.Name;
-                        //        sb.AppendLine($"index{model.Name}Models.Add(new(global::MongoDB.Driver.Builders<global::MongoObject.Core.Data.MongoDocument<global::{model.Namespace}.{model.Name}>>.IndexKeys");
-                        //        foreach (var prop in index.Properties)
-                        //        {
-                        //            foreach (var ind in prop.Indexes)
-                        //            {
-                        //                if (ind.IndexName == index.Name)
-                        //                {
-
-                        //                    sb.AppendLine($"    .{ind.Order}(x => x.Document.{prop.Name})");
-                        //                    unique = ind.Unique;
-                        //                }
-                        //            }
-                        //        }
-                        //        sb.AppendLine($",new global::MongoDB.Driver.CreateIndexOptions {{ Name = \"{indexName}\", Unique = {unique?.ToString().ToLowerInvariant()} }}));");
-                        //        sb.AppendLine();
-                        //    }
-                        //    sb.AppendLine($"await {model.Name}connection.Collection.Indexes.CreateManyAsync(index{model.Name}Models);");
-                        //    sb.AppendLine();
-                        //}
+                        
                         // build vector index updater
+                        var vectorProjections = model.Projections.Where(x => x.Properties.Any(c => c.EnumName == "Vector" || c.EnumName == "AutoVector"));
+                        if(vectorProjections.Count() == 0) continue;
+                        sb.AppendLine($"var {model.Name}connection = sp.GetRequiredService<global::MongoObject.Core.Interfaces.IMongoConnection<global::{model.Namespace}.{model.Name}>>();");
                         sb.AppendLine($"var {model.Name}indexes = await {model.Name}connection.Collection.SearchIndexes.List().ToListAsync();");
                         // for now we are only working with vector indexes
                         sb.AppendLine($"var {model.Name}vectorIndexes = {model.Name}indexes.Where(i => i.Contains(\"type\") && i[\"type\"].AsString == \"vectorSearch\");");
                         // we need to check projections to see if there are any vectors to initialize, as thisn't called from MongoIndex attribute
-                        var vectorProjections = model.Projections.Where(x => x.Properties.Any(c => c.EnumName == "Vector" || c.EnumName == "AutoVector"));
+                        
                         foreach (var projection in vectorProjections)
                         {
 
