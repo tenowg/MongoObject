@@ -7,6 +7,7 @@ using MongoObject.Core.Data;
 using MongoObject.Core.Interfaces;
 using MongoOptions.Services;
 using System.Linq.Expressions;
+using System.Reflection.Metadata;
 
 namespace MongoObject.Core.Services
 {
@@ -265,7 +266,10 @@ namespace MongoObject.Core.Services
             {
                 if (doc != null && doc.Document != null)
                 {
-
+                    if (isTrackable)
+                    {
+                        ((IDocumentFileInternal)doc.Document!).TrackChanges();
+                    }
                     // we need to set it the key here as well, because the memory cache
                     // can hold references between scopes
                     keyManager.SetKey(doc);
