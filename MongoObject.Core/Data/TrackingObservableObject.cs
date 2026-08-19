@@ -38,7 +38,7 @@ namespace MongoObject.Core.Data
             }
         }
 
-        protected bool SetField<T>(ref T field, T value, bool notify = true, [CallerMemberName] string? propertyName = null)
+        protected bool SetField<T>(ref T field, T value, string queryName, bool notify = true, [CallerMemberName] string? propertyName = null)
         {
             if (EqualityComparer<T>.Default.Equals(field, value)) return false;
 
@@ -47,13 +47,13 @@ namespace MongoObject.Core.Data
             if (value is TrackingObservableObject observable)
             {
                 observable.ParentName = propertyName ?? string.Empty;
-                observable.TrackChanges(this, Tracking, propertyName ?? string.Empty);
+                observable.TrackChanges(this, Tracking, queryName ?? string.Empty);
                 notify = false;
             }
             
             if (notify)
             {
-                OnPropertyChanged(value, $"{(string.IsNullOrEmpty(ParentName) ? string.Empty : ParentName + ".")}{propertyName}");
+                OnPropertyChanged(value, $"{(string.IsNullOrEmpty(ParentName) ? string.Empty : ParentName + ".")}{queryName}");
             }
             return true;
         }

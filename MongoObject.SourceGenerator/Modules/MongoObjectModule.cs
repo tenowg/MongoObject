@@ -66,7 +66,7 @@ namespace MongoObject.SourceGenerator.Modules
                 sb.AppendLine("            }");
                 sb.AppendLine("            set");
                 sb.AppendLine("            {");
-                sb.AppendLine("                SetField(ref field, value);");
+                sb.AppendLine($"                SetField(ref field, value, \"{prop.QueryName}\");");
                 sb.AppendLine("            }");
                 sb.AppendLine("        }");
             }
@@ -94,13 +94,13 @@ namespace MongoObject.SourceGenerator.Modules
                 {
                     // Trackable property - call TrackChanges on it
                     sb.AppendLine($"                if ({prop.Name} != null)");
-                    sb.AppendLine($"                    {prop.Name}.TrackChanges(this, this.Tracking, \"{prop.Name}\");");
+                    sb.AppendLine($"                    {prop.Name}.TrackChanges(this, this.Tracking, \"{prop.QueryName}\");");
                 }
                 else if (prop.IsComplexUntrackedClass)
                 {
                     // Complex untracked class - call OnPropertyChanged
                     sb.AppendLine($"                if ({prop.Name} != null)");
-                    sb.AppendLine($"                    OnPropertyChanged({prop.Name}, $\"{{ParentName}}.{prop.Name}\");");
+                    sb.AppendLine($"                    OnPropertyChanged({prop.Name}, $\"{{ParentName}}.{prop.QueryName}\");");
                 }
             }
 
