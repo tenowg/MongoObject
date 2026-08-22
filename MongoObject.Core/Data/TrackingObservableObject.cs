@@ -2,6 +2,7 @@
 using MongoDB.Driver;
 using MongoObject.Core.Interfaces;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -12,7 +13,7 @@ namespace MongoObject.Core.Data
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         private readonly Dictionary<string, object?> _changes = [];
-        private readonly Dictionary<string, BsonDocument> _potentialChanges = [];
+        private readonly Dictionary<string, BsonValue> _potentialChanges = [];
 
         protected string ParentName { get; set; } = string.Empty;
         protected bool Tracking { get; set; }
@@ -24,17 +25,9 @@ namespace MongoObject.Core.Data
 
         protected void RegisterPossibleChange<T>(ref T? property, [CallerMemberName] string? propertyName = null)
         {
-            if (propertyName is not null && property is not TrackingObservableObject observable)
+            if (propertyName is not null && property is not TrackingObservableObject)
             {
-                if (property is IEnumerable enumerableValues && property is not IDictionary)
-                {
-                    var bson = new BsonDocument();
-                    _potentialChanges.TryAdd(propertyName, bson.Add(propertyName, new BsonArray(enumerableValues)));
-                }
-                else
-                {
-                    _potentialChanges.TryAdd(propertyName!, property.ToBsonDocument());
-                }
+                _potentialChanges.TryAdd(propertyName, GenerateBsonSnapshot(property));
             }
         }
 
@@ -102,33 +95,41 @@ namespace MongoObject.Core.Data
 
             foreach (var property in properties)
             {
-                if (typeof(TrackingObservableObject).IsAssignableFrom(property.PropertyType))
+                var field = property.GetValue(this);
+                if (field is TrackingObservableObject tracker)
                 {
-                    var value = property.GetValue(this);
-                    if (value is TrackingObservableObject tracker) tracker.ProcessPossibleChanges();
+                    tracker.ProcessPossibleChanges();
+                    continue; // Move to the next property
                 }
-                else
+
+                if (_potentialChanges.TryGetValue(property.Name, out var oldValue))
                 {
-                    if (_potentialChanges.TryGetValue(property.Name, out var value))
+                    //var field = property.GetValue(this);
+                    var newValue = GenerateBsonSnapshot(field);
+                    if (newValue != oldValue)
                     {
-                        var field = property.GetValue(this);
-                        BsonDocument bson = [];
-                        if (field is IEnumerable enumerableValues && field is not IDictionary)
-                        {
-                            bson = bson.Add(property.Name, new BsonArray(enumerableValues));
-                        }
-                        else
-                        {
-                            bson = field.ToBsonDocument();
-                        }
-                            
-                        if (bson != value)
-                        {
-                            OnPropertyChanged(field, $"{(string.IsNullOrEmpty(ParentName) ? string.Empty : ParentName + ".")}{property.Name}");
-                        }
+                        OnPropertyChanged(field, $"{(string.IsNullOrEmpty(ParentName) ? string.Empty : ParentName + ".")}{property.Name}");
                     }
                 }
             }
+        }
+
+        private BsonValue GenerateBsonSnapshot(object? field)
+        {
+            if (field == null) return BsonNull.Value;
+
+            if (BsonTypeMapper.TryMapToBsonValue(field, out var mappedValue))
+            {
+                return mappedValue;
+            }
+
+            if (field is IEnumerable enumerableValues && field is not IDictionary)
+            {
+                var wrapper = new { Items = enumerableValues };
+                return wrapper.ToBsonDocument()["Items"].AsBsonArray;
+            }
+
+            return field.ToBsonDocument();
         }
 
         public bool TryGetPendingUpdatesPipeline<T>(out UpdateDefinition<MongoDocument<T>>? update) where T : class, IDocumentFile, new()
