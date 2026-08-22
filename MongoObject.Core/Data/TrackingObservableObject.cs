@@ -2,6 +2,7 @@
 using MongoDB.Driver;
 using MongoObject.Core.Interfaces;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -12,7 +13,7 @@ namespace MongoObject.Core.Data
     {
         public event PropertyChangedEventHandler? PropertyChanged;
         private readonly Dictionary<string, object?> _changes = [];
-        private readonly Dictionary<string, BsonDocument> _potentialChanges = [];
+        private readonly Dictionary<string, BsonValue> _potentialChanges = [];
 
         protected string ParentName { get; set; } = string.Empty;
         protected bool Tracking { get; set; }
@@ -24,17 +25,9 @@ namespace MongoObject.Core.Data
 
         protected void RegisterPossibleChange<T>(ref T? property, [CallerMemberName] string? propertyName = null)
         {
-            if (propertyName is not null && property is not TrackingObservableObject observable)
+            if (propertyName is not null && property is not TrackingObservableObject)
             {
-                if (property is IEnumerable enumerableValues && property is not IDictionary)
-                {
-                    var bson = new BsonDocument();
-                    _potentialChanges.TryAdd(propertyName, bson.Add(propertyName, new BsonArray(enumerableValues)));
-                }
-                else
-                {
-                    _potentialChanges.TryAdd(propertyName!, property.ToBsonDocument());
-                }
+                _potentialChanges.TryAdd(propertyName, GenerateBsonSnapshot(property));
             }
         }
 
@@ -50,7 +43,7 @@ namespace MongoObject.Core.Data
                 observable.TrackChanges(this, Tracking, queryName ?? string.Empty);
                 notify = false;
             }
-            
+
             if (notify)
             {
                 OnPropertyChanged(value, $"{(string.IsNullOrEmpty(ParentName) ? string.Empty : ParentName + ".")}{queryName}");
@@ -58,11 +51,13 @@ namespace MongoObject.Core.Data
             return true;
         }
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void SetTracking(bool tracking)
         {
             this.Tracking = tracking;
         }
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void Test_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e is not MongoChangeEventArgs mongoEvent || e.PropertyName == null) return;
@@ -81,6 +76,7 @@ namespace MongoObject.Core.Data
             }
         }
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void TrackChanges()
         {
             PropertyChanged -= Test_PropertyChanged;
@@ -89,6 +85,7 @@ namespace MongoObject.Core.Data
             Tracking = true;
         }
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public abstract void TrackChanges(TrackingObservableObject observable, bool isTracking, string parentName);
 
         public void ClearChanges()
@@ -102,35 +99,44 @@ namespace MongoObject.Core.Data
 
             foreach (var property in properties)
             {
-                if (typeof(TrackingObservableObject).IsAssignableFrom(property.PropertyType))
+                var field = property.GetValue(this);
+                if (field is TrackingObservableObject tracker)
                 {
-                    var value = property.GetValue(this);
-                    if (value is TrackingObservableObject tracker) tracker.ProcessPossibleChanges();
+                    tracker.ProcessPossibleChanges();
+                    continue; // Move to the next property
                 }
-                else
+
+                if (_potentialChanges.TryGetValue(property.Name, out var oldValue))
                 {
-                    if (_potentialChanges.TryGetValue(property.Name, out var value))
+                    //var field = property.GetValue(this);
+                    var newValue = GenerateBsonSnapshot(field);
+                    if (newValue != oldValue)
                     {
-                        var field = property.GetValue(this);
-                        BsonDocument bson = [];
-                        if (field is IEnumerable enumerableValues && field is not IDictionary)
-                        {
-                            bson = bson.Add(property.Name, new BsonArray(enumerableValues));
-                        }
-                        else
-                        {
-                            bson = field.ToBsonDocument();
-                        }
-                            
-                        if (bson != value)
-                        {
-                            OnPropertyChanged(field, $"{(string.IsNullOrEmpty(ParentName) ? string.Empty : ParentName + ".")}{property.Name}");
-                        }
+                        OnPropertyChanged(field, $"{(string.IsNullOrEmpty(ParentName) ? string.Empty : ParentName + ".")}{property.Name}");
                     }
                 }
             }
         }
 
+        private BsonValue GenerateBsonSnapshot(object? field)
+        {
+            if (field == null) return BsonNull.Value;
+
+            if (field is IEnumerable enumerableValues && field is not string && field is not IDictionary)
+            {
+                var wrapper = new { Items = enumerableValues };
+                return wrapper.ToBsonDocument()["Items"].AsBsonArray;
+            }
+
+            if (BsonTypeMapper.TryMapToBsonValue(field, out var mappedValue))
+            {
+                return mappedValue;
+            }
+
+            return field.ToBsonDocument();
+        }
+
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public bool TryGetPendingUpdatesPipeline<T>(out UpdateDefinition<MongoDocument<T>>? update) where T : class, IDocumentFile, new()
         {
             ProcessPossibleChanges();
@@ -149,30 +155,11 @@ namespace MongoObject.Core.Data
                 else
                 {
                     unsetFields.Remove(targetPath);
-                    if (change.Value is BsonValue bsonValue)
-                    {
-                        setFields[targetPath] = bsonValue;
-                    }
-                    else if (change.Value.GetType().IsPrimitive || change.Value is string || change.Value is Guid || change.Value is DateTime || change.Value is decimal)
-                    {
-                        setFields[targetPath] = BsonValue.Create(change.Value);
-                    }
-                    else if (change.Value is IDictionary dictValue)
-                    {
-                        setFields[targetPath] = BsonValue.Create(dictValue);
-                    }
-                    else if (change.Value is IEnumerable enumerableValues && change.Value is not IDictionary)
-                    {
-                        setFields[targetPath] = new BsonArray(enumerableValues);
-                    }
-                    else
-                    {
-                        setFields[targetPath] = change.Value.ToBsonDocument();
-                    }
+                    setFields[targetPath] = GenerateBsonSnapshot(change.Value);
                 }
             }
 
-            if (!setFields.Any())
+            if (!setFields.Any() && unsetFields.Count == 0)
             {
                 update = null;
                 return false;
@@ -215,8 +202,8 @@ namespace MongoObject.Core.Data
             return true;
         }
 
-
-    public UpdateDefinition<MongoDocument<T>> GetPendingUpdates<T>() where T : class, IDocumentFile, new()
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public UpdateDefinition<MongoDocument<T>> GetPendingUpdates<T>() where T : class, IDocumentFile, new()
         {
             {
                 var builder = Builders<MongoDocument<T>>.Update;
@@ -228,7 +215,7 @@ namespace MongoObject.Core.Data
                         if (change.Value is null)
                         {
                             {
-                                updates.Add(builder.Unset($"Document.{ change.Key}"));
+                                updates.Add(builder.Unset($"Document.{change.Key}"));
                                 continue;
                             }
                         }
@@ -241,6 +228,7 @@ namespace MongoObject.Core.Data
             }
         }
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public bool TryGetPendingUpdates<T>(out UpdateDefinition<MongoDocument<T>>? update) where T : class, IDocumentFile, new()
         {
             ProcessPossibleChanges();
@@ -274,6 +262,7 @@ namespace MongoObject.Core.Data
             return true;
         }
 
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public void Dispose()
         {
             PropertyChanged -= Test_PropertyChanged;
