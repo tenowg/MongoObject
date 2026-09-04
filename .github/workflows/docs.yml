@@ -51,7 +51,7 @@ jobs:
       run: |
         cd Docs
         docfx metadata
-        docfx build
+        docfx docfx.json
     - name: Generate LLM Index
       run: |
         TARGET_DIR="_site/llm-api"
