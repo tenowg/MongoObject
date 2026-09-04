@@ -36,6 +36,21 @@
       "namespaceLayout": "flattened",
       "memberLayout": "samePage",
       "allowCompilationErrors": false
+    },
+    {
+      "src": [
+        { 
+          "files": [
+            "**/*.csproj"
+          ], 
+          "src": "../MongoObject.Core" 
+        }
+      ],
+      "output": "_site/llm-api",
+      "includePrivateMembers": true,
+      "outputFormat": "markdown",
+      "namespaceLayout": "flattened",
+      "memberLayout": "samePage"
     }
   ],
   "build": {

@@ -52,7 +52,31 @@ jobs:
         cd Docs
         docfx metadata
         docfx build
-    
+    - name: Generate LLM Index
+      run: |
+        TARGET_DIR="_site/llm-api"
+        INDEX_FILE="$TARGET_DIR/api-index.md"
+        
+        echo "# API Reference Map for AI Agents" > "$INDEX_FILE"
+        echo "This map contains a flat directory of available APIs. Read this file first to find the exact markdown path for any class, interface, method, or namespace before parsing deeper." >> "$INDEX_FILE"
+        echo "" >> "$INDEX_FILE"
+        
+        # Find all generated markdown files (ignoring TOC files and the index itself)
+        find "$TARGET_DIR" -type f -name "*.md" ! -name "toc.md" ! -name "api-index.md" | while read -r file; do
+            # Extract the first heading line (# Title)
+            TITLE_LINE=$(grep -m 1 "^# " "$file")
+            if [ -not -z "$TITLE_LINE" ]; then
+                SYMBOL_NAME=$(echo "$TITLE_LINE" | sed 's/# //g')
+                # Get a path relative to the website root
+                RELATIVE_PATH=$(echo "$file" | sed 's|_site/||g')
+                
+                TYPE="Class/Member"
+                if [[ "$SYMBOL_NAME" == *"Namespace"* ]]; then TYPE="Namespace"; fi
+                if [[ "$file" == *"interface"* ]]; then TYPE="Interface"; fi
+                
+                echo "- **$SYMBOL_NAME** ($TYPE) -> Read details at: \`/$RELATIVE_PATH\`" >> "$INDEX_FILE"
+            fi
+        done
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
