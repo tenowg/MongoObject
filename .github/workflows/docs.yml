@@ -66,7 +66,7 @@ jobs:
         find "$TARGET_DIR" -type f -name "*.md" ! -name "toc.md" ! -name "api-index.md" | while read -r file; do
             # Extract the first heading line (# Title)
             TITLE_LINE=$(grep -m 1 "^# " "$file")
-            if [ -not -z "$TITLE_LINE" ]; then
+            if [ -n "$TITLE_LINE" ]; then
                 SYMBOL_NAME=$(echo "$TITLE_LINE" | sed 's/# //g')
                 # Get a path relative to the website root
                 RELATIVE_PATH=$(echo "$file" | sed 's|_site/||g')
