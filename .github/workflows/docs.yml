@@ -54,6 +54,7 @@ jobs:
         docfx docfx.json
     - name: Generate LLM Index
       run: |
+        cd Docs
         TARGET_DIR="_site/llm-api"
         INDEX_FILE="$TARGET_DIR/api-index.md"
         
