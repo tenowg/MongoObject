@@ -122,6 +122,17 @@ namespace MongoObject.Core.Data
         {
             if (field == null) return BsonNull.Value;
 
+            // 0. Safety check: If it's already a BsonValue, don't touch it.
+            if (field is BsonValue alreadyBson) return alreadyBson;
+
+            // 1. Intercept Dictionaries FIRST. 
+            // This stops TryMapToBsonValue from iterating and crashing on CustomClasses in values.
+            if (field is IDictionary)
+            {
+                // The BSON Serializer natively turns Dictionary<string, T> into a BsonDocument safely.
+                return field.ToBsonDocument(field.GetType());
+            }
+
             if (field is IEnumerable enumerableValues && field is not string && field is not IDictionary)
             {
                 var wrapper = new { Items = enumerableValues };
@@ -133,7 +144,7 @@ namespace MongoObject.Core.Data
                 return mappedValue;
             }
 
-            return field.ToBsonDocument();
+            return field.ToBsonDocument(field.GetType());
         }
 
         [EditorBrowsable(EditorBrowsableState.Never)]
